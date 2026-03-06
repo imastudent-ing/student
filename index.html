@@ -930,7 +930,7 @@ async function scanPast30Min(seconds) {
             🏷 追跡元: <span>${label}</span><br>
             👛 <span style="cursor:pointer;color:var(--accent)" onclick="copyText('${addr}')" title="タップでコピー">📋 ${short(addr)}</span><br>
             🪙 CA:<br>
-            <span style="color:var(--green);font-size:11px;word-break:break-all;cursor:pointer" onclick="copyText('${b.mint}')" title="タップでコピー">📋 ${b.mint}</span>
+            ${mintLabel(b.mint)}
           </div>
           <div class="ev-coin">
             <a href="${dexUrl(b.mint)}" target="_blank">DEX</a>
@@ -1020,9 +1020,20 @@ function renderCreatedList() {
 // ─────────────────────────────────────────
 // CA RANKING
 // ─────────────────────────────────────────
-const IGNORE_MINTS = new Set([
-  'So11111111111111111111111111111111111111112', // Wrapped SOL
-]);
+// mint → 表示名（既知なら名前、不明なら短縮アドレス）
+function mintLabel(mint) {
+  if (KNOWN_TOKENS[mint]) return `<span style="color:var(--gold);font-weight:bold">${KNOWN_TOKENS[mint]}</span>`;
+  return `<span style="color:var(--green);font-size:11px;word-break:break-all;cursor:pointer" onclick="copyText('${mint}')" title="タップでコピー">📋 ${mint}</span>`;
+}
+
+// ランキング除外・既知トークン名
+const KNOWN_TOKENS = {
+  'So11111111111111111111111111111111111111112': 'SOL',
+  'CASHx9KJUStyftLFWGvEVf59SGeG9sh5FfcnZMVPCASH': 'CASH',
+  'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v': 'USDC',
+  '8opvqaWysX1oYbXuTL8PHaoaTiXD69VFYAX4smPebonk': 'WAR',
+};
+const IGNORE_MINTS = new Set(Object.keys(KNOWN_TOKENS));
 
 function trackCoin(mint, type, walletAddr) {
   // CAランキングはbuyのみ
@@ -1276,7 +1287,7 @@ async function checkWatched() {
                 🏷 追跡元: <span>${info.label}</span><br>
                 👛 <span style="cursor:pointer;color:var(--accent)" onclick="copyText('${addr}')" title="タップでコピー">📋 ${short(addr)}</span><br>
                 🪙 CA:<br>
-                <span style="color:var(--green);font-size:10px;word-break:break-all;cursor:pointer" onclick="copyText('${b.mint}')" title="タップでコピー">📋 ${b.mint}</span>
+                ${mintLabel(b.mint)}
               </div>
               <div class="ev-coin">
                 <a href="${dexUrl(b.mint)}" target="_blank">DEX</a>
@@ -1301,7 +1312,7 @@ async function checkWatched() {
                 🏷 追跡元: <span>${info.label}</span><br>
                 👛 <span style="cursor:pointer;color:var(--accent)" onclick="copyText('${addr}')" title="タップでコピー">📋 ${short(addr)}</span><br>
                 🪙 CA:<br>
-                <span style="color:var(--green);font-size:10px;word-break:break-all;cursor:pointer" onclick="copyText('${b.mint}')" title="タップでコピー">📋 ${b.mint}</span><br>
+                ${mintLabel(b.mint)}<br>
                 💰 購入量: <span>${b.amount.toLocaleString(undefined,{maximumFractionDigits:0})}</span> tokens
               </div>
               <div class="ev-coin">
