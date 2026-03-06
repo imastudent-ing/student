@@ -823,6 +823,12 @@ function renderExchangeList() { renderScanTargets(); } // 後方互換
 function renderScanTargets() {
   const container = document.getElementById('scan-targets');
   if (!container) return;
+  // 旧フォーマット(string)を新フォーマットに変換
+  for (const [addr, val] of Object.entries(exchangeWallets)) {
+    if (typeof val === 'string') {
+      exchangeWallets[addr] = { name: val, enabled: true };
+    }
+  }
   const entries = Object.entries(exchangeWallets);
   container.innerHTML = entries.map(([addr, data]) => `
     <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:8px 6px;border:1px solid ${data.enabled ? 'rgba(0,229,255,.3)' : 'rgba(42,58,90,.4)'};background:${data.enabled ? 'rgba(0,229,255,.05)' : 'transparent'};border-radius:2px">
@@ -863,16 +869,17 @@ function renderCreatedList() {
     return;
   }
   list.innerHTML = createdCoins.map((c, i) => `
-    <div style="padding:8px 14px;border-bottom:1px solid rgba(15,31,58,.6);border-left:2px solid var(--gold);">
-      <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
-        <span style="font-family:'Orbitron',monospace;font-size:9px;color:var(--gold)">#${i+1}</span>
-        <span style="font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--dim)">${c.blockTime ? txTime(c.blockTime) : c.time}</span>
+    <div style="margin:6px 10px;padding:10px 12px;border:1px solid rgba(255,184,0,.3);border-left:3px solid var(--gold);background:rgba(255,184,0,.04);border-radius:2px">
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
+        <span style="font-family:'Orbitron',monospace;font-size:10px;color:var(--gold);font-weight:700">#${i+1}</span>
+        <span style="font-family:'Share Tech Mono',monospace;font-size:10px;color:#7a9abf">⏰ ${c.blockTime ? txTime(c.blockTime) : c.time}</span>
       </div>
-      <div style="font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--dim);margin-bottom:3px">${c.label}</div>
-      <div style="font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--accent);word-break:break-all;cursor:pointer;margin-bottom:5px" onclick="copyText('${c.mint}')" title="タップでコピー">📋 ${c.mint}</div>
+      <div style="font-family:'Share Tech Mono',monospace;font-size:9px;color:#4a6a9a;margin-bottom:6px">追跡元: ${c.label}</div>
+      <div style="font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--dim);margin-bottom:4px">CA:</div>
+      <div style="font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--accent);word-break:break-all;cursor:pointer;margin-bottom:8px;padding:4px 6px;background:rgba(0,0,0,.3);border:1px solid rgba(0,229,255,.2)" onclick="copyText('${c.mint}')" title="タップでコピー">📋 ${c.mint}</div>
       <div style="display:flex;gap:6px">
-        <a href="https://dexscreener.com/solana/${c.mint}" target="_blank" style="font-size:9px;color:var(--accent);padding:2px 6px;border:1px solid rgba(0,229,255,.3)">DEX</a>
-        <a href="https://pump.fun/${c.mint}" target="_blank" style="font-size:9px;color:var(--gold);padding:2px 6px;border:1px solid rgba(255,184,0,.3)">PUMP</a>
+        <a href="https://dexscreener.com/solana/${c.mint}" target="_blank" style="font-size:9px;color:var(--accent);padding:3px 8px;border:1px solid rgba(0,229,255,.3)">DEX</a>
+        <a href="https://pump.fun/${c.mint}" target="_blank" style="font-size:9px;color:var(--gold);padding:3px 8px;border:1px solid rgba(255,184,0,.3)">PUMP</a>
       </div>
     </div>
   `).join('');
@@ -882,10 +889,11 @@ function renderCreatedList() {
 // CA RANKING
 // ─────────────────────────────────────────
 function trackCoin(mint, type, walletAddr) {
-  if (!coinBuys[mint]) coinBuys[mint] = { count: 0, created: 0, lastTime: '', wallets: [] };
+  // CAランキングはbuyのみ
+  if (type !== 'buy') return;
+  if (!coinBuys[mint]) coinBuys[mint] = { count: 0, lastTime: '', wallets: [] };
   if (!coinBuys[mint].wallets) coinBuys[mint].wallets = [];
-  if (type === 'buy') coinBuys[mint].count++;
-  if (type === 'create') coinBuys[mint].created++;
+  coinBuys[mint].count++;
   if (walletAddr && !coinBuys[mint].wallets.includes(walletAddr)) {
     coinBuys[mint].wallets.push(walletAddr);
   }
@@ -896,7 +904,7 @@ function trackCoin(mint, type, walletAddr) {
 function renderRanking() {
   const list = document.getElementById('ranking-list');
   const entries = Object.entries(coinBuys)
-    .sort((a, b) => (b[1].count + b[1].created) - (a[1].count + a[1].created))
+    .sort((a, b) => b[1].count - a[1].count)
     .slice(0, 10);
   document.getElementById('rankCount').textContent = Object.keys(coinBuys).length;
   if (!entries.length) {
@@ -908,12 +916,11 @@ function renderRanking() {
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
         <span style="font-family:'Orbitron',monospace;font-size:11px;color:${i===0?'var(--gold)':i===1?'#aaa':i===2?'#cd7f32':'var(--dim)'}">#${i+1}</span>
         <span style="font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--dim)">${data.lastTime}</span>
-        <span style="margin-left:auto;font-family:'Orbitron',monospace;font-size:11px;color:var(--green)">${data.count+data.created}回</span>
+        <span style="margin-left:auto;font-family:'Orbitron',monospace;font-size:11px;color:var(--green)">${data.count}回</span>
       </div>
       <div style="font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--accent);word-break:break-all;cursor:pointer" onclick="copyText('${mint}')" title="タップでコピー">📋 ${mint}</div>
       <div style="display:flex;gap:6px;margin-top:5px">
-        ${data.created ? `<span style="font-size:9px;color:var(--gold)">🚀作成${data.created}</span>` : ''}
-        ${data.count ? `<span style="font-size:9px;color:var(--green)">🎯購入${data.count}</span>` : ''}
+        ${data.count ? `<span style="font-size:9px;color:var(--green)">🎯購入${data.count}回</span>` : ''}
         ${(data.wallets&&data.wallets.length) ? `<span style="font-size:9px;color:var(--accent)">👛${data.wallets.length}アドレス</span>` : ''}
         <a href="https://dexscreener.com/solana/${mint}" target="_blank" style="font-size:9px;color:var(--accent);margin-left:auto">DEX</a>
         <a href="https://pump.fun/${mint}" target="_blank" style="font-size:9px;color:var(--accent)">PUMP</a>
