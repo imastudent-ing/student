@@ -152,10 +152,20 @@ font-family:‘Orbitron’,monospace; font-size:9px; letter-spacing:2px; color:v
 #events-list { max-height:520px; overflow-y:auto; scrollbar-width:thin; scrollbar-color:var(–dim) transparent; }
 
 .event-item {
-padding:13px 16px; border-bottom:1px solid rgba(15,31,58,.6);
+margin:8px 10px;
+padding:12px 14px;
+border:1px solid rgba(15,31,58,.9);
+border-left:3px solid var(–accent);
+background:rgba(0,10,24,.6);
+border-radius:2px;
 animation:slideIn .35s ease-out;
 cursor:default;
 }
+.event-item.ev-type-outflow { border-left-color:var(–accent); }
+.event-item.ev-type-created  { border-left-color:var(–gold); }
+.event-item.ev-type-buy      { border-left-color:var(–green); }
+.event-item.ev-type-transfer { border-left-color:var(–accent2); }
+.event-item.ev-type-info     { border-left-color:var(–dim); }
 @keyframes slideIn { from{opacity:0;transform:translateX(-16px)} to{opacity:1;transform:none} }
 
 .ev-meta { display:flex; align-items:center; gap:8px; margin-bottom:7px; }
@@ -172,7 +182,7 @@ padding:3px 7px; letter-spacing:1px;
 .ev-time { font-family:‘Share Tech Mono’,monospace; font-size:9px; color:var(–dim); margin-left:auto; }
 
 .ev-title { font-size:14px; font-weight:600; color:#dce8f8; margin-bottom:5px; }
-.ev-detail { font-family:‘Share Tech Mono’,monospace; font-size:10px; color:var(–dim); line-height:1.7; }
+.ev-detail { font-family:‘Share Tech Mono’,monospace; font-size:10px; color:#4a6a9a; line-height:1.9; margin-top:6px; padding:8px 10px; background:rgba(0,0,0,.3); border:1px solid rgba(15,31,58,.8); }
 .ev-detail span { color:var(–text); }
 .ev-detail a { color:var(–accent); text-decoration:none; }
 .ev-detail a:hover { text-decoration:underline; }
@@ -277,7 +287,13 @@ animation:tickerRun 25s linear infinite;
   </div>
   <button class="btn green-btn" id="startBtn" onclick="toggleMonitor()">▶ START</button>
   <button class="btn red" id="clearBtn" onclick="clearAll()">✕ CLEAR</button>
-  <button class="btn" id="catchupBtn" onclick="manualCatchup()" style="border-color:var(--gold);color:var(--gold)">🔍 30MIN</button>
+  <select id="scanRange" style="background:#070c18;color:var(--gold);border:1px solid var(--gold);padding:8px 6px;font-family:monospace;font-size:10px;cursor:pointer">
+    <option value="1800">30分</option>
+    <option value="3600">1時間</option>
+    <option value="18000">5時間</option>
+    <option value="86400">24時間</option>
+  </select>
+  <button class="btn" id="catchupBtn" onclick="manualCatchup()" style="border-color:var(--gold);color:var(--gold)">🔍 SCAN</button>
 </div>
 
 <!-- GRID -->
@@ -348,6 +364,12 @@ animation:tickerRun 25s linear infinite;
   </div>
 </div>
 
+<!-- CREATED COINS -->
+<div class="panel">
+  <div class="ph"><span>🚀 CREATED COINS</span><span class="ph-count" id="createdCount">0</span></div>
+  <div id="created-list"><div class="empty" style="padding:20px 16px;font-size:10px">データなし</div></div>
+</div>
+
 <!-- CA RANKING -->
 <div class="panel">
   <div class="ph"><span>🏆 CA RANKING</span><span class="ph-count" id="rankCount">0</span></div>
@@ -394,11 +416,13 @@ animation:tickerRun 25s linear infinite;
 // BINANCE2 既知出金ウォレット（公開情報）
 // ─────────────────────────────────────────
 // 取引所ウォレット（動的に追加・削除可能） addr → 取引所名
+// exchangeWallets: addr → {name, enabled}
 let exchangeWallets = {
-  "5tzFkiKscXHK5ZXCGbXZxdw7gTjjD1mBwuoFbhUvuAi9": "Binance2"
+  "5tzFkiKscXHK5ZXCGbXZxdw7gTjjD1mBwuoFbhUvuAi9": { name: "Binance2", enabled: true },
+  "A77HErqtfN1hLLpvZ9pCtu66FEtM8BveoaKbbMoZ4RiR": { name: "Bitget Exchange",   enabled: true }
 };
-function getExchangeAddrs() { return Object.keys(exchangeWallets); }
-function isExchangeAddr(a) { return !!exchangeWallets[a]; }
+function getExchangeAddrs() { return Object.keys(exchangeWallets).filter(a => exchangeWallets[a].enabled); }
+function isExchangeAddr(a)  { return !!exchangeWallets[a]; }
 
 // ─────────────────────────────────────────
 // STATE
@@ -410,12 +434,14 @@ let monitorTimer    = null;
 let events          = [];
 let stats           = { wallets:0, detected:0, buys:0, scans:0, created:0 };
 let coinBuys        = {}; // mint → {count, lastTime}
+let createdCoins    = []; // {mint, label, time, blockTime}
 
 // ─────────────────────────────────────────
 // PERSISTENCE
 // ─────────────────────────────────────────
 function saveState() {
   try {
+    localStorage.setItem('wr_created', JSON.stringify(createdCoins));
     localStorage.setItem('wr_coinbuys', JSON.stringify(coinBuys));
     localStorage.setItem('wr_exchange', JSON.stringify(exchangeWallets));
     localStorage.setItem('wr_wallets', JSON.stringify(watchedWallets));
@@ -429,6 +455,8 @@ function saveState() {
 
 function loadState() {
   try {
+    const cr = localStorage.getItem('wr_created');
+    if (cr) createdCoins = JSON.parse(cr);
     const cb = localStorage.getItem('wr_coinbuys');
     if (cb) coinBuys = JSON.parse(cb);
     const ex = localStorage.getItem('wr_exchange');
@@ -493,17 +521,19 @@ async function getBalance(addr) {
   } catch { return 0; }
 }
 
-// 30分スキャン用：最初のTXが30分以内であればOK（TX件数制限なし）
-async function isActiveWithin30Min(addr) {
+// 過去N秒スキャン用：最初のTXがseconds以内であればOK（TX件数制限なし）
+async function isActiveWithin30Min(addr, seconds) {
+  seconds = seconds || 1800;
   try {
-    const sigs = await getSignatures(addr, 50);
+    const limit = seconds <= 3600 ? 50 : seconds <= 18000 ? 100 : 200;
+    const sigs = await getSignatures(addr, limit);
     if (!sigs || sigs.length === 0) return false;
-    // 最古のTX（配列末尾）が30分以内かチェック
+    // 最古のTX（配列末尾）がseconds以内かチェック
     const oldest = sigs[sigs.length - 1];
     const blockTime = oldest.blockTime;
     if (!blockTime) return false;
-    const ageMins = (Date.now() / 1000 - blockTime) / 60;
-    if (ageMins > 30) return false; // 30分より前に最初のTXがある→除外
+    const ageSecs = Date.now() / 1000 - blockTime;
+    if (ageSecs > seconds) return false; // 指定時間より前に最初のTXがある→除外
     // 残高0チェック（最初のTX前）
     const tx = await getTx(oldest.signature);
     if (!tx) return false;
@@ -661,16 +691,19 @@ function copyText(text) {
 
 // 過去30分のフロー全体をスキャン
 // Binance2出金 → 新規ウォレット → コイン作成 まで追跡
-async function scanPast30Min() {
-  const cutoff = Math.floor(Date.now() / 1000) - 1800; // 30分前
+async function scanPast30Min(seconds) {
+  seconds = seconds || 1800;
+  const cutoff = Math.floor(Date.now() / 1000) - seconds;
+  const rangeLabel = seconds <= 1800 ? '30分' : seconds <= 3600 ? '1時間' : seconds <= 18000 ? '5時間' : '24時間';
 
   const scanStartTime = now();
-  addEvent({ html: `<div class="ev-meta"><span class="badge" style="background:rgba(0,229,255,.1);color:var(--accent);border:1px solid var(--accent)">CATCHUP</span><span class="ev-time">${scanStartTime}</span></div><div class="ev-title">🔍 過去30分スキャン開始</div><div class="ev-detail" style="color:var(--dim)">⏰ スキャン実行時刻: <span>${scanStartTime}</span><br>Binance2出金 → 新規ウォレット → コイン作成 の流れを追跡します</div>` });
+  addEvent({ html: `<div class="ev-meta"><span class="badge" style="background:rgba(0,229,255,.1);color:var(--accent);border:1px solid var(--accent)">CATCHUP</span><span class="ev-time">${scanStartTime}</span></div><div class="ev-title">🔍 過去${rangeLabel}スキャン開始</div><div class="ev-detail" style="color:var(--dim)">⏰ スキャン実行時刻: <span>${scanStartTime}</span><br>Binance2出金 → 新規ウォレット → コイン作成 の流れを追跡します</div>` });
 
   // Step1: Binance2の過去30分の出金を取得
   const newWallets = [];
   for (const wallet of getExchangeAddrs()) {
-    const sigs = await getSignatures(wallet, 50);
+    const fetchLimit = seconds <= 1800 ? 50 : seconds <= 3600 ? 100 : seconds <= 18000 ? 200 : 500;
+    const sigs = await getSignatures(wallet, fetchLimit);
     for (const s of sigs) {
       if (!s.blockTime || s.blockTime < cutoff) continue;
       if (processedSigs.has(s.signature)) continue;
@@ -686,10 +719,10 @@ async function scanPast30Min() {
         if (t.amount < 0.1) continue; // 0.1 SOL未満はスキップ
         if (watchedWallets[dest]) continue;
 
-        const fresh = await isActiveWithin30Min(dest);
+        const fresh = await isActiveWithin30Min(dest, seconds);
         if (!fresh) continue;
 
-        const label = `${exchangeWallets[wallet]||"Exchange"}出金 #${stats.detected + 1}`;
+        const label = `${(exchangeWallets[wallet]?.name||"Exchange")}出金 #${stats.detected + 1}`;
         watchedWallets[dest] = { label, since: now(), lastSig: null, source: 'binance2' };
         stats.detected++;
         newWallets.push({ addr: dest, label, solAmount: t.amount });
@@ -734,6 +767,7 @@ async function scanPast30Min() {
       if (createdMint) {
         stats.created++;
         trackCoin(createdMint, 'create', addr);
+        addCreatedCoin(createdMint, label, s.blockTime);
         addEvent({ html: `
           <div class="ev-meta">
             <span class="badge badge-pump">🚀 COIN CREATED</span>
@@ -786,7 +820,7 @@ async function scanPast30Min() {
     }
   }
 
-  addEvent({ html: `<div class="ev-meta"><span class="badge" style="background:rgba(0,255,157,.1);color:var(--green);border:1px solid var(--green)">DONE</span><span class="ev-time">${now()}</span></div><div class="ev-title">✅ 過去30分スキャン完了</div><div class="ev-detail" style="color:var(--dim)">新規ウォレット: <span>${newWallets.length}件</span> 検知</div>` });
+  addEvent({ html: `<div class="ev-meta"><span class="badge" style="background:rgba(0,255,157,.1);color:var(--green);border:1px solid var(--green)">DONE</span><span class="ev-time">${now()}</span></div><div class="ev-title">✅ 過去${rangeLabel}スキャン完了</div><div class="ev-detail" style="color:var(--dim)">新規ウォレット: <span>${newWallets.length}件</span> 検知</div>` });
   saveState();
 }
 
@@ -797,16 +831,22 @@ async function scanPast30Min() {
 function renderExchangeList() {
   const list = document.getElementById('exchange-list');
   const entries = Object.entries(exchangeWallets);
-  document.getElementById('exchCount').textContent = entries.length;
+  const activeCount = entries.filter(([,v]) => v.enabled).length;
+  document.getElementById('exchCount').textContent = `${activeCount}/${entries.length}`;
   if (!entries.length) {
     list.innerHTML = '<div class="empty" style="padding:16px;font-size:10px">取引所ウォレットなし</div>';
     return;
   }
-  list.innerHTML = entries.map(([addr, name]) => `
-    <div class="wallet-row">
-      <div class="wallet-dot" style="background:var(--gold);box-shadow:0 0 6px var(--gold)"></div>
-      <div class="wallet-info">
-        <div class="wallet-label" style="color:var(--gold)">${name}</div>
+  list.innerHTML = entries.map(([addr, data]) => `
+    <div class="wallet-row" style="opacity:${data.enabled ? 1 : 0.4}">
+      <div class="wallet-dot" style="background:${data.enabled ? 'var(--gold)' : 'var(--dim)'};box-shadow:${data.enabled ? '0 0 6px var(--gold)' : 'none'}"></div>
+      <div class="wallet-info" style="flex:1">
+        <div style="display:flex;align-items:center;gap:8px">
+          <div class="wallet-label" style="color:${data.enabled ? 'var(--gold)' : 'var(--dim)'}">${data.name}</div>
+          <button onclick="toggleExchange('${addr}')" style="font-size:9px;padding:2px 8px;border:1px solid ${data.enabled ? 'var(--green)' : 'var(--dim)'};background:${data.enabled ? 'rgba(0,255,157,.1)' : 'transparent'};color:${data.enabled ? 'var(--green)' : 'var(--dim)'};cursor:pointer;font-family:monospace">
+            ${data.enabled ? '● ON' : '○ OFF'}
+          </button>
+        </div>
         <div class="wallet-addr" onclick="copyText('${addr}')" style="cursor:pointer" title="タップでコピー">📋 ${addr}</div>
       </div>
       <button class="wallet-remove" onclick="removeExchangeWallet('${addr}')">✕</button>
@@ -821,8 +861,15 @@ function addExchangeWallet() {
   const addr = addrEl.value.trim();
   if (!name || !addr || addr.length < 32) return;
   if (exchangeWallets[addr]) { addrEl.value = ''; return; }
-  exchangeWallets[addr] = name;
+  exchangeWallets[addr] = { name, enabled: true };
   nameEl.value = ''; addrEl.value = '';
+  renderExchangeList();
+  saveState();
+}
+
+function toggleExchange(addr) {
+  if (!exchangeWallets[addr]) return;
+  exchangeWallets[addr].enabled = !exchangeWallets[addr].enabled;
   renderExchangeList();
   saveState();
 }
@@ -833,6 +880,40 @@ function removeExchangeWallet(addr) {
   saveState();
 }
 
+
+
+// ─────────────────────────────────────────
+// CREATED COINS LIST
+// ─────────────────────────────────────────
+function addCreatedCoin(mint, label, blockTime) {
+  if (createdCoins.find(c => c.mint === mint)) return;
+  createdCoins.unshift({ mint, label, time: now(), blockTime });
+  renderCreatedList();
+  saveState();
+}
+
+function renderCreatedList() {
+  const list = document.getElementById('created-list');
+  document.getElementById('createdCount').textContent = createdCoins.length;
+  if (!createdCoins.length) {
+    list.innerHTML = '<div class="empty" style="padding:20px 16px;font-size:10px">データなし</div>';
+    return;
+  }
+  list.innerHTML = createdCoins.map((c, i) => `
+    <div style="padding:8px 14px;border-bottom:1px solid rgba(15,31,58,.6);border-left:2px solid var(--gold);">
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
+        <span style="font-family:'Orbitron',monospace;font-size:9px;color:var(--gold)">#${i+1}</span>
+        <span style="font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--dim)">${c.blockTime ? txTime(c.blockTime) : c.time}</span>
+      </div>
+      <div style="font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--dim);margin-bottom:3px">${c.label}</div>
+      <div style="font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--accent);word-break:break-all;cursor:pointer;margin-bottom:5px" onclick="copyText('${c.mint}')" title="タップでコピー">📋 ${c.mint}</div>
+      <div style="display:flex;gap:6px">
+        <a href="https://dexscreener.com/solana/${c.mint}" target="_blank" style="font-size:9px;color:var(--accent);padding:2px 6px;border:1px solid rgba(0,229,255,.3)">DEX</a>
+        <a href="https://pump.fun/${c.mint}" target="_blank" style="font-size:9px;color:var(--gold);padding:2px 6px;border:1px solid rgba(255,184,0,.3)">PUMP</a>
+      </div>
+    </div>
+  `).join('');
+}
 
 // ─────────────────────────────────────────
 // CA RANKING
@@ -898,7 +979,15 @@ function addEvent(ev) {
   if (el) el.remove();
 
   const div = document.createElement('div');
-  div.className = 'event-item';
+  const typeMap = {
+    'OUTFLOW':'outflow','NEW WALLET':'outflow','COIN CREATED':'created',
+    'PUMP.FUN':'created','TOKEN BUY':'buy','TRANSFER':'transfer','CATCHUP':'info','DONE':'info'
+  };
+  let evType = 'info';
+  for (const [k,v] of Object.entries(typeMap)) {
+    if ((ev.html||'').includes(k)) { evType = v; break; }
+  }
+  div.className = 'event-item ev-type-' + evType;
   div.innerHTML = ev.html;
 
   // 先頭に追加
@@ -991,7 +1080,7 @@ async function checkBinance2() {
         const fresh = await isNewWallet(dest);
         if (!fresh) continue; // 完全新規以外はスキップ
 
-        const label = `${exchangeWallets[wallet]||"Exchange"}出金 #${stats.detected + 1}`;
+        const label = `${(exchangeWallets[wallet]?.name||"Exchange")}出金 #${stats.detected + 1}`;
 
         watchedWallets[dest] = { label, since: now(), lastSig: null, source: 'binance2' };
         stats.detected++;
@@ -1067,6 +1156,7 @@ async function checkWatched() {
           // コイン作成
           stats.created++;
           trackCoin(b.mint, 'create', addr);
+          addCreatedCoin(b.mint, info.label, tx.blockTime);
           addEvent({
             html: `
               <div class="ev-meta">
@@ -1122,6 +1212,7 @@ async function checkWatched() {
       if (createdMintOnly && !buys.find(b => b.mint === createdMintOnly)) {
         stats.created++;
         trackCoin(createdMintOnly, 'create', addr);
+        addCreatedCoin(createdMintOnly, info.label, tx.blockTime);
         addEvent({
           html: `
             <div class="ev-meta">
@@ -1183,9 +1274,11 @@ async function toggleMonitor() {
 async function manualCatchup() {
   if (!apiKey()) { alert('Helius API Keyを入力してください'); return; }
   const btn = document.getElementById('catchupBtn');
+  const seconds = parseInt(document.getElementById('scanRange').value) || 1800;
+  const rangeLabels = {1800:'30分', 3600:'1時間', 18000:'5時間', 86400:'24時間'};
   btn.disabled = true; btn.textContent = '⏳ スキャン中...';
-  await scanPast30Min();
-  btn.disabled = false; btn.textContent = '🔍 30MIN';
+  await scanPast30Min(seconds);
+  btn.disabled = false; btn.textContent = '🔍 SCAN';
 }
 
 async function runScan() {
@@ -1208,7 +1301,7 @@ function clearAll() {
   events = [];
   watchedWallets = {};
   processedSigs.clear();
-  stats = { wallets:0, detected:0, buys:0, scans:0, created:0 }; coinBuys = {};
+  stats = { wallets:0, detected:0, buys:0, scans:0, created:0 }; coinBuys = {}; createdCoins = [];
   try { localStorage.removeItem('wr_wallets'); localStorage.removeItem('wr_sigs'); localStorage.removeItem('wr_events'); localStorage.removeItem('wr_stats'); } catch(e) {}
   document.getElementById('events-list').innerHTML =
     '<div class="empty" id="emptyEv">&gt; HELIUS API KEY を入力<br>&gt; START を押して監視開始<br>&gt; Binance2出金を自動検知します</div>';
@@ -1233,7 +1326,15 @@ if (events.length > 0) {
   if (empty) empty.remove();
   events.forEach(ev => {
     const div = document.createElement('div');
-    div.className = 'event-item';
+    const typeMap = {
+    'OUTFLOW':'outflow','NEW WALLET':'outflow','COIN CREATED':'created',
+    'PUMP.FUN':'created','TOKEN BUY':'buy','TRANSFER':'transfer','CATCHUP':'info','DONE':'info'
+  };
+  let evType = 'info';
+  for (const [k,v] of Object.entries(typeMap)) {
+    if ((ev.html||'').includes(k)) { evType = v; break; }
+  }
+  div.className = 'event-item ev-type-' + evType;
     div.innerHTML = ev.html;
     list.appendChild(div);
   });
@@ -1242,6 +1343,7 @@ if (events.length > 0) {
 
 renderExchangeList();
 renderWatchedList();
+renderCreatedList();
 renderRanking();
 updateStats();
 
