@@ -179,11 +179,11 @@ padding:3px 7px; letter-spacing:1px;
 .badge-pump    { background:rgba(255,184,0,.12); color:var(–gold); border:1px solid var(–gold); }
 .badge-transfer{ background:rgba(255,45,107,.1); color:var(–accent2); border:1px solid var(–accent2); }
 
-.ev-time { font-family:‘Share Tech Mono’,monospace; font-size:9px; color:var(–dim); margin-left:auto; }
+.ev-time { font-family:‘Share Tech Mono’,monospace; font-size:9px; color:#4a6a9a; margin-left:auto; }
 
 .ev-title { font-size:14px; font-weight:600; color:#dce8f8; margin-bottom:5px; }
-.ev-detail { font-family:‘Share Tech Mono’,monospace; font-size:10px; color:#4a6a9a; line-height:1.9; margin-top:6px; padding:8px 10px; background:rgba(0,0,0,.3); border:1px solid rgba(15,31,58,.8); }
-.ev-detail span { color:var(–text); }
+.ev-detail { font-family:‘Share Tech Mono’,monospace; font-size:10px; color:#7a9abf; line-height:1.9; margin-top:6px; padding:8px 10px; background:rgba(0,0,0,.3); border:1px solid rgba(15,31,58,.8); }
+.ev-detail span { color:#d0e8ff; font-weight:600; }
 .ev-detail a { color:var(–accent); text-decoration:none; }
 .ev-detail a:hover { text-decoration:underline; }
 
@@ -287,11 +287,11 @@ animation:tickerRun 25s linear infinite;
   </div>
   <button class="btn green-btn" id="startBtn" onclick="toggleMonitor()">▶ START</button>
   <button class="btn red" id="clearBtn" onclick="clearAll()">✕ CLEAR</button>
-  <select id="scanRange" style="background:#070c18;color:var(--gold);border:1px solid var(--gold);padding:8px 6px;font-family:monospace;font-size:10px;cursor:pointer">
-    <option value="1800">30分</option>
-    <option value="3600">1時間</option>
-    <option value="18000">5時間</option>
-    <option value="86400">24時間</option>
+  <select id="scanRange" style="background:#1a2f50;color:#ffb800;border:1px solid #ffb800;padding:8px 8px;font-family:monospace;font-size:11px;cursor:pointer;border-radius:2px">
+    <option value="1800" style="background:#1a2f50;color:#ffb800">30分</option>
+    <option value="3600" style="background:#1a2f50;color:#ffb800">1時間</option>
+    <option value="18000" style="background:#1a2f50;color:#ffb800">5時間</option>
+    <option value="86400" style="background:#1a2f50;color:#ffb800">24時間</option>
   </select>
   <button class="btn" id="catchupBtn" onclick="manualCatchup()" style="border-color:var(--gold);color:var(--gold)">🔍 SCAN</button>
 </div>
@@ -348,20 +348,10 @@ animation:tickerRun 25s linear infinite;
   </div>
 </div>
 
-<!-- EXCHANGE WALLETS -->
+<!-- SCAN TARGETS -->
 <div class="panel">
-  <div class="ph">
-    <span>🏦 EXCHANGE WALLETS</span>
-    <span class="ph-count" id="exchCount">0</span>
-  </div>
-  <div id="exchange-list"></div>
-  <div class="add-bar" style="flex-direction:column;gap:6px">
-    <input type="text" id="exchName" placeholder="取引所名（例: Bitget）" style="font-size:10px"/>
-    <div style="display:flex;gap:6px">
-      <input type="text" id="exchAddr" placeholder="ウォレットアドレス" style="font-size:10px;flex:1"/>
-      <button class="btn" onclick="addExchangeWallet()" style="padding:8px 12px;font-size:9px">ADD</button>
-    </div>
-  </div>
+  <div class="ph"><span>🎯 SCAN TARGETS</span></div>
+  <div id="scan-targets" style="padding:10px 14px;display:flex;flex-direction:column;gap:10px"></div>
 </div>
 
 <!-- CREATED COINS -->
@@ -828,55 +818,28 @@ async function scanPast30Min(seconds) {
 // ─────────────────────────────────────────
 // EXCHANGE WALLET UI
 // ─────────────────────────────────────────
-function renderExchangeList() {
-  const list = document.getElementById('exchange-list');
-  const entries = Object.entries(exchangeWallets);
-  const activeCount = entries.filter(([,v]) => v.enabled).length;
-  document.getElementById('exchCount').textContent = `${activeCount}/${entries.length}`;
-  if (!entries.length) {
-    list.innerHTML = '<div class="empty" style="padding:16px;font-size:10px">取引所ウォレットなし</div>';
-    return;
-  }
-  list.innerHTML = entries.map(([addr, data]) => `
-    <div class="wallet-row" style="opacity:${data.enabled ? 1 : 0.4}">
-      <div class="wallet-dot" style="background:${data.enabled ? 'var(--gold)' : 'var(--dim)'};box-shadow:${data.enabled ? '0 0 6px var(--gold)' : 'none'}"></div>
-      <div class="wallet-info" style="flex:1">
-        <div style="display:flex;align-items:center;gap:8px">
-          <div class="wallet-label" style="color:${data.enabled ? 'var(--gold)' : 'var(--dim)'}">${data.name}</div>
-          <button onclick="toggleExchange('${addr}')" style="font-size:9px;padding:2px 8px;border:1px solid ${data.enabled ? 'var(--green)' : 'var(--dim)'};background:${data.enabled ? 'rgba(0,255,157,.1)' : 'transparent'};color:${data.enabled ? 'var(--green)' : 'var(--dim)'};cursor:pointer;font-family:monospace">
-            ${data.enabled ? '● ON' : '○ OFF'}
-          </button>
-        </div>
-        <div class="wallet-addr" onclick="copyText('${addr}')" style="cursor:pointer" title="タップでコピー">📋 ${addr}</div>
-      </div>
-      <button class="wallet-remove" onclick="removeExchangeWallet('${addr}')">✕</button>
-    </div>
-  `).join('');
-}
+function renderExchangeList() { renderScanTargets(); } // 後方互換
 
-function addExchangeWallet() {
-  const nameEl = document.getElementById('exchName');
-  const addrEl = document.getElementById('exchAddr');
-  const name = nameEl.value.trim();
-  const addr = addrEl.value.trim();
-  if (!name || !addr || addr.length < 32) return;
-  if (exchangeWallets[addr]) { addrEl.value = ''; return; }
-  exchangeWallets[addr] = { name, enabled: true };
-  nameEl.value = ''; addrEl.value = '';
-  renderExchangeList();
-  saveState();
+function renderScanTargets() {
+  const container = document.getElementById('scan-targets');
+  if (!container) return;
+  const entries = Object.entries(exchangeWallets);
+  container.innerHTML = entries.map(([addr, data]) => `
+    <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:8px 6px;border:1px solid ${data.enabled ? 'rgba(0,229,255,.3)' : 'rgba(42,58,90,.4)'};background:${data.enabled ? 'rgba(0,229,255,.05)' : 'transparent'};border-radius:2px">
+      <input type="checkbox" ${data.enabled ? 'checked' : ''} onchange="toggleExchange('${addr}')"
+        style="width:16px;height:16px;cursor:pointer;accent-color:var(--accent)">
+      <div>
+        <div style="font-family:'Orbitron',monospace;font-size:11px;color:${data.enabled ? 'var(--accent)' : 'var(--dim)'};">${data.name}</div>
+        <div style="font-family:'Share Tech Mono',monospace;font-size:8px;color:var(--dim)">${addr.slice(0,16)}...${addr.slice(-6)}</div>
+      </div>
+    </label>
+  `).join('');
 }
 
 function toggleExchange(addr) {
   if (!exchangeWallets[addr]) return;
   exchangeWallets[addr].enabled = !exchangeWallets[addr].enabled;
-  renderExchangeList();
-  saveState();
-}
-
-function removeExchangeWallet(addr) {
-  delete exchangeWallets[addr];
-  renderExchangeList();
+  renderScanTargets();
   saveState();
 }
 
@@ -1341,7 +1304,7 @@ if (events.length > 0) {
   document.getElementById('evCount').textContent = `${events.length} イベント`;
 }
 
-renderExchangeList();
+renderScanTargets();
 renderWatchedList();
 renderCreatedList();
 renderRanking();
