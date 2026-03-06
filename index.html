@@ -285,6 +285,7 @@ animation:tickerRun 25s linear infinite;
   <button class="btn green-btn" id="startBtn" onclick="toggleMonitor()">▶ START</button>
   <button class="btn red" id="clearBtn" onclick="clearAll()">✕ CLEAR</button>
   <select id="scanRange" style="background:#1a2f50;color:#ffb800;border:1px solid #ffb800;padding:8px 8px;font-family:monospace;font-size:11px;cursor:pointer;border-radius:2px">
+    <option value="600" style="background:#1a2f50;color:#ffb800">10分</option>
     <option value="1800" style="background:#1a2f50;color:#ffb800">30分</option>
   </select>
   <button class="btn" id="catchupBtn" onclick="manualCatchup()" style="border-color:var(--gold);color:var(--gold)">🔍 SCAN</button>
@@ -582,7 +583,7 @@ async function getBalance(addr) {
 async function isActiveWithin30Min(addr, seconds) {
   seconds = seconds || 1800;
   try {
-    const limit = 200; // 十分な件数を取得
+    const limit = 300; // 十分な件数を取得
     const sigs = await safeGetSignatures(addr, limit);
     if (!sigs || sigs.length === 0) return false;
     // 最古のTX（配列末尾）がseconds以内かチェック
@@ -816,7 +817,7 @@ function copyText(text) {
 async function scanPast30Min(seconds) {
   seconds = seconds || 1800;
   const cutoff = Math.floor(Date.now() / 1000) - seconds;
-  const rangeLabel = seconds <= 1800 ? '30分' : '1時間';
+  const rangeLabel = seconds <= 600 ? '10分' : seconds <= 1800 ? '30分' : '1時間';
 
   const scanStartTime = now();
   addEvent({ html: `<div class="ev-meta"><span class="badge" style="background:rgba(0,229,255,.1);color:var(--accent);border:1px solid var(--accent)">CATCHUP</span><span class="ev-time">${scanStartTime}</span></div><div class="ev-title">🔍 過去${rangeLabel}スキャン開始</div><div class="ev-detail" style="color:var(--dim)">⏰ スキャン実行時刻: <span>${scanStartTime}</span><br>Binance2出金 → 新規ウォレット → コイン作成 の流れを追跡します</div>` });
@@ -824,7 +825,7 @@ async function scanPast30Min(seconds) {
   // Step1: Binance2の過去30分の出金を取得
   const newWallets = [];
   for (const wallet of getExchangeAddrs()) {
-    const fetchLimit = 200; // 30分遡るのに十分な件数
+    const fetchLimit = 300; // 30分遡るのに十分な件数
     const sigs = await safeGetSignatures(wallet, fetchLimit);
     for (const s of sigs) {
       if (!s.blockTime || s.blockTime < cutoff) continue;
