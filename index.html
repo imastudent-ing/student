@@ -152,20 +152,17 @@ font-family:‘Orbitron’,monospace; font-size:9px; letter-spacing:2px; color:v
 #events-list { max-height:520px; overflow-y:auto; scrollbar-width:thin; scrollbar-color:var(–dim) transparent; }
 
 .event-item {
-margin:8px 10px;
-padding:12px 14px;
-border:1px solid rgba(0,229,255,.15);
-border-left:3px solid var(–accent);
-background:rgba(5,15,35,.85);
-border-radius:2px;
+padding:14px 16px;
+border-bottom:1px solid #0f1f3a;
+background:transparent;
 animation:slideIn .35s ease-out;
 cursor:default;
 }
-.event-item.ev-type-outflow { border-left-color:var(–accent); }
-.event-item.ev-type-created  { border-left-color:var(–gold); }
-.event-item.ev-type-buy      { border-left-color:var(–green); }
-.event-item.ev-type-transfer { border-left-color:var(–accent2); }
-.event-item.ev-type-info     { border-left-color:var(–dim); }
+.event-item.ev-type-outflow { border-left:3px solid var(–accent); padding-left:13px; }
+.event-item.ev-type-created  { border-left:3px solid var(–gold); padding-left:13px; }
+.event-item.ev-type-buy      { border-left:3px solid var(–green); padding-left:13px; }
+.event-item.ev-type-transfer { border-left:3px solid var(–accent2); padding-left:13px; }
+.event-item.ev-type-info     { border-left:none; }
 @keyframes slideIn { from{opacity:0;transform:translateX(-16px)} to{opacity:1;transform:none} }
 
 .ev-meta { display:flex; align-items:center; gap:8px; margin-bottom:7px; }
@@ -182,7 +179,7 @@ padding:3px 7px; letter-spacing:1px;
 .ev-time { font-family:‘Share Tech Mono’,monospace; font-size:9px; color:#4a6a9a; margin-left:auto; }
 
 .ev-title { font-size:14px; font-weight:600; color:#dce8f8; margin-bottom:5px; }
-.ev-detail { font-family:‘Share Tech Mono’,monospace; font-size:10px; color:#8ab0d0; line-height:1.9; margin-top:6px; padding:8px 10px; background:rgba(0,0,0,.5); border:1px solid rgba(0,229,255,.1); }
+.ev-detail { font-family:‘Share Tech Mono’,monospace; font-size:10px; color:#8ab0d0; line-height:1.9; margin-top:6px; padding:4px 0 0 0; }
 .ev-detail span { color:#d0e8ff; font-weight:600; }
 .ev-detail a { color:var(–accent); text-decoration:none; }
 .ev-detail a:hover { text-decoration:underline; }
@@ -294,6 +291,10 @@ animation:tickerRun 25s linear infinite;
   <button class="btn" id="catchupBtn" onclick="manualCatchup()" style="border-color:var(--gold);color:var(--gold)">🔍 SCAN</button>
 </div>
 
+<!-- SCAN TARGETS (上部) -->
+
+<div style="display:flex;gap:16px;padding:10px 16px;background:rgba(0,229,255,.03);border:1px solid rgba(0,229,255,.1);margin-top:8px;flex-wrap:wrap" id="scan-targets-top"></div>
+
 <!-- GRID -->
 
 <div class="grid">
@@ -346,11 +347,7 @@ animation:tickerRun 25s linear infinite;
   </div>
 </div>
 
-<!-- SCAN TARGETS -->
-<div class="panel">
-  <div class="ph"><span>🎯 SCAN TARGETS</span></div>
-  <div id="scan-targets" style="padding:10px 14px;display:flex;flex-direction:column;gap:10px"></div>
-</div>
+<!-- SCAN TARGETS moved to top -->
 
 <!-- CREATED COINS -->
 <div class="panel">
@@ -416,7 +413,7 @@ function isExchangeAddr(a)  { return !!exchangeWallets[a]; }
 // STATE
 // ─────────────────────────────────────────
 let watchedWallets  = {};
-let processedSigs   = new Set();
+let processedSigs   = new Map(); // sig -> timestamp(ms)
 let isRunning       = false;
 let monitorTimer    = null;
 let events          = [];
@@ -438,7 +435,7 @@ function saveState() {
     }
     localStorage.setItem('wr_exchange', JSON.stringify(exchSave));
     localStorage.setItem('wr_wallets', JSON.stringify(watchedWallets));
-    localStorage.setItem('wr_sigs', JSON.stringify([...processedSigs].slice(-2000)));
+    localStorage.setItem('wr_sigs', JSON.stringify([...processedSigs.entries()].slice(-2000)));
     localStorage.setItem('wr_events', JSON.stringify(events.slice(0, 100)));
     localStorage.setItem('wr_stats', JSON.stringify(stats));
     const k = document.getElementById('heliusKey');
@@ -468,7 +465,15 @@ function loadState() {
     const w = localStorage.getItem('wr_wallets');
     if (w) watchedWallets = JSON.parse(w);
     const s = localStorage.getItem('wr_sigs');
-    if (s) processedSigs = new Set(JSON.parse(s));
+    if (s) {
+      try {
+        const arr = JSON.parse(s);
+        if (Array.isArray(arr)) {
+          if (Array.isArray(arr[0])) processedSigs = new Map(arr.map(([sig,ts]) => [sig, ts || Date.now()]));
+          else processedSigs = new Map(arr.map(sig => [sig, Date.now()]));
+        }
+      } catch(e) {}
+    }
     const e = localStorage.getItem('wr_events');
     if (e) events = JSON.parse(e);
     const st = localStorage.getItem('wr_stats');
@@ -506,17 +511,66 @@ async function rpc(method, params) {
   return d.result;
 }
 
-async function getSignatures(addr, limit=8) {
-  try {
-    return await rpc('getSignaturesForAddress', [addr, {limit, commitment:'confirmed'}]) || [];
-  } catch { return []; }
+// ─────────────────────────────────────────
+// RPC 耐久化: セマフォ・キャッシュ・バックオフ
+// ─────────────────────────────────────────
+class Semaphore {
+  constructor(max) { this.max = max; this.cur = 0; this.q = []; }
+  async acquire() {
+    if (this.cur < this.max) { this.cur++; return; }
+    await new Promise(res => this.q.push(res));
+    this.cur++;
+  }
+  release() { this.cur--; if (this.q.length) this.q.shift()(); }
+}
+const GLOBAL_SEM = new Semaphore(6);
+
+const _rpcCache = new Map();
+function setCache(key, value, ttl = 30000) { _rpcCache.set(key, { ts: Date.now(), ttl, value }); }
+function getCache(key) {
+  const e = _rpcCache.get(key); if (!e) return null;
+  if (Date.now() - e.ts > e.ttl) { _rpcCache.delete(key); return null; }
+  return e.value;
 }
 
-async function getTx(sig) {
-  try {
-    return await rpc('getTransaction', [sig, {encoding:'jsonParsed', maxSupportedTransactionVersion:0}]);
-  } catch { return null; }
+async function withBackoff(fn, maxRetry = 4, base = 200) {
+  for (let i = 0; i <= maxRetry; i++) {
+    try { return await fn(); } catch(err) {
+      if (i === maxRetry) throw err;
+      const delay = Math.round(base * Math.pow(2, i) * (0.8 + Math.random() * 0.4));
+      await new Promise(r => setTimeout(r, delay));
+    }
+  }
 }
+
+async function safeGetSignatures(addr, limit = 20) {
+  const key = `sigs:${addr}:${limit}`;
+  const cached = getCache(key);
+  if (cached) return cached;
+  await GLOBAL_SEM.acquire();
+  try {
+    const res = await withBackoff(() => rpc('getSignaturesForAddress', [addr, { limit, commitment: 'confirmed' }])).catch(() => []);
+    const result = res || [];
+    setCache(key, result, 30000);
+    return result;
+  } finally { GLOBAL_SEM.release(); }
+}
+
+async function safeGetTx(sig) {
+  const key = `tx:${sig}`;
+  const cached = getCache(key);
+  if (cached) return cached;
+  await GLOBAL_SEM.acquire();
+  try {
+    const res = await withBackoff(() => rpc('getTransaction', [sig, { encoding: 'jsonParsed', maxSupportedTransactionVersion: 0 }])).catch(() => null);
+    if (res) setCache(key, res, 60000);
+    return res;
+  } finally { GLOBAL_SEM.release(); }
+}
+
+// 旧関数（後方互換のためsafeへ委譲）
+async function getSignatures(addr, limit=8) { return safeGetSignatures(addr, limit); }
+async function getTx(sig) { return safeGetTx(sig); }
 
 async function getBalance(addr) {
   try {
@@ -530,7 +584,7 @@ async function isActiveWithin30Min(addr, seconds) {
   seconds = seconds || 1800;
   try {
     const limit = seconds <= 1800 ? 50 : 100;
-    const sigs = await getSignatures(addr, limit);
+    const sigs = await safeGetSignatures(addr, limit);
     if (!sigs || sigs.length === 0) return false;
     // 最古のTX（配列末尾）がseconds以内かチェック
     const oldest = sigs[sigs.length - 1];
@@ -541,7 +595,7 @@ async function isActiveWithin30Min(addr, seconds) {
     if (sigs.length >= limit) return false;
     if (ageSecs > seconds) return false; // 指定時間より前に最初のTXがある→除外
     // 残高0チェック（最初のTX前）
-    const tx = await getTx(oldest.signature);
+    const tx = await safeGetTx(oldest.signature);
     if (!tx) return false;
     const accounts = tx.transaction?.message?.accountKeys || [];
     const preBalances = tx.meta?.preBalances || [];
@@ -551,10 +605,25 @@ async function isActiveWithin30Min(addr, seconds) {
   } catch(e) { return false; }
 }
 
+// ─────────────────────────────────────────
+// SCORING: 新規ウォレット判定スコアリング
+// スコア3以上で新規と判定
+// ─────────────────────────────────────────
+// TTLチェック付きsig重複判定（2時間以内のものだけ有効）
+function sigProcessed(sig) {
+  if (!processedSigs.has(sig)) return false;
+  const ts = processedSigs.get(sig);
+  if (Date.now() - ts > 2 * 3600 * 1000) {
+    processedSigs.delete(sig);
+    return false;
+  }
+  return true;
+}
+
 async function isNewWallet(addr) {
   try {
     // TX履歴を最大10件取得
-    const sigs = await getSignatures(addr, 10);
+    const sigs = await safeGetSignatures(addr, 10);
     if (!sigs || sigs.length === 0) return false;
 
     // 厳密条件①: TX履歴が1件のみ（今回のBinance出金だけ）
@@ -567,7 +636,7 @@ async function isNewWallet(addr) {
     if (ageHours > 24) return false;
 
     // 厳密条件③: そのTX前の残高が0（完全に新規）
-    const tx = await getTx(sigs[0].signature);
+    const tx = await safeGetTx(sigs[0].signature);
     if (!tx) return false;
 
     const accounts    = tx.transaction?.message?.accountKeys || [];
@@ -631,32 +700,80 @@ function parseTokenBuys(tx) {
 // Pump.funのプログラムID
 const PUMP_PROGRAM = '6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P';
 
+// SPL Token Program ID
+const TOKEN_PROGRAM = 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA';
+// Token-2022
+const TOKEN_2022_PROGRAM = 'TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb';
+
 function parseCoinCreation(tx) {
   try {
     const meta = tx.meta || {};
     if (meta.err) return null;
 
-    const instructions = tx.transaction?.message?.instructions || [];
-    const inner = meta.innerInstructions || [];
-
-    // Pump.funへのinstructionがあるか確認
     const accounts = tx.transaction?.message?.accountKeys || [];
-    const hasPump = accounts.some(a =>
-      (typeof a === 'string' ? a : a?.pubkey) === PUMP_PROGRAM
-    );
+    const getAddr = a => typeof a === 'string' ? a : a?.pubkey;
+
+    // Pump.funが絡んでいるか確認
+    const hasPump = accounts.some(a => getAddr(a) === PUMP_PROGRAM);
     if (!hasPump) return null;
 
-    // postTokenBalancesにあって、preTokenBalancesに全くないmint = 新規発行
+    // ① SPL Token Program の initializeMint instruction を検出
+    //    data[0] === 0 が initializeMint のディスクリミネーター
+    const allInstructions = [
+      ...(tx.transaction?.message?.instructions || []),
+      ...(meta.innerInstructions || []).flatMap(i => i.instructions || [])
+    ];
+
+    for (const ix of allInstructions) {
+      const progIdx = ix.programIdIndex;
+      const progAddr = getAddr(accounts[progIdx]);
+      const isTokenProg = progAddr === TOKEN_PROGRAM || progAddr === TOKEN_2022_PROGRAM;
+      if (!isTokenProg) continue;
+
+      // dataはbase58エンコードされている場合がある
+      // 最初のバイトが0 = InitializeMint
+      try {
+        const dataBytes = ix.data ? bs58ToBytes(ix.data) : null;
+        if (dataBytes && dataBytes[0] === 0) {
+          // このinstructionのaccountsの最初がmintアドレス
+          const mintIdx = ix.accounts?.[0];
+          if (mintIdx !== undefined) {
+            const mint = getAddr(accounts[mintIdx]);
+            if (mint) return mint;
+          }
+        }
+      } catch {}
+    }
+
+    // ② fallback: postTokenBalancesに新mintがあってpumpで終わる
     const postMints = new Set((meta.postTokenBalances || []).map(t => t.mint));
     const preMints  = new Set((meta.preTokenBalances  || []).map(t => t.mint));
-
     for (const mint of postMints) {
       if (!preMints.has(mint) && mint.endsWith('pump')) {
-        return mint; // 新規作成されたコインのCA
+        return mint;
       }
     }
+
     return null;
   } catch { return null; }
+}
+
+// base58デコード（instructionデータ用）
+function bs58ToBytes(str) {
+  const ALPHABET = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
+  const bytes = [0];
+  for (const c of str) {
+    let carry = ALPHABET.indexOf(c);
+    if (carry < 0) throw new Error('Invalid base58');
+    for (let i = 0; i < bytes.length; i++) {
+      carry += bytes[i] * 58;
+      bytes[i] = carry & 0xff;
+      carry >>= 8;
+    }
+    while (carry > 0) { bytes.push(carry & 0xff); carry >>= 8; }
+  }
+  for (const c of str) { if (c === '1') bytes.push(0); else break; }
+  return new Uint8Array(bytes.reverse());
 }
 
 // ─────────────────────────────────────────
@@ -709,13 +826,13 @@ async function scanPast30Min(seconds) {
   const newWallets = [];
   for (const wallet of getExchangeAddrs()) {
     const fetchLimit = seconds <= 1800 ? 50 : 100;
-    const sigs = await getSignatures(wallet, fetchLimit);
+    const sigs = await safeGetSignatures(wallet, fetchLimit);
     for (const s of sigs) {
       if (!s.blockTime || s.blockTime < cutoff) continue;
-      if (processedSigs.has(s.signature)) continue;
-      processedSigs.add(s.signature);
+      if (sigProcessed(s.signature)) continue;
+      processedSigs.set(s.signature, Date.now());
 
-      const tx = await getTx(s.signature);
+      const tx = await safeGetTx(s.signature);
       if (!tx) continue;
 
       const transfers = parseSolTransfers(tx);
@@ -758,14 +875,14 @@ async function scanPast30Min(seconds) {
 
   // Step2: 検知した新規ウォレットの過去30分のTXからコイン作成を探す
   for (const { addr, label } of newWallets) {
-    const sigs = await getSignatures(addr, 20);
+    const sigs = await safeGetSignatures(addr, 20);
     for (const s of sigs) {
       if (!s.blockTime || s.blockTime < cutoff) continue;
-      if (processedSigs.has(s.signature)) continue;
-      processedSigs.add(s.signature);
+      if (sigProcessed(s.signature)) continue;
+      processedSigs.set(s.signature, Date.now());
       watchedWallets[addr].lastSig = s.signature;
 
-      const tx = await getTx(s.signature);
+      const tx = await safeGetTx(s.signature);
       if (!tx) continue;
 
       // コイン作成チェック
@@ -837,16 +954,16 @@ async function scanPast30Min(seconds) {
 function renderExchangeList() { renderScanTargets(); } // 後方互換
 
 function renderScanTargets() {
-  const container = document.getElementById('scan-targets');
+  const container = document.getElementById('scan-targets-top');
   if (!container) return;
   const entries = Object.entries(exchangeWallets);
   container.innerHTML = entries.map(([addr, data]) => `
-    <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:8px 6px;border:1px solid ${data.enabled ? 'rgba(0,229,255,.3)' : 'rgba(42,58,90,.4)'};background:${data.enabled ? 'rgba(0,229,255,.05)' : 'transparent'};border-radius:2px">
+    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:6px 10px;border:1px solid ${data.enabled ? 'rgba(0,229,255,.4)' : 'rgba(42,58,90,.4)'};background:${data.enabled ? 'rgba(0,229,255,.08)' : 'transparent'};border-radius:2px">
       <input type="checkbox" ${data.enabled ? 'checked' : ''} onchange="toggleExchange('${addr}')"
         style="width:16px;height:16px;cursor:pointer;accent-color:var(--accent)">
       <div>
-        <div style="font-family:'Orbitron',monospace;font-size:11px;color:${data.enabled ? 'var(--accent)' : 'var(--dim)'};">${data.name}</div>
-        <div style="font-family:'Share Tech Mono',monospace;font-size:8px;color:var(--dim)">${addr.slice(0,16)}...${addr.slice(-6)}</div>
+        <div style="font-family:'Orbitron',monospace;font-size:10px;color:${data.enabled ? 'var(--accent)' : 'var(--dim)'};">${data.name}</div>
+        <div style="font-family:'Share Tech Mono',monospace;font-size:8px;color:var(--dim)">${addr.slice(0,8)}...${addr.slice(-6)}</div>
       </div>
     </label>
   `).join('');
@@ -857,6 +974,12 @@ function toggleExchange(addr) {
   exchangeWallets[addr].enabled = !exchangeWallets[addr].enabled;
   renderScanTargets();
   saveState();
+  // チェック変更時に即スキャン
+  if (isRunning) {
+    clearInterval(monitorTimer);
+    const interval = parseInt(document.getElementById('intervalSec').value) * 1000 || 20000;
+    runScan().then(() => { monitorTimer = setInterval(runScan, interval); });
+  }
 }
 
 
@@ -1042,12 +1165,12 @@ function addManualWallet() {
 // ─────────────────────────────────────────
 async function checkBinance2() {
   for (const wallet of getExchangeAddrs()) {
-    const sigs = await getSignatures(wallet, 6);
+    const sigs = await safeGetSignatures(wallet, 6);
     for (const s of sigs) {
-      if (!s.signature || processedSigs.has(s.signature)) continue;
-      processedSigs.add(s.signature);
+      if (!s.signature || sigProcessed(s.signature)) continue;
+      processedSigs.set(s.signature, Date.now());
 
-      const tx = await getTx(s.signature);
+      const tx = await safeGetTx(s.signature);
       if (!tx) continue;
 
       const transfers = parseSolTransfers(tx);
@@ -1058,7 +1181,7 @@ async function checkBinance2() {
         if (watchedWallets[dest]) continue;
 
         const fresh = await isNewWallet(dest);
-        if (!fresh) continue; // 完全新規以外はスキップ
+        if (!fresh) continue;
 
         const label = `${(exchangeWallets[wallet]?.name||"Exchange")}出金 #${stats.detected + 1}`;
 
@@ -1092,16 +1215,16 @@ async function checkBinance2() {
 
 async function checkWatched() {
   for (const [addr, info] of Object.entries(watchedWallets)) {
-    const sigs = await getSignatures(addr, 5);
+    const sigs = await safeGetSignatures(addr, 5);
     if (!sigs.length) continue;
 
     for (const s of sigs) {
-      if (!s.signature || processedSigs.has(s.signature)) continue;
+      if (!s.signature || sigProcessed(s.signature)) continue;
       if (s.signature === info.lastSig) continue;
-      processedSigs.add(s.signature);
+      processedSigs.set(s.signature, Date.now());
       watchedWallets[addr].lastSig = s.signature;
 
-      const tx = await getTx(s.signature);
+      const tx = await safeGetTx(s.signature);
       if (!tx) continue;
       const bt = txTime(tx.blockTime); // TX実際の発生時刻
 
@@ -1270,9 +1393,15 @@ async function runScan() {
   await checkWatched();
 
   // キャッシュ整理：古い半分だけ削除して直近は保持
+  // TTL: 2時間以上前のsigを削除
+  const ttlCutoff = Date.now() - 2 * 3600 * 1000;
+  for (const [sig, ts] of processedSigs) {
+    if (ts < ttlCutoff) processedSigs.delete(sig);
+  }
+  // それでも多い場合は古い半分を削除
   if (processedSigs.size > 5000) {
-    const arr = [...processedSigs];
-    processedSigs = new Set(arr.slice(arr.length / 2));
+    const arr = [...processedSigs.entries()].sort((a,b) => a[1]-b[1]);
+    processedSigs = new Map(arr.slice(arr.length / 2));
   }
 
   lastScanTime = Date.now();
