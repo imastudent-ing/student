@@ -710,7 +710,7 @@ async function scanPast30Min() {
       const createdMint = parseCoinCreation(tx);
       if (createdMint) {
         stats.created++;
-        trackCoin(createdMint, 'create');
+        trackCoin(createdMint, 'create', addr);
         addEvent({ html: `
           <div class="ev-meta">
             <span class="badge badge-pump">🚀 COIN CREATED</span>
@@ -738,7 +738,7 @@ async function scanPast30Min() {
       for (const b of buys) {
         if (createdMint && b.mint === createdMint) continue; // 作成は上で処理済み
         stats.buys++;
-        trackCoin(b.mint, 'buy');
+        trackCoin(b.mint, 'buy', addr);
         addEvent({ html: `
           <div class="ev-meta">
             <span class="badge badge-buy">TOKEN BUY</span>
@@ -814,10 +814,14 @@ function removeExchangeWallet(addr) {
 // ─────────────────────────────────────────
 // CA RANKING
 // ─────────────────────────────────────────
-function trackCoin(mint, type) {
-  if (!coinBuys[mint]) coinBuys[mint] = { count: 0, created: 0, lastTime: '' };
+function trackCoin(mint, type, walletAddr) {
+  if (!coinBuys[mint]) coinBuys[mint] = { count: 0, created: 0, lastTime: '', wallets: [] };
+  if (!coinBuys[mint].wallets) coinBuys[mint].wallets = [];
   if (type === 'buy') coinBuys[mint].count++;
   if (type === 'create') coinBuys[mint].created++;
+  if (walletAddr && !coinBuys[mint].wallets.includes(walletAddr)) {
+    coinBuys[mint].wallets.push(walletAddr);
+  }
   coinBuys[mint].lastTime = now();
   renderRanking();
 }
@@ -843,6 +847,7 @@ function renderRanking() {
       <div style="display:flex;gap:6px;margin-top:5px">
         ${data.created ? `<span style="font-size:9px;color:var(--gold)">🚀作成${data.created}</span>` : ''}
         ${data.count ? `<span style="font-size:9px;color:var(--green)">🎯購入${data.count}</span>` : ''}
+        ${(data.wallets&&data.wallets.length) ? `<span style="font-size:9px;color:var(--accent)">👛${data.wallets.length}アドレス</span>` : ''}
         <a href="https://dexscreener.com/solana/${mint}" target="_blank" style="font-size:9px;color:var(--accent);margin-left:auto">DEX</a>
         <a href="https://pump.fun/${mint}" target="_blank" style="font-size:9px;color:var(--accent)">PUMP</a>
       </div>
@@ -1037,7 +1042,7 @@ async function checkWatched() {
         if (isCreation) {
           // コイン作成
           stats.created++;
-          trackCoin(b.mint, 'create');
+          trackCoin(b.mint, 'create', addr);
           addEvent({
             html: `
               <div class="ev-meta">
@@ -1061,7 +1066,7 @@ async function checkWatched() {
         } else {
           // トークン購入
           stats.buys++;
-          trackCoin(b.mint, 'buy');
+          trackCoin(b.mint, 'buy', addr);
           const pump = isPump(b.mint);
           addEvent({
             html: `
@@ -1092,7 +1097,7 @@ async function checkWatched() {
       const createdMintOnly = parseCoinCreation(tx);
       if (createdMintOnly && !buys.find(b => b.mint === createdMintOnly)) {
         stats.created++;
-        trackCoin(createdMintOnly, 'create');
+        trackCoin(createdMintOnly, 'create', addr);
         addEvent({
           html: `
             <div class="ev-meta">
