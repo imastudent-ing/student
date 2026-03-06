@@ -154,9 +154,9 @@ font-family:‘Orbitron’,monospace; font-size:9px; letter-spacing:2px; color:v
 .event-item {
 margin:8px 10px;
 padding:12px 14px;
-border:1px solid rgba(15,31,58,.9);
+border:1px solid rgba(0,229,255,.15);
 border-left:3px solid var(–accent);
-background:rgba(0,10,24,.6);
+background:rgba(5,15,35,.85);
 border-radius:2px;
 animation:slideIn .35s ease-out;
 cursor:default;
@@ -182,7 +182,7 @@ padding:3px 7px; letter-spacing:1px;
 .ev-time { font-family:‘Share Tech Mono’,monospace; font-size:9px; color:#4a6a9a; margin-left:auto; }
 
 .ev-title { font-size:14px; font-weight:600; color:#dce8f8; margin-bottom:5px; }
-.ev-detail { font-family:‘Share Tech Mono’,monospace; font-size:10px; color:#7a9abf; line-height:1.9; margin-top:6px; padding:8px 10px; background:rgba(0,0,0,.3); border:1px solid rgba(15,31,58,.8); }
+.ev-detail { font-family:‘Share Tech Mono’,monospace; font-size:10px; color:#8ab0d0; line-height:1.9; margin-top:6px; padding:8px 10px; background:rgba(0,0,0,.5); border:1px solid rgba(0,229,255,.1); }
 .ev-detail span { color:#d0e8ff; font-weight:600; }
 .ev-detail a { color:var(–accent); text-decoration:none; }
 .ev-detail a:hover { text-decoration:underline; }
@@ -290,8 +290,6 @@ animation:tickerRun 25s linear infinite;
   <select id="scanRange" style="background:#1a2f50;color:#ffb800;border:1px solid #ffb800;padding:8px 8px;font-family:monospace;font-size:11px;cursor:pointer;border-radius:2px">
     <option value="1800" style="background:#1a2f50;color:#ffb800">30分</option>
     <option value="3600" style="background:#1a2f50;color:#ffb800">1時間</option>
-    <option value="18000" style="background:#1a2f50;color:#ffb800">5時間</option>
-    <option value="86400" style="background:#1a2f50;color:#ffb800">24時間</option>
   </select>
   <button class="btn" id="catchupBtn" onclick="manualCatchup()" style="border-color:var(--gold);color:var(--gold)">🔍 SCAN</button>
 </div>
@@ -450,7 +448,16 @@ function loadState() {
     const cb = localStorage.getItem('wr_coinbuys');
     if (cb) coinBuys = JSON.parse(cb);
     const ex = localStorage.getItem('wr_exchange');
-    if (ex) exchangeWallets = JSON.parse(ex);
+    if (ex) {
+      const parsed = JSON.parse(ex);
+      // 旧フォーマット(string)→新フォーマット({name,enabled})に変換
+      for (const [addr, val] of Object.entries(parsed)) {
+        if (typeof val === 'string') {
+          parsed[addr] = { name: val, enabled: true };
+        }
+      }
+      exchangeWallets = parsed;
+    }
     const w = localStorage.getItem('wr_wallets');
     if (w) watchedWallets = JSON.parse(w);
     const s = localStorage.getItem('wr_sigs');
@@ -515,7 +522,7 @@ async function getBalance(addr) {
 async function isActiveWithin30Min(addr, seconds) {
   seconds = seconds || 1800;
   try {
-    const limit = seconds <= 3600 ? 50 : seconds <= 18000 ? 100 : 200;
+    const limit = seconds <= 1800 ? 50 : 100;
     const sigs = await getSignatures(addr, limit);
     if (!sigs || sigs.length === 0) return false;
     // 最古のTX（配列末尾）がseconds以内かチェック
@@ -523,6 +530,8 @@ async function isActiveWithin30Min(addr, seconds) {
     const blockTime = oldest.blockTime;
     if (!blockTime) return false;
     const ageSecs = Date.now() / 1000 - blockTime;
+    // limitに達している場合はさらに古いTXがある可能性→除外
+    if (sigs.length >= limit) return false;
     if (ageSecs > seconds) return false; // 指定時間より前に最初のTXがある→除外
     // 残高0チェック（最初のTX前）
     const tx = await getTx(oldest.signature);
@@ -684,7 +693,7 @@ function copyText(text) {
 async function scanPast30Min(seconds) {
   seconds = seconds || 1800;
   const cutoff = Math.floor(Date.now() / 1000) - seconds;
-  const rangeLabel = seconds <= 1800 ? '30分' : seconds <= 3600 ? '1時間' : seconds <= 18000 ? '5時間' : '24時間';
+  const rangeLabel = seconds <= 1800 ? '30分' : '1時間';
 
   const scanStartTime = now();
   addEvent({ html: `<div class="ev-meta"><span class="badge" style="background:rgba(0,229,255,.1);color:var(--accent);border:1px solid var(--accent)">CATCHUP</span><span class="ev-time">${scanStartTime}</span></div><div class="ev-title">🔍 過去${rangeLabel}スキャン開始</div><div class="ev-detail" style="color:var(--dim)">⏰ スキャン実行時刻: <span>${scanStartTime}</span><br>Binance2出金 → 新規ウォレット → コイン作成 の流れを追跡します</div>` });
@@ -692,7 +701,7 @@ async function scanPast30Min(seconds) {
   // Step1: Binance2の過去30分の出金を取得
   const newWallets = [];
   for (const wallet of getExchangeAddrs()) {
-    const fetchLimit = seconds <= 1800 ? 50 : seconds <= 3600 ? 100 : seconds <= 18000 ? 200 : 500;
+    const fetchLimit = seconds <= 1800 ? 50 : 100;
     const sigs = await getSignatures(wallet, fetchLimit);
     for (const s of sigs) {
       if (!s.blockTime || s.blockTime < cutoff) continue;
@@ -823,12 +832,6 @@ function renderExchangeList() { renderScanTargets(); } // 後方互換
 function renderScanTargets() {
   const container = document.getElementById('scan-targets');
   if (!container) return;
-  // 旧フォーマット(string)を新フォーマットに変換
-  for (const [addr, val] of Object.entries(exchangeWallets)) {
-    if (typeof val === 'string') {
-      exchangeWallets[addr] = { name: val, enabled: true };
-    }
-  }
   const entries = Object.entries(exchangeWallets);
   container.innerHTML = entries.map(([addr, data]) => `
     <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:8px 6px;border:1px solid ${data.enabled ? 'rgba(0,229,255,.3)' : 'rgba(42,58,90,.4)'};background:${data.enabled ? 'rgba(0,229,255,.05)' : 'transparent'};border-radius:2px">
@@ -1062,7 +1065,7 @@ async function checkBinance2() {
               <span class="badge" style="background:rgba(255,184,0,.12);color:var(--gold);border:1px solid var(--gold)">NEW WALLET</span>
               <span class="ev-time">${now()}</span>
             </div>
-            <div class="ev-title">🏦 Binance2から出金を検知</div>
+            <div class="ev-title">🏦 ${exchangeWallets[wallet]?.name||"Exchange"}から出金を検知</div>
             <div class="ev-detail">
               ⏰ 発生時刻: <span>${txTime(tx.blockTime)}</span><br>
               💰 送金額: <span>${t.amount.toFixed(2)} SOL</span><br>
@@ -1245,7 +1248,7 @@ async function manualCatchup() {
   if (!apiKey()) { alert('Helius API Keyを入力してください'); return; }
   const btn = document.getElementById('catchupBtn');
   const seconds = parseInt(document.getElementById('scanRange').value) || 1800;
-  const rangeLabels = {1800:'30分', 3600:'1時間', 18000:'5時間', 86400:'24時間'};
+  const rangeLabels = {1800:'30分', 3600:'1時間'};
   btn.disabled = true; btn.textContent = '⏳ スキャン中...';
   await scanPast30Min(seconds);
   btn.disabled = false; btn.textContent = '🔍 SCAN';
@@ -1259,8 +1262,11 @@ async function runScan() {
   await checkBinance2();
   await checkWatched();
 
-  // キャッシュ整理
-  if (processedSigs.size > 5000) processedSigs.clear();
+  // キャッシュ整理：古い半分だけ削除して直近は保持
+  if (processedSigs.size > 5000) {
+    const arr = [...processedSigs];
+    processedSigs = new Set(arr.slice(arr.length / 2));
+  }
 
   lastScanTime = Date.now();
   document.getElementById('liveDot').className = 'live-dot on';
@@ -1272,11 +1278,22 @@ function clearAll() {
   watchedWallets = {};
   processedSigs.clear();
   stats = { wallets:0, detected:0, buys:0, scans:0, created:0 }; coinBuys = {}; createdCoins = [];
-  try { localStorage.removeItem('wr_wallets'); localStorage.removeItem('wr_sigs'); localStorage.removeItem('wr_events'); localStorage.removeItem('wr_stats'); } catch(e) {}
+  try {
+    localStorage.removeItem('wr_wallets');
+    localStorage.removeItem('wr_sigs');
+    localStorage.removeItem('wr_events');
+    localStorage.removeItem('wr_stats');
+    localStorage.removeItem('wr_coinbuys');
+    localStorage.removeItem('wr_created');
+    // wr_exchangeは削除しない（スキャン設定は保持）
+  } catch(e) {}
   document.getElementById('events-list').innerHTML =
-    '<div class="empty" id="emptyEv">&gt; HELIUS API KEY を入力<br>&gt; START を押して監視開始<br>&gt; Binance2出金を自動検知します</div>';
+    '<div class="empty" id="emptyEv">&gt; HELIUS API KEY を入力<br>&gt; START を押して監視開始<br>&gt; 取引所出金を自動検知します</div>';
   document.getElementById('evCount').textContent = '0 イベント';
   renderWatchedList();
+  renderScanTargets();
+  renderCreatedList();
+  renderRanking();
   updateStats();
 }
 
@@ -1323,7 +1340,7 @@ if (savedKey) {
 }
 
 // iOSでページが非アクティブ→アクティブになったとき自動再開
-let lastScanTime = 0;
+let lastScanTime = Date.now();
 document.addEventListener('visibilitychange', async () => {
   if (document.visibilityState === 'visible') {
     if (!isRunning && apiKey()) {
@@ -1362,5 +1379,4 @@ setInterval(async () => {
 
 </body>
 </html>
-  
 
