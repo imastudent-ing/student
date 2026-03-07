@@ -301,8 +301,53 @@ animation:tickerRun 25s linear infinite;
   <div class="hdr-right">
     <div class="live-dot" id="liveDot"></div>
     <span class="clock" id="clock">--:--:--</span>
+    <button onclick="document.getElementById('helpModal').style.display='flex'" style="background:none;border:1px solid var(--dim);color:var(--dim);font-size:13px;width:26px;height:26px;border-radius:50%;cursor:pointer;font-family:'Orbitron',monospace;padding:0;line-height:1">?</button>
   </div>
 </header>
+
+<!-- HELP MODAL -->
+
+<div id="helpModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9999;align-items:center;justify-content:center;padding:16px" onclick="if(event.target===this)this.style.display='none'">
+  <div style="background:#070c18;border:1px solid var(--accent);max-width:480px;width:100%;max-height:85vh;overflow-y:auto;padding:20px;font-family:'Share Tech Mono',monospace;font-size:11px;line-height:1.8;color:var(--fg)">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <div style="font-family:'Orbitron',monospace;font-size:14px;color:var(--accent)">HOW TO USE</div>
+      <button onclick="document.getElementById('helpModal').style.display='none'" style="background:none;border:none;color:#ccd6f6;font-size:18px;cursor:pointer">✕</button>
+    </div>
+    <div style="color:var(--gold);margin-bottom:6px">▶ セットアップ（初回）</div>
+    <div style="color:#ccd6f6;margin-bottom:12px">
+      1. helius.dev で無料登録してAPIキーを取得<br>
+      2. 画面上部にAPIキーを貼り付け<br>
+      3. 監視したい取引所をSCAN TARGETSでONに<br>
+      4. STARTを押して監視開始
+    </div>
+    <div style="color:var(--gold);margin-bottom:6px">▶ 基本操作</div>
+    <div style="color:#ccd6f6;margin-bottom:12px">
+      <span style="color:var(--accent)">START/STOP</span> — 自動監視の開始・停止<br>
+      <span style="color:var(--accent)">SCAN</span> — 過去10分/30分を手動スキャン<br>
+      <span style="color:var(--accent)">CLEAR</span> — 全データリセット
+    </div>
+    <div style="color:var(--gold);margin-bottom:6px">▶ 見るべきシグナル</div>
+    <div style="color:#ccd6f6;margin-bottom:12px">
+      🎨 <span style="color:var(--green)">COIN CREATED</span> — 新規ウォレットがPump.funでコイン作成<br>
+      🎯 <span style="color:var(--accent)">TOKEN BUY</span> — 複数の監視ウォレットが同じCAを購入<br>
+      🏦 <span style="color:var(--accent2)">OUTFLOW</span> — 取引所から新規ウォレットへ出金を検知
+    </div>
+    <div style="color:var(--gold);margin-bottom:6px">▶ 各パネル</div>
+    <div style="color:#ccd6f6;margin-bottom:12px">
+      <span style="color:var(--accent)">LIVE EVENTS</span> — リアルタイム検知ログ<br>
+      <span style="color:var(--accent)">WATCHED WALLETS</span> — 監視中ウォレット一覧（タップで名前編集）<br>
+      <span style="color:var(--accent)">CREATED COINS</span> — 作成されたコイン一覧<br>
+      <span style="color:var(--accent)">CA RANKING</span> — 複数人が買ったコインのランキング<br>
+      <span style="color:var(--accent)">CA ANALYZER</span> — CAを入力してホルダー数・MC・作成時刻を調査
+    </div>
+    <div style="color:var(--gold);margin-bottom:6px">▶ 注意点</div>
+    <div style="color:#ccd6f6">
+      • iPhoneはバックグラウンドで止まることがある → 画面オンのままに<br>
+      • 無料Heliusは月100万リクエスト上限<br>
+      • 監視ウォレットが増えすぎるとAPIを多く消費する
+    </div>
+  </div>
+</div>
 
 <!-- API BAR -->
 
@@ -1583,6 +1628,9 @@ function clearAll() {
   watchedWallets = {};
   processedSigs.clear();
   stats = { wallets:0, detected:0, buys:0, scans:0, created:0 }; coinBuys = {}; createdCoins = [];
+  // 全取引所をOFF
+  Object.keys(exchangeWallets).forEach(a => exchangeWallets[a].enabled = false);
+  localStorage.removeItem('wr_exchange');
   try {
     localStorage.removeItem('wr_wallets');
     localStorage.removeItem('wr_sigs');
@@ -1742,13 +1790,28 @@ async function analyzeCA() {
       }
     } catch {}
 
-    // 3. 作成時刻（getAsset.created_at → Pump.fun → fallback: Helius最古TX）
+    // 3. 作成時刻（CAの最古TX = mint作成時刻）
     let ageStr = '—';
-    // まずgetAssetのcreated_atを試す（Unix秒）
     try {
-      const createdAt = asset?.created_at || asset?.mint_extensions?.created_at;
-      if (createdAt) {
-        const diffMin = Math.floor((Date.now() - createdAt * 1000) / 60000);
+      // CAアドレス自体の最古TXがmint作成タイミング
+      let before = null, oldest = null;
+      for (let p = 0; p < 50; p++) {
+        const opts = { limit: 100, commitment: 'confirmed' };
+        if (before) opts.before = before;
+        const r = await fetch(`https://mainnet.helius-rpc.com/?api-key=${key}`, {
+          method: 'POST',
+          headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({jsonrpc:'2.0',id:1,method:'getSignaturesForAddress',params:[ca, opts]})
+        });
+        const rj = await r.json();
+        const ss = rj.result || [];
+        if (!ss.length) break;
+        oldest = ss[ss.length - 1];
+        if (ss.length < 100) break;
+        before = ss[ss.length - 1].signature;
+      }
+      if (oldest?.blockTime) {
+        const diffMin = Math.floor((Date.now() - oldest.blockTime * 1000) / 60000);
         if (diffMin < 60) ageStr = diffMin + '分前';
         else if (diffMin < 1440) ageStr = Math.floor(diffMin/60) + '時間前';
         else ageStr = Math.floor(diffMin/1440) + '日前';
@@ -1764,7 +1827,6 @@ async function analyzeCA() {
         else ageStr = Math.floor(diffMin/1440) + '日前';
       }
     } catch {}
-    // fallback: Helius最古TX
     if (ageStr === '—') {
       try {
         let before = null, oldest = null;
@@ -1808,7 +1870,7 @@ async function analyzeCA() {
     // 5. 基本情報を描画
     result.innerHTML = `
       <div style="margin-bottom:8px">
-        <div style="font-family:'Orbitron',monospace;font-size:13px;color:var(--accent)">${name} <span style="color:var(--dim);font-size:10px">${symbol}</span></div>
+        <div style="font-family:'Orbitron',monospace;font-size:20px;color:var(--accent);letter-spacing:1px">${name} <span style="color:var(--dim);font-size:13px">${symbol}</span></div>
         <div style="font-size:9px;color:var(--dim);margin-top:2px;word-break:break-all;cursor:pointer" onclick="copyText('${ca}')" title="タップでコピー">📋 ${ca}</div>
       </div>
       <div class="ca-grid">
