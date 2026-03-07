@@ -449,7 +449,9 @@ animation:tickerRun 25s linear infinite;
 // exchangeWallets: addr → {name, enabled}
 let exchangeWallets = {
   "5tzFkiKscXHK5ZXCGbXZxdw7gTjjD1mBwuoFbhUvuAi9": { name: "Binance2", enabled: true },
-  "A77HErqtfN1hLLpvZ9pCtu66FEtM8BveoaKbbMoZ4RiR": { name: "Bitget Exchange",   enabled: true }
+  "A77HErqtfN1hLLpvZ9pCtu66FEtM8BveoaKbbMoZ4RiR": { name: "Bitget Exchange",   enabled: true },
+  "J1BDJEdvTmmcjeTMVTHLPaaNvuQ3mdxeuWEM1YyMksLy": { name: "BingX",             enabled: true },
+  "ASTyfSima4LLAdDgoFGkgqoKowG1LZFDr9fAQrg7iaJZ": { name: "MEXC",              enabled: true }
 };
 function getExchangeAddrs() { return Object.keys(exchangeWallets).filter(a => exchangeWallets[a].enabled); }
 function isExchangeAddr(a)  { return !!exchangeWallets[a]; }
@@ -943,7 +945,7 @@ async function scanPast30Min(seconds) {
             <span class="badge" style="background:rgba(0,229,255,.05);color:var(--dim);border:1px solid var(--dim)">CATCHUP</span>
             <span class="ev-time">${now()}</span>
           </div>
-          <div class="ev-title">🏦 Binance2出金を検知（過去30分）</div>
+          <div class="ev-title">🏦 Binance2出金を検知（過去${rangeLabel}）</div>
           <div class="ev-detail">
             ⏰ 発生時刻: <span>${txTime(s.blockTime)}</span><br>
             💰 送金額: <span>${t.amount.toFixed(2)} SOL</span><br>
@@ -988,7 +990,7 @@ async function scanPast30Min(seconds) {
             <span class="badge" style="background:rgba(0,229,255,.05);color:var(--dim);border:1px solid var(--dim)">CATCHUP</span>
             <span class="ev-time">${now()}</span>
           </div>
-          <div class="ev-title">🎨 コイン作成を検知！（過去30分）</div>
+          <div class="ev-title">🎨 コイン作成を検知！（過去${rangeLabel}）</div>
           <div class="ev-detail">
             ⏰ 発生時刻: <span>${txTime(s.blockTime)}</span><br>
             🏷 追跡元: <span>${label}</span><br>
@@ -1017,7 +1019,7 @@ async function scanPast30Min(seconds) {
             <span class="badge" style="background:rgba(0,229,255,.05);color:var(--dim);border:1px solid var(--dim)">CATCHUP</span>
             <span class="ev-time">${now()}</span>
           </div>
-          <div class="ev-title">🎯 トークン購入を検知（過去30分）</div>
+          <div class="ev-title">🎯 トークン購入を検知（過去${rangeLabel}）</div>
           <div class="ev-detail">
             ⏰ 発生時刻: <span>${txTime(s.blockTime)}</span><br>
             🏷 追跡元: <span>${label}</span><br>
@@ -1134,6 +1136,12 @@ const KNOWN_TOKENS = {
   'DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263': 'BONK',
   'EKpQGSJtjMFqKZ9KQanSqYXRcF8fBopzLHYxdM65zcjm': 'WIF',
   '7GCihgDB8fe6KNjn2MYtkzZcRjQy3t9GHdC8uHYmW2hr': 'POPCAT',
+  '3sTnEm8vQSBK4y4k9VWnmYwGoP1gLwAAXYxQBB8yRhqK': 'SKIP1',
+  'AymATz4TCL9sWNEEV9Kvyz45CHVhDZ6kUgjTJPzLpU9P': 'SKIP2',
+  'H22h8ZqANnJKEtgsga9KYCZMyAfzZFfPm72TB1yR3Lsw': 'SKIP3',
+  '3sTnEm8vQSBK4y4k9VWnmYwGoP1gLwAAXYxQBB8yRhqK': 'UNKNOWN1',
+  'AymATz4TCL9sWNEEV9Kvyz45CHVhDZ6kUgjTJPzLpU9P': 'UNKNOWN2',
+  'H22h8ZqANnJKEtgsga9KYCZMyAfzZFfPm72TB1yR3Lsw': 'UNKNOWN3',
 };
 const IGNORE_MINTS = new Set(Object.keys(KNOWN_TOKENS));
 
@@ -1700,9 +1708,30 @@ async function analyzeCA() {
     const symbol = asset?.content?.metadata?.symbol || '?';
     const desc   = asset?.content?.metadata?.description || '';
 
-    // 2. ホルダー数＋作成時刻（Pump.fun非公式API）
+    // 2. ホルダー数（Helius getTokenAccounts page合計）
     let holders = '—';
     let pumpData = null;
+    try {
+      // Helius getTokenAccounts: cursorページングで全件カウント
+      let holderCount = 0;
+      let cursor = null;
+      for (let p = 0; p < 20; p++) {
+        const params = { mint: ca, limit: 1000, displayOptions: { showZeroBalance: false } };
+        if (cursor) params.cursor = cursor;
+        const holdRes = await fetch(`https://mainnet.helius-rpc.com/?api-key=${key}`, {
+          method: 'POST',
+          headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({jsonrpc:'2.0',id:1,method:'getTokenAccounts',params})
+        });
+        const holdJson = await holdRes.json();
+        const accounts = holdJson.result?.token_accounts || [];
+        holderCount += accounts.length;
+        cursor = holdJson.result?.cursor;
+        if (!cursor || accounts.length < 1000) break;
+      }
+      if (holderCount > 0) holders = holderCount.toLocaleString();
+    } catch {}
+    // Pump.fun非公式API（CORSが通れば上書き）
     try {
       const pumpRes = await fetch(`https://frontend-api.pump.fun/coins/${ca}`);
       if (pumpRes.ok) {
@@ -1712,29 +1741,22 @@ async function analyzeCA() {
         }
       }
     } catch {}
-    // fallback: Helius getTokenAccounts
-    if (holders === '—') {
-      try {
-        const holdRes = await fetch(`https://mainnet.helius-rpc.com/?api-key=${key}`, {
-          method: 'POST',
-          headers: {'Content-Type':'application/json'},
-          body: JSON.stringify({jsonrpc:'2.0',id:1,method:'getTokenAccounts',params:{mint:ca,limit:1000,displayOptions:{showZeroBalance:false}}})
-        });
-        const holdJson = await holdRes.json();
-        if (holdJson.result?.total != null) {
-          holders = holdJson.result.total.toLocaleString();
-        } else if (Array.isArray(holdJson.result?.token_accounts)) {
-          holders = holdJson.result.token_accounts.length + (holdJson.result.token_accounts.length >= 1000 ? '+' : '');
-        }
-      } catch {}
-    }
 
-    // 3. 作成時刻（Pump.fun非公式API → fallback: Helius最古TX）
+    // 3. 作成時刻（getAsset.created_at → Pump.fun → fallback: Helius最古TX）
     let ageStr = '—';
+    // まずgetAssetのcreated_atを試す（Unix秒）
     try {
-      // pumpDataが取得済みなら使う
+      const createdAt = asset?.created_at || asset?.mint_extensions?.created_at;
+      if (createdAt) {
+        const diffMin = Math.floor((Date.now() - createdAt * 1000) / 60000);
+        if (diffMin < 60) ageStr = diffMin + '分前';
+        else if (diffMin < 1440) ageStr = Math.floor(diffMin/60) + '時間前';
+        else ageStr = Math.floor(diffMin/1440) + '日前';
+      }
+    } catch {}
+    // Pump.fun APIで上書き（CORSが通れば）
+    try {
       if (pumpData?.created_timestamp) {
-        // pump.funのcreated_timestampはUnix秒
         const tsMs = pumpData.created_timestamp * 1000;
         const diffMin = Math.floor((Date.now() - tsMs) / 60000);
         if (diffMin < 60) ageStr = diffMin + '分前';
