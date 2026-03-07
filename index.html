@@ -764,23 +764,18 @@ function sigProcessed(sig) {
 
 async function isNewWallet(addr, cutoff = null) {
   try {
-    const sigs = await safeGetSignatures(addr, 10);
+    const sigs = await safeGetSignatures(addr, 20);
     if (!sigs || sigs.length === 0) return false;
 
-    // 条件①: TX履歴が5件以下
-    if (sigs.length > 5) return false;
+    // 条件①: TX履歴が20件以下（出金後にスワップ等で増えるため緩め）
+    if (sigs.length >= 20) return false;
 
-    // 条件②: ウォレットの最古TX（作成タイミング）がcutoff以降
+    // 条件②: 最古TXがcutoff以降（ウォレット作成がスキャン範囲内）
     const oldestBlockTime = sigs[sigs.length - 1].blockTime;
     if (!oldestBlockTime) return false;
-    if (cutoff) {
-      // スキャン範囲内に作られたウォレットのみ
-      if (oldestBlockTime < cutoff) return false;
-    } else {
-      // 通常監視: 24時間以内
-      const ageHours = (Date.now() / 1000 - oldestBlockTime) / 3600;
-      if (ageHours > 24) return false;
-    }
+
+    const threshold = cutoff || (Math.floor(Date.now() / 1000) - 86400);
+    if (oldestBlockTime < threshold) return false;
 
     return true;
 
@@ -1644,11 +1639,20 @@ async function manualCatchup() {
   const btn = document.getElementById('catchupBtn');
   const seconds = parseInt(document.getElementById('scanRange').value) || 1800;
   btn.disabled = true; btn.textContent = '⏳ スキャン中...';
+
+  // SCAN中はrunScanを一時停止（checkBinance2との競合防止）
+  const wasRunning = isRunning;
+  if (wasRunning) { clearInterval(monitorTimer); monitorTimer = null; }
+
   try {
     await checkWatched();
     await scanPast30Min(seconds);
   } finally {
     btn.disabled = false; btn.textContent = '🔍 SCAN';
+    if (wasRunning && isRunning) {
+      const interval = parseInt(document.getElementById('intervalSec').value) * 1000 || 20000;
+      monitorTimer = setInterval(runScan, interval);
+    }
   }
 }
 
