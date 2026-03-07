@@ -314,46 +314,58 @@ animation:tickerRun 25s linear infinite;
       <button onclick="document.getElementById('helpModal').style.display='none'" style="background:none;border:none;color:#ccd6f6;font-size:18px;cursor:pointer">✕</button>
     </div>
     <div style="color:var(--gold);margin-bottom:6px">▶ セットアップ（初回）</div>
-    <div style="color:#ccd6f6;margin-bottom:12px">
-      1. helius.dev で無料登録してAPIキーを取得<br>
-      2. 画面上部にAPIキーを貼り付け<br>
-      3. SCAN TARGETSで監視したい取引所をONに<br>
-      4. STARTを押して監視開始
+    <div style="color:#b0c8e8;margin-bottom:14px">
+      <span style="color:var(--accent)">1.</span> <a href="https://helius.dev" target="_blank" style="color:var(--accent)">helius.dev</a> で無料登録してAPIキーを取得<br>
+      <span style="color:var(--accent)">2.</span> 画面上部の「HELIUS API KEY」欄にキーを貼り付け<br>
+      <span style="color:var(--accent)">3.</span> SCAN TARGETSで監視したい取引所を1つ選択<br>
+      <span style="color:var(--accent)">4.</span> STARTを押して監視開始
     </div>
-    <div style="color:var(--gold);margin-bottom:6px">▶ 基本操作</div>
-    <div style="color:#ccd6f6;margin-bottom:12px">
-      <span style="color:var(--accent)">START</span> — 監視開始。START後に初めて出金されたウォレットのみ検知<br>
-      <span style="color:var(--accent)">STOP</span> — 監視停止<br>
-      <span style="color:var(--accent)">SCAN 10分/30分</span> — 過去の指定期間を手動スキャン<br>
-      <span style="color:var(--accent)">CLEAR</span> — 全データリセット（取引所選択もOFFに）
-    </div>
-    <div style="color:var(--gold);margin-bottom:6px">▶ 検知条件</div>
-    <div style="color:#ccd6f6;margin-bottom:12px">
-      • 対象取引所（Binance2 / Bitget / BingX / MEXC）からのSOL出金<br>
-      • 出金先が新規ウォレット（START以降に初めて送金を受けたアドレス）<br>
-      • TX履歴5件以下 / 0.01 SOL以上の出金
-    </div>
-    <div style="color:var(--gold);margin-bottom:6px">▶ 見るべきシグナル</div>
-    <div style="color:#ccd6f6;margin-bottom:12px">
-      🏦 <span style="color:var(--accent2)">OUTFLOW</span> — 取引所から新規ウォレットへの出金を検知<br>
-      🎨 <span style="color:var(--green)">COIN CREATED</span> — 監視ウォレットがPump.funでコイン作成<br>
-      🎯 <span style="color:var(--accent)">TOKEN BUY</span> — 監視ウォレットがトークンを購入
-    </div>
-    <div style="color:var(--gold);margin-bottom:6px">▶ 各パネル</div>
-    <div style="color:#ccd6f6;margin-bottom:12px">
-      <span style="color:var(--accent)">LIVE EVENTS</span> — リアルタイム検知ログ<br>
-      <span style="color:var(--accent)">WATCHED WALLETS</span> — 監視中ウォレット一覧（タップで名前編集・手動追加可）<br>
-      <span style="color:var(--accent)">CREATED COINS</span> — 監視ウォレットが作成したコイン一覧<br>
-      <span style="color:var(--accent)">CA RANKING</span> — 複数の監視ウォレットが買ったコインのランキング<br>
-      <span style="color:var(--accent)">CA ANALYZER</span> — CAを入力してホルダー数・MC・作成時刻を調査
-    </div>
-    <div style="color:var(--gold);margin-bottom:6px">▶ 注意点</div>
-    <div style="color:#ccd6f6">
-      • iPhoneはバックグラウンドで止まる → 画面オンのままにする<br>
-      • MEXCはSOL出金が少ない場合あり（USDC出金は非対応）<br>
-      • 無料Heliusは月100万リクエスト上限<br>
-      • 監視ウォレットが増えるとAPIを多く消費する
-    </div>
+
+```
+<div style="color:var(--gold);margin-bottom:6px">▶ ボタン説明</div>
+<div style="color:#b0c8e8;margin-bottom:14px">
+  <span style="color:var(--accent)">▶ START</span> — 監視開始。押した瞬間以降に取引所から初めてSOLを受け取った新規ウォレットのみ検知する<br><br>
+  <span style="color:var(--accent)">■ STOP</span> — 監視停止。再度STARTすると新しいセッションで再開<br><br>
+  <span style="color:var(--accent)">🔍 SCAN（10分/30分）</span> — 過去10分または30分を遡って手動スキャン。STARTしていなくても使用可能<br><br>
+  <span style="color:var(--accent)">✕ CLEAR</span> — イベント履歴・統計をリセット。監視ウォレットは保持される<br><br>
+  <span style="color:#ff6b35">👁 監視リセット</span> — 監視ウォレットリストを全削除
+</div>
+
+<div style="color:var(--gold);margin-bottom:6px">▶ 検知条件</div>
+<div style="color:#b0c8e8;margin-bottom:14px">
+  • 選択した取引所からの <span style="color:var(--accent)">0.01 SOL以上</span> の出金TX<br>
+  • 出金先のウォレットが <span style="color:var(--accent)">初めてSOLを受け取る</span>（preBalance = 0）<br>
+  • 出金先がpump.fun / Bags銘柄を <span style="color:var(--green)">購入 or 作成</span> したらイベント表示
+</div>
+
+<div style="color:var(--gold);margin-bottom:6px">▶ イベントの種類</div>
+<div style="color:#b0c8e8;margin-bottom:14px">
+  🏦 <span style="color:var(--accent2)">OUTFLOW + NEW WALLET</span><br>
+  　取引所から新規ウォレットへの出金を検知。監視リストに自動追加<br><br>
+  🎨 <span style="color:var(--green)">COIN CREATED</span><br>
+  　監視ウォレットがPump.funまたはBagsでコインを新規作成<br><br>
+  🎯 <span style="color:var(--accent)">TOKEN BUY</span><br>
+  　監視ウォレットがPump.fun / Bags銘柄を購入（CA末尾がpumpまたはBAGSのもの）
+</div>
+
+<div style="color:var(--gold);margin-bottom:6px">▶ 各パネル</div>
+<div style="color:#b0c8e8;margin-bottom:14px">
+  <span style="color:var(--accent)">LIVE EVENTS</span> — リアルタイム検知ログ<br>
+  <span style="color:var(--accent)">WATCHED WALLETS</span> — 監視中ウォレット一覧。タップで名前編集・手動追加も可<br>
+  <span style="color:var(--accent)">CREATED COINS</span> — 監視ウォレットが作成したコイン一覧<br>
+  <span style="color:var(--accent)">CA RANKING</span> — 複数の監視ウォレットが買ったコインのランキング（20秒更新）<br>
+  <span style="color:var(--accent)">CA ANALYZER</span> — CAを入力してホルダー数・MC・チャートを表示
+</div>
+
+<div style="color:var(--gold);margin-bottom:6px">▶ 注意点</div>
+<div style="color:#b0c8e8">
+  • 取引所は <span style="color:var(--accent)">1つだけ</span> 選択（複数選択不可）<br>
+  • iPhoneはバックグラウンドで止まる → 画面オンのまま使用<br>
+  • MEXCはSOL出金が少ない場合あり（USDC出金は非対応）<br>
+  • 無料Heliusは月100万リクエスト上限。監視ウォレットが多いほど消費が増える
+</div>
+```
+
   </div>
 </div>
 
@@ -1127,7 +1139,7 @@ function renderScanTargets() {
   const entries = Object.entries(exchangeWallets);
   container.innerHTML = entries.map(([addr, data]) => `
     <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:6px 10px;border:1px solid ${data.enabled ? 'rgba(0,229,255,.4)' : 'rgba(42,58,90,.4)'};background:${data.enabled ? 'rgba(0,229,255,.08)' : 'transparent'};border-radius:2px">
-      <input type="checkbox" ${data.enabled ? 'checked' : ''} onchange="toggleExchange('${addr}')"
+      <input type="radio" name="exchange" ${data.enabled ? 'checked' : ''} onchange="toggleExchange('${addr}')"
         style="width:16px;height:16px;cursor:pointer;accent-color:var(--accent)">
       <div>
         <div style="font-family:'Orbitron',monospace;font-size:10px;color:${data.enabled ? 'var(--accent)' : 'var(--dim)'};">${data.name}</div>
@@ -1139,10 +1151,11 @@ function renderScanTargets() {
 
 function toggleExchange(addr) {
   if (!exchangeWallets[addr]) return;
-  exchangeWallets[addr].enabled = !exchangeWallets[addr].enabled;
+  // 全部OFFにしてから選択したものだけON（1つだけ選択）
+  Object.keys(exchangeWallets).forEach(a => exchangeWallets[a].enabled = false);
+  exchangeWallets[addr].enabled = true;
   renderScanTargets();
   saveState();
-
 }
 
 
