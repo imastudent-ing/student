@@ -522,7 +522,7 @@ function loadState() {
     const e = localStorage.getItem('wr_events');
     if (e) events = JSON.parse(e);
     const st = localStorage.getItem('wr_stats');
-    if (st) { const p = JSON.parse(st); stats.detected = p.detected||0; stats.buys = p.buys||0; stats.created = p.created||0; }
+    if (st) { const p = JSON.parse(st); stats.detected = p.detected||0; stats.buys = p.buys||0; stats.created = p.created||0; stats.scans = p.scans||0; }
   } catch(e) {}
 }
 
@@ -601,17 +601,37 @@ async function withBackoff(fn, maxRetry = 6, base = 500) {
   }
 }
 
-async function safeGetSignatures(addr, limit = 20) {
-  const key = `sigs:${addr}:${limit}`;
+async function safeGetSignatures(addr, limit = 20, before = null) {
+  const key = `sigs:${addr}:${limit}:${before||''}`;
   const cached = getCache(key);
   if (cached) return cached;
   await GLOBAL_SEM.acquire();
   try {
-    const res = await withBackoff(() => rpc('getSignaturesForAddress', [addr, { limit, commitment: 'confirmed' }])).catch(() => []);
+    const opts = { limit, commitment: 'confirmed' };
+    if (before) opts.before = before;
+    const res = await withBackoff(() => rpc('getSignaturesForAddress', [addr, opts])).catch(() => []);
     const result = res || [];
-    setCache(key, result, 90000);
+    setCache(key, result, before ? 120000 : 90000); // ページングキャッシュは長め
     return result;
   } finally { GLOBAL_SEM.release(); }
+}
+
+// ページング付きシグネチャ取得（cutoff時刻まで遡る）
+async function getSignaturesUntil(addr, cutoff, maxPages = 10) {
+  const allSigs = [];
+  let before = null;
+  for (let page = 0; page < maxPages; page++) {
+    const sigs = await safeGetSignatures(addr, 100, before);
+    if (!sigs.length) break;
+    let done = false;
+    for (const s of sigs) {
+      if (s.blockTime && s.blockTime < cutoff) { done = true; break; }
+      allSigs.push(s);
+    }
+    if (done || sigs.length < 100) break;
+    before = sigs[sigs.length - 1].signature;
+  }
+  return allSigs;
 }
 
 async function safeGetTx(sig) {
@@ -641,18 +661,15 @@ async function getBalance(addr) {
 async function isActiveWithin30Min(addr, seconds) {
   seconds = seconds || 1800;
   try {
-    const limit = 300; // 十分な件数を取得
+    const limit = 300;
     const sigs = await safeGetSignatures(addr, limit);
     if (!sigs || sigs.length === 0) return false;
-    // 最古のTX（配列末尾）がseconds以内かチェック
     const oldest = sigs[sigs.length - 1];
     const blockTime = oldest.blockTime;
     if (!blockTime) return false;
     const ageSecs = Date.now() / 1000 - blockTime;
-    // limitに達している場合はさらに古いTXがある可能性→除外
     if (sigs.length >= limit) return false;
-    if (ageSecs > seconds) return false; // 指定時間より前に最初のTXがある→除外
-    // 残高0チェック（最初のTX前）
+    if (ageSecs > seconds) return false;
     const tx = await safeGetTx(oldest.signature);
     if (!tx) return false;
     const accounts = tx.transaction?.message?.accountKeys || [];
@@ -743,6 +760,7 @@ function parseTokenBuys(tx) {
     const preMap  = Object.fromEntries(preTok.map(t => [t.mint + ':' + t.accountIndex, t]));
     const out = [];
     for (const p of postTok) {
+      if (IGNORE_MINTS.has(p.mint)) continue; // SOL/USDC等をスキップ
       const key  = p.mint + ':' + p.accountIndex;
       const pre  = preMap[key];
       const preA = pre  ? parseFloat(pre.uiTokenAmount?.uiAmount  || 0) : 0;
@@ -776,24 +794,33 @@ function parseCoinCreation(tx) {
     if (!hasPump) return null;
 
     // ① SPL Token Program の initializeMint instruction を検出
-    //    data[0] === 0 が initializeMint のディスクリミネーター
+    //    outer + inner 両方チェック
     const allInstructions = [
       ...(tx.transaction?.message?.instructions || []),
       ...(meta.innerInstructions || []).flatMap(i => i.instructions || [])
     ];
 
     for (const ix of allInstructions) {
+      // jsonParsed形式: ix.parsed.type で判定
+      if (ix.parsed) {
+        const t = ix.parsed.type;
+        if (t === 'initializeMint' || t === 'initializeMint2') {
+          const mint = ix.parsed.info?.mint;
+          if (mint) return mint;
+        }
+        continue;
+      }
+
+      // raw形式: programIdIndexとdata[0]で判定
       const progIdx = ix.programIdIndex;
       const progAddr = getAddr(accounts[progIdx]);
       const isTokenProg = progAddr === TOKEN_PROGRAM || progAddr === TOKEN_2022_PROGRAM;
       if (!isTokenProg) continue;
 
-      // dataはbase58エンコードされている場合がある
-      // 最初のバイトが0 = InitializeMint
       try {
         const dataBytes = ix.data ? bs58ToBytes(ix.data) : null;
-        if (dataBytes && dataBytes[0] === 0) {
-          // このinstructionのaccountsの最初がmintアドレス
+        // data[0]=0: initializeMint, data[0]=20: initializeMint2
+        if (dataBytes && (dataBytes[0] === 0 || dataBytes[0] === 20)) {
           const mintIdx = ix.accounts?.[0];
           if (mintIdx !== undefined) {
             const mint = getAddr(accounts[mintIdx]);
@@ -884,8 +911,8 @@ async function scanPast30Min(seconds) {
   const newWallets = [];
   let skipCount = 0;
   for (const wallet of getExchangeAddrs()) {
-    const fetchLimit = seconds <= 600 ? 100 : 300; // 10分=100件、30分=300件
-    const sigs = await safeGetSignatures(wallet, fetchLimit);
+    const maxPages = seconds <= 600 ? 5 : 15; // 10分=5ページ(500件)、30分=15ページ(1500件)
+    const sigs = await getSignaturesUntil(wallet, cutoff, maxPages);
     for (const s of sigs) {
       if (!s.blockTime || s.blockTime < cutoff) continue;
       // 過去スキャンはprocessedSigsを参照しない（遡るのが目的）
@@ -932,14 +959,19 @@ async function scanPast30Min(seconds) {
     }
   }
 
-  // Step2: 検知した新規ウォレットの過去30分のTXからコイン作成を探す
-  for (const { addr, label } of newWallets) {
-    const sigs = await safeGetSignatures(addr, 20);
+  // Step2: 新規ウォレット＋既存監視ウォレット全員の過去TXからコイン作成を探す
+  const step2Targets = [
+    ...newWallets,
+    ...Object.entries(watchedWallets)
+      .filter(([a]) => !newWallets.find(w => w.addr === a))
+      .map(([a, info]) => ({ addr: a, label: info.nickname || info.label }))
+  ];
+  for (const { addr, label } of step2Targets) {
+    const sigs = await getSignaturesUntil(addr, cutoff, 3); // 最大3ページ(300件)
+    const newLastSig = sigs[0]?.signature;
     for (const s of sigs) {
       if (!s.blockTime || s.blockTime < cutoff) continue;
-      // 過去スキャンはprocessedSigsを参照しない（再処理する）
       processedSigs.set(s.signature, Date.now());
-      watchedWallets[addr].lastSig = s.signature;
 
       const tx = await safeGetTx(s.signature);
       if (!tx) continue;
@@ -972,7 +1004,8 @@ async function scanPast30Min(seconds) {
         updateStats();
       }
 
-      // トークン購入チェック
+      // トークン購入チェック（Step2では新規ウォレットのみ）
+      if (newWallets.find(w => w.addr === addr)) {
       const buys = parseTokenBuys(tx);
       for (const b of buys) {
         if (createdMint && b.mint === createdMint) continue; // 作成は上で処理済み
@@ -999,7 +1032,10 @@ async function scanPast30Min(seconds) {
           </div>` });
         updateStats();
       }
+      } // end if newWallets
     }
+    // lastSigを最新に更新
+    if (newLastSig && watchedWallets[addr]) watchedWallets[addr].lastSig = newLastSig;
   }
 
   addEvent({ html: `<div class="ev-meta"><span class="badge" style="background:rgba(0,255,157,.1);color:var(--green);border:1px solid var(--green)">DONE</span><span class="ev-time">${now()}</span></div><div class="ev-title">✅ 過去${rangeLabel}スキャン完了</div><div class="ev-detail" style="color:var(--dim)">新規ウォレット: <span>${newWallets.length}件</span> 検知 &nbsp;|&nbsp; スキップ: <span>${skipCount}件</span></div>` });
@@ -1095,6 +1131,7 @@ const KNOWN_TOKENS = {
 };
 const IGNORE_MINTS = new Set(Object.keys(KNOWN_TOKENS));
 
+
 function trackCoin(mint, type, walletAddr) {
   // CAランキングはbuyのみ
   if (type !== 'buy') return;
@@ -1149,6 +1186,7 @@ function updateStats() {
 
 function addEvent(ev) {
   events.unshift(ev);
+  if (events.length > 100) events.length = 100; // メモリリーク防止
 
   const list = document.getElementById('events-list');
 
@@ -1330,14 +1368,14 @@ async function checkBinance2() {
 
 async function checkWatched() {
   for (const [addr, info] of Object.entries(watchedWallets)) {
-    const sigs = await safeGetSignatures(addr, 5);
+    const sigs = await safeGetSignatures(addr, 20);
     if (!sigs.length) continue;
 
+    const newLastSig = sigs[0]?.signature || info.lastSig;
     for (const s of sigs) {
-      if (!s.signature || sigProcessed(s.signature)) continue;
-      if (s.signature === info.lastSig) continue;
+      if (!s.signature) continue;
+      if (s.signature === info.lastSig) break; // lastSig以降は処理済み
       processedSigs.set(s.signature, Date.now());
-      watchedWallets[addr].lastSig = s.signature;
 
       const tx = await safeGetTx(s.signature);
       if (!tx) continue;
@@ -1454,6 +1492,8 @@ async function checkWatched() {
         updateStats();
       }
     }
+    // 全TX処理後にlastSigを最新に更新
+    if (newLastSig) watchedWallets[addr].lastSig = newLastSig;
   }
 }
 
