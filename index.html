@@ -1140,7 +1140,7 @@ function renderScanTargets() {
   const entries = Object.entries(exchangeWallets);
   container.innerHTML = entries.map(([addr, data]) => `
     <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:6px 10px;border:1px solid ${data.enabled ? 'rgba(0,229,255,.4)' : 'rgba(42,58,90,.4)'};background:${data.enabled ? 'rgba(0,229,255,.08)' : 'transparent'};border-radius:2px">
-      <input type="radio" name="exchange" ${data.enabled ? 'checked' : ''} onchange="toggleExchange('${addr}')"
+      <input type="radio" name="exchange" ${data.enabled ? 'checked' : ''} onclick="toggleExchange('${addr}')"
         style="width:16px;height:16px;cursor:pointer;accent-color:var(--accent)">
       <div>
         <div style="font-family:'Orbitron',monospace;font-size:10px;color:${data.enabled ? 'var(--accent)' : 'var(--dim)'};">${data.name}</div>
