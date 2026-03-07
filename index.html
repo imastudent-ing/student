@@ -688,7 +688,7 @@ async function isActiveWithin30Min(addr, seconds) {
 function sigProcessed(sig) {
   if (!processedSigs.has(sig)) return false;
   const ts = processedSigs.get(sig);
-  if (Date.now() - ts > 2 * 3600 * 1000) {
+  if (Date.now() - ts > 1 * 3600 * 1000) {
     processedSigs.delete(sig);
     return false;
   }
@@ -701,8 +701,8 @@ async function isNewWallet(addr) {
     const sigs = await safeGetSignatures(addr, 10);
     if (!sigs || sigs.length === 0) return false;
 
-    // 厳密条件①: TX履歴が1件のみ（今回のBinance出金だけ）
-    if (sigs.length > 1) return false;
+    // 条件①: TX履歴が5件以下（新規ウォレット判定を緩和）
+    if (sigs.length > 5) return false;
 
     // 厳密条件②: そのTXが24時間以内
     const blockTime = sigs[0].blockTime;
@@ -1125,9 +1125,15 @@ function mintLabel(mint) {
 // ランキング除外・既知トークン名
 const KNOWN_TOKENS = {
   'So11111111111111111111111111111111111111112': 'SOL',
-  'CASHx9KJUStyftLFWGvEVf59SGeG9sh5FfcnZMVPCASH': 'CASH',
   'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v': 'USDC',
+  'Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB': 'USDT',
+  'CASHx9KJUStyftLFWGvEVf59SGeG9sh5FfcnZMVPCASH': 'CASH',
   '8opvqaWysX1oYbXuTL8PHaoaTiXD69VFYAX4smPebonk': 'WAR',
+  'USD1ttGY1N17NEEHLmELoaybftRBUSErhqYiQzvEmuB': 'USD1',
+  'JUPyiwrYJFskUPiHa7hkeR8VUtAeFoSYbKedZNsDvCN': 'JUP',
+  'DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263': 'BONK',
+  'EKpQGSJtjMFqKZ9KQanSqYXRcF8fBopzLHYxdM65zcjm': 'WIF',
+  '7GCihgDB8fe6KNjn2MYtkzZcRjQy3t9GHdC8uHYmW2hr': 'POPCAT',
 };
 const IGNORE_MINTS = new Set(Object.keys(KNOWN_TOKENS));
 
@@ -1318,7 +1324,7 @@ function addManualWallet() {
 // ─────────────────────────────────────────
 async function checkBinance2() {
   for (const wallet of getExchangeAddrs()) {
-    const sigs = await safeGetSignatures(wallet, 6);
+    const sigs = await safeGetSignatures(wallet, 20);
     for (const s of sigs) {
       if (!s.signature || sigProcessed(s.signature)) continue;
       processedSigs.set(s.signature, Date.now());
@@ -1493,7 +1499,7 @@ async function checkWatched() {
       }
     }
     // 全TX処理後にlastSigを最新に更新
-    if (newLastSig) watchedWallets[addr].lastSig = newLastSig;
+    if (newLastSig && watchedWallets[addr]) watchedWallets[addr].lastSig = newLastSig;
   }
 }
 
@@ -1694,32 +1700,75 @@ async function analyzeCA() {
     const symbol = asset?.content?.metadata?.symbol || '?';
     const desc   = asset?.content?.metadata?.description || '';
 
-    // 2. Helius: 保有者数
+    // 2. ホルダー数＋作成時刻（Pump.fun非公式API）
     let holders = '—';
+    let pumpData = null;
     try {
-      const holdRes = await fetch(`https://mainnet.helius-rpc.com/?api-key=${key}`, {
-        method: 'POST',
-        headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({jsonrpc:'2.0',id:1,method:'getTokenAccounts',params:{mint:ca,limit:1,displayOptions:{showZeroBalance:false}}})
-      });
-      const holdJson = await holdRes.json();
-      holders = holdJson.result?.total ?? '—';
+      const pumpRes = await fetch(`https://frontend-api.pump.fun/coins/${ca}`);
+      if (pumpRes.ok) {
+        pumpData = await pumpRes.json();
+        if (pumpData.holder_count != null) {
+          holders = pumpData.holder_count.toLocaleString();
+        }
+      }
     } catch {}
+    // fallback: Helius getTokenAccounts
+    if (holders === '—') {
+      try {
+        const holdRes = await fetch(`https://mainnet.helius-rpc.com/?api-key=${key}`, {
+          method: 'POST',
+          headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({jsonrpc:'2.0',id:1,method:'getTokenAccounts',params:{mint:ca,limit:1000,displayOptions:{showZeroBalance:false}}})
+        });
+        const holdJson = await holdRes.json();
+        if (holdJson.result?.total != null) {
+          holders = holdJson.result.total.toLocaleString();
+        } else if (Array.isArray(holdJson.result?.token_accounts)) {
+          holders = holdJson.result.token_accounts.length + (holdJson.result.token_accounts.length >= 1000 ? '+' : '');
+        }
+      } catch {}
+    }
 
-    // 3. Helius: 作成時刻（最古のTXから）
+    // 3. 作成時刻（Pump.fun非公式API → fallback: Helius最古TX）
     let ageStr = '—';
     try {
-      const sigRes = await safeGetSignatures(ca, 300);
-      if (sigRes && sigRes.length > 0) {
-        const oldest = sigRes[sigRes.length - 1];
-        if (oldest.blockTime) {
+      // pumpDataが取得済みなら使う
+      if (pumpData?.created_timestamp) {
+        // pump.funのcreated_timestampはUnix秒
+        const tsMs = pumpData.created_timestamp * 1000;
+        const diffMin = Math.floor((Date.now() - tsMs) / 60000);
+        if (diffMin < 60) ageStr = diffMin + '分前';
+        else if (diffMin < 1440) ageStr = Math.floor(diffMin/60) + '時間前';
+        else ageStr = Math.floor(diffMin/1440) + '日前';
+      }
+    } catch {}
+    // fallback: Helius最古TX
+    if (ageStr === '—') {
+      try {
+        let before = null, oldest = null;
+        for (let p = 0; p < 5; p++) {
+          const opts = { limit: 100, commitment: 'confirmed' };
+          if (before) opts.before = before;
+          const sigRes2 = await fetch(`https://mainnet.helius-rpc.com/?api-key=${key}`, {
+            method: 'POST',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({jsonrpc:'2.0',id:1,method:'getSignaturesForAddress',params:[ca, opts]})
+          });
+          const sigJson = await sigRes2.json();
+          const sigs2 = sigJson.result || [];
+          if (!sigs2.length) break;
+          oldest = sigs2[sigs2.length - 1];
+          if (sigs2.length < 100) break;
+          before = sigs2[sigs2.length - 1].signature;
+        }
+        if (oldest?.blockTime) {
           const diffMin = Math.floor((Date.now() - oldest.blockTime * 1000) / 60000);
           if (diffMin < 60) ageStr = diffMin + '分前';
           else if (diffMin < 1440) ageStr = Math.floor(diffMin/60) + '時間前';
           else ageStr = Math.floor(diffMin/1440) + '日前';
         }
-      }
-    } catch {}
+      } catch {}
+    }
 
     // 4. DexScreener: MC・価格
     let mc = '—';
@@ -1758,6 +1807,7 @@ async function analyzeCA() {
     result.innerHTML = `<span style="color:var(--accent2)">エラー: ${e.message}</span>`;
   } finally {
     btn.disabled = false; btn.textContent = '分析';
+    document.getElementById('caInput').value = '';
   }
 }
 
