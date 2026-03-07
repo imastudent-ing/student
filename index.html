@@ -317,34 +317,42 @@ animation:tickerRun 25s linear infinite;
     <div style="color:#ccd6f6;margin-bottom:12px">
       1. helius.dev で無料登録してAPIキーを取得<br>
       2. 画面上部にAPIキーを貼り付け<br>
-      3. 監視したい取引所をSCAN TARGETSでONに<br>
+      3. SCAN TARGETSで監視したい取引所をONに<br>
       4. STARTを押して監視開始
     </div>
     <div style="color:var(--gold);margin-bottom:6px">▶ 基本操作</div>
     <div style="color:#ccd6f6;margin-bottom:12px">
-      <span style="color:var(--accent)">START/STOP</span> — 自動監視の開始・停止<br>
-      <span style="color:var(--accent)">SCAN</span> — 過去10分/30分を手動スキャン<br>
-      <span style="color:var(--accent)">CLEAR</span> — 全データリセット
+      <span style="color:var(--accent)">START</span> — 監視開始。START後に初めて出金されたウォレットのみ検知<br>
+      <span style="color:var(--accent)">STOP</span> — 監視停止<br>
+      <span style="color:var(--accent)">SCAN 10分/30分</span> — 過去の指定期間を手動スキャン<br>
+      <span style="color:var(--accent)">CLEAR</span> — 全データリセット（取引所選択もOFFに）
+    </div>
+    <div style="color:var(--gold);margin-bottom:6px">▶ 検知条件</div>
+    <div style="color:#ccd6f6;margin-bottom:12px">
+      • 対象取引所（Binance2 / Bitget / BingX / MEXC）からのSOL出金<br>
+      • 出金先が新規ウォレット（START以降に初めて送金を受けたアドレス）<br>
+      • TX履歴5件以下 / 0.01 SOL以上の出金
     </div>
     <div style="color:var(--gold);margin-bottom:6px">▶ 見るべきシグナル</div>
     <div style="color:#ccd6f6;margin-bottom:12px">
-      🎨 <span style="color:var(--green)">COIN CREATED</span> — 新規ウォレットがPump.funでコイン作成<br>
-      🎯 <span style="color:var(--accent)">TOKEN BUY</span> — 複数の監視ウォレットが同じCAを購入<br>
-      🏦 <span style="color:var(--accent2)">OUTFLOW</span> — 取引所から新規ウォレットへ出金を検知
+      🏦 <span style="color:var(--accent2)">OUTFLOW</span> — 取引所から新規ウォレットへの出金を検知<br>
+      🎨 <span style="color:var(--green)">COIN CREATED</span> — 監視ウォレットがPump.funでコイン作成<br>
+      🎯 <span style="color:var(--accent)">TOKEN BUY</span> — 監視ウォレットがトークンを購入
     </div>
     <div style="color:var(--gold);margin-bottom:6px">▶ 各パネル</div>
     <div style="color:#ccd6f6;margin-bottom:12px">
       <span style="color:var(--accent)">LIVE EVENTS</span> — リアルタイム検知ログ<br>
-      <span style="color:var(--accent)">WATCHED WALLETS</span> — 監視中ウォレット一覧（タップで名前編集）<br>
-      <span style="color:var(--accent)">CREATED COINS</span> — 作成されたコイン一覧<br>
-      <span style="color:var(--accent)">CA RANKING</span> — 複数人が買ったコインのランキング<br>
+      <span style="color:var(--accent)">WATCHED WALLETS</span> — 監視中ウォレット一覧（タップで名前編集・手動追加可）<br>
+      <span style="color:var(--accent)">CREATED COINS</span> — 監視ウォレットが作成したコイン一覧<br>
+      <span style="color:var(--accent)">CA RANKING</span> — 複数の監視ウォレットが買ったコインのランキング<br>
       <span style="color:var(--accent)">CA ANALYZER</span> — CAを入力してホルダー数・MC・作成時刻を調査
     </div>
     <div style="color:var(--gold);margin-bottom:6px">▶ 注意点</div>
     <div style="color:#ccd6f6">
-      • iPhoneはバックグラウンドで止まることがある → 画面オンのままに<br>
+      • iPhoneはバックグラウンドで止まる → 画面オンのままにする<br>
+      • MEXCはSOL出金が少ない場合あり（USDC出金は非対応）<br>
       • 無料Heliusは月100万リクエスト上限<br>
-      • 監視ウォレットが増えすぎるとAPIを多く消費する
+      • 監視ウォレットが増えるとAPIを多く消費する
     </div>
   </div>
 </div>
@@ -986,7 +994,7 @@ async function scanPast30Min(seconds) {
         if (t.amount < 0.01) { skipCount++; continue; } // 0.01 SOL未満はスキップ
         if (watchedWallets[dest]) { skipCount++; continue; }
 
-        const fresh = await isNewWallet(dest, cutoff);
+        const fresh = await isNewWallet(dest, sessionStart || Math.floor(Date.now() / 1000) - 86400);
         if (!fresh) { skipCount++; continue; }
 
         const label = `${(exchangeWallets[wallet]?.name||"Exchange")}出金 #${stats.detected + 1}`;
@@ -1384,7 +1392,7 @@ function addManualWallet() {
 // CORE SCAN
 // ─────────────────────────────────────────
 async function checkBinance2() {
-  const cutoff = sessionStart || Math.floor(Date.now() / 1000) - 86400;
+  const cutoff = Math.floor(Date.now() / 1000) - 86400; // 24時間前
   for (const wallet of getExchangeAddrs()) {
     const sigs = await safeGetSignatures(wallet, 20);
     for (const s of sigs) {
@@ -1401,7 +1409,7 @@ async function checkBinance2() {
         if (t.amount < 0.01) continue; // 0.01 SOL未満はスキップ
         if (watchedWallets[dest]) continue;
 
-        const fresh = await isNewWallet(dest, cutoff);
+        const fresh = await isNewWallet(dest, sessionStart || Math.floor(Date.now() / 1000) - 86400);
         if (!fresh) continue;
 
         const label = `${(exchangeWallets[wallet]?.name||"Exchange")}出金 #${stats.detected + 1}`;
@@ -1646,6 +1654,8 @@ function clearAll() {
   watchedWallets = {};
   processedSigs.clear();
   sessionStart = 0;
+  // キャッシュもクリア
+  _rpcCache.clear(); // RPCキャッシュもクリア
   stats = { wallets:0, detected:0, buys:0, scans:0, created:0 }; coinBuys = {}; createdCoins = [];
   // 全取引所をOFF
   Object.keys(exchangeWallets).forEach(a => exchangeWallets[a].enabled = false);
