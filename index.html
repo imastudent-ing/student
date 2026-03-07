@@ -989,13 +989,12 @@ async function scanPast30Min(seconds) {
         const dest = t.address;
         if (!dest || isExchangeAddr(dest)) continue;
         if (t.amount < 0.01) { skipCount++; continue; } // 0.01 SOL未満はスキップ
-        // preBalancesでdestの残高を確認（API追加コールなし）
+        // preBalancesでdestの残高が0か確認（新規ウォレット = このTXが初めての入金）
         const accounts = tx.transaction?.message?.accountKeys || [];
         const destIdx = accounts.findIndex(a => (typeof a === 'string' ? a : a?.pubkey) === dest);
         if (destIdx === -1) { skipCount++; continue; }
         const preBalance = tx.meta?.preBalances?.[destIdx] || 0;
-        // 0.01 SOL(10000000 lamports)未満なら新規ウォレットとみなす
-        if (preBalance > 10000000) { skipCount++; continue; }
+        if (preBalance !== 0) { skipCount++; continue; }
 
         const label = `${(exchangeWallets[wallet]?.name||"Exchange")}出金 #${stats.detected + 1}`;
         watchedWallets[dest] = { label, since: now(), lastSig: null, source: exchangeWallets[wallet]?.name || 'exchange' };
@@ -1420,9 +1419,13 @@ function addManualWallet() {
 // CORE SCAN
 // ─────────────────────────────────────────
 async function checkBinance2() {
-  const cutoff = Math.floor(Date.now() / 1000) - 86400; // 24時間前
+  const cutoff = sessionStart || (Math.floor(Date.now() / 1000) - 86400);
+
   for (const wallet of getExchangeAddrs()) {
-    const sigs = await safeGetSignatures(wallet, 20);
+    // sessionStartからの経過時間に応じてページ数を動的に決定
+    const elapsedMin = sessionStart ? Math.floor((Date.now()/1000 - sessionStart) / 60) : 1440;
+    const maxPages = Math.max(1, Math.min(10, Math.ceil(elapsedMin / 3))); // 3分ごとに1ページ、最大10
+    const sigs = await getSignaturesUntil(wallet, cutoff, maxPages);
     for (const s of sigs) {
       if (!s.signature || sigProcessed(s.signature)) continue;
       processedSigs.set(s.signature, Date.now());
@@ -1434,14 +1437,16 @@ async function checkBinance2() {
       for (const t of transfers) {
         const dest = t.address;
         if (!dest || isExchangeAddr(dest)) continue;
-        if (t.amount < 0.01) continue; // 0.01 SOL未満はスキップ
+        if (t.amount < 0.01) continue;
         if (watchedWallets[dest]) continue;
 
-        const fresh = await isNewWallet(dest, cutoff); // スキャン範囲のcutoffを使用
-        if (!fresh) continue;
+        // preBalanceが0なら初めての入金=新規ウォレット（追加APIコールなし）
+        const accounts = tx.transaction?.message?.accountKeys || [];
+        const destIdx = accounts.findIndex(a => (typeof a === 'string' ? a : a?.pubkey) === dest);
+        if (destIdx === -1) continue;
+        if ((tx.meta?.preBalances?.[destIdx] || 0) !== 0) continue;
 
         const label = `${(exchangeWallets[wallet]?.name||"Exchange")}出金 #${stats.detected + 1}`;
-
         watchedWallets[dest] = { label, since: now(), lastSig: null, source: exchangeWallets[wallet]?.name || 'exchange' };
         stats.detected++;
 
@@ -1470,196 +1475,6 @@ async function checkBinance2() {
   }
 }
 
-async function checkWatched() {
-  for (const [addr, info] of Object.entries(watchedWallets)) {
-    const sigs = await safeGetSignatures(addr, 20);
-    if (!sigs.length) continue;
-
-    const newLastSig = sigs[0]?.signature || info.lastSig;
-    for (const s of sigs) {
-      if (!s.signature) continue;
-      if (s.signature === info.lastSig) break; // lastSig以降は処理済み
-      processedSigs.set(s.signature, Date.now());
-
-      const tx = await safeGetTx(s.signature);
-      if (!tx) continue;
-      const bt = txTime(tx.blockTime); // TX実際の発生時刻
-
-      // SOL送金
-      const transfers = parseSolTransfers(tx);
-      for (const t of transfers) {
-        if (t.address === addr) continue;
-        addEvent({
-          html: `
-            <div class="ev-meta">
-              <span class="badge badge-transfer">TRANSFER</span>
-              <span class="ev-time">${now()}</span>
-            </div>
-            <div class="ev-title">💸 監視ウォレットが送金</div>
-            <div class="ev-detail">
-              ⏰ 発生時刻: <span>${bt}</span><br>
-              🏷 ${info.label}<br>
-              📤 <a href="${solscanAcc(addr)}" target="_blank">${short(addr)}</a><br>
-              💰 ${t.amount.toFixed(2)} SOL → <a href="${solscanAcc(t.address)}" target="_blank">${short(t.address)}</a><br>
-              🔗 <a href="${solscanTx(s.signature)}" target="_blank">TX確認</a>
-            </div>`
-        });
-      }
-
-      // トークン購入
-      const buys = parseTokenBuys(tx);
-      for (const b of buys) {
-        const createdMint = parseCoinCreation(tx);
-        const isCreation = createdMint && createdMint === b.mint;
-
-        if (isCreation) {
-          // コイン作成
-          stats.created++;
-          trackCoin(b.mint, 'create', addr);
-          addCreatedCoin(b.mint, info.label, tx.blockTime);
-          addEvent({
-            html: `
-              <div class="ev-meta">
-                <span class="badge badge-pump">🚀 COIN CREATED</span>
-                <span class="ev-time">${now()}</span>
-              </div>
-              <div class="ev-title">🎨 新規コイン作成を検知！</div>
-              <div class="ev-detail">
-                ⏰ 発生時刻: <span>${bt}</span><br>
-                🏷 追跡元: <span>${info.label}</span><br>
-                👛 <span style="cursor:pointer;color:var(--accent)" onclick="copyText('${addr}')" title="タップでコピー">📋 ${short(addr)}</span><br>
-                🪙 CA:<br>
-                ${mintLabel(b.mint)}
-              </div>
-              <div class="ev-coin">
-                <a href="${dexUrl(b.mint)}" target="_blank">DEX</a>
-                <a href="${pumpUrl(b.mint)}" target="_blank">PUMP</a>
-                <a href="${solscanTx(s.signature)}" target="_blank">TX</a>
-              </div>`
-          });
-        } else {
-          // トークン購入
-          stats.buys++;
-          trackCoin(b.mint, 'buy', addr);
-          const pump = isPump(b.mint);
-          addEvent({
-            html: `
-              <div class="ev-meta">
-                <span class="badge ${pump ? 'badge-pump' : 'badge-buy'}">${pump ? '🚀 PUMP.FUN' : 'TOKEN BUY'}</span>
-                <span class="ev-time">${now()}</span>
-              </div>
-              <div class="ev-title">🎯 スマートマネーが購入！</div>
-              <div class="ev-detail">
-                ⏰ 発生時刻: <span>${bt}</span><br>
-                🏷 追跡元: <span>${info.label}</span><br>
-                👛 <span style="cursor:pointer;color:var(--accent)" onclick="copyText('${addr}')" title="タップでコピー">📋 ${short(addr)}</span><br>
-                🪙 CA:<br>
-                ${mintLabel(b.mint)}<br>
-                💰 購入量: <span>${b.amount.toLocaleString(undefined,{maximumFractionDigits:0})}</span> tokens
-              </div>
-              <div class="ev-coin">
-                <a href="${dexUrl(b.mint)}" target="_blank">DEX</a>
-                ${pump ? `<a href="${pumpUrl(b.mint)}" target="_blank">PUMP</a>` : ''}
-                <a href="${solscanTx(s.signature)}" target="_blank">TX</a>
-              </div>`
-          });
-        }
-        updateStats();
-      }
-
-      // 購入なしでコイン作成のみのTX
-      const createdMintOnly = parseCoinCreation(tx);
-      if (createdMintOnly && !buys.find(b => b.mint === createdMintOnly)) {
-        stats.created++;
-        trackCoin(createdMintOnly, 'create', addr);
-        addCreatedCoin(createdMintOnly, info.label, tx.blockTime);
-        addEvent({
-          html: `
-            <div class="ev-meta">
-              <span class="badge badge-pump">🚀 COIN CREATED</span>
-              <span class="ev-time">${now()}</span>
-            </div>
-            <div class="ev-title">🎨 新規コイン作成を検知！</div>
-            <div class="ev-detail">
-              ⏰ 発生時刻: <span>${bt}</span><br>
-              🏷 追跡元: <span>${info.label}</span><br>
-              👛 <span style="cursor:pointer;color:var(--accent)" onclick="copyText('${addr}')" title="タップでコピー">📋 ${short(addr)}</span><br>
-              🪙 CA:<br>
-              <span style="color:var(--green);font-size:10px;word-break:break-all;cursor:pointer" onclick="copyText('${createdMintOnly}')" title="タップでコピー">📋 ${createdMintOnly}</span>
-            </div>
-            <div class="ev-coin">
-              <a href="${dexUrl(createdMintOnly)}" target="_blank">DEX</a>
-              <a href="${pumpUrl(createdMintOnly)}" target="_blank">PUMP</a>
-              <a href="${solscanTx(s.signature)}" target="_blank">TX</a>
-            </div>`
-        });
-        updateStats();
-      }
-    }
-    // 全TX処理後にlastSigを最新に更新
-    if (newLastSig && watchedWallets[addr]) watchedWallets[addr].lastSig = newLastSig;
-  }
-}
-
-// ─────────────────────────────────────────
-// MONITOR TOGGLE
-// ─────────────────────────────────────────
-async function toggleMonitor() {
-  const startBtn = document.getElementById('startBtn');
-  if (startBtn.disabled) return; // 二重実行防止
-  startBtn.disabled = true;
-  setTimeout(() => { startBtn.disabled = false; }, 500); // 500ms後に解除
-  if (isRunning) {
-    isRunning = false;
-    clearInterval(monitorTimer);
-    monitorTimer = null;
-    document.getElementById('startBtn').textContent = '▶ START';
-    document.getElementById('startBtn').classList.remove('active');
-    document.getElementById('liveDot').className = 'live-dot';
-    return;
-  }
-
-  if (!apiKey()) {
-    alert('Helius API Keyを入力してください');
-    return;
-  }
-
-  isRunning = true;
-  sessionStart = Math.floor(Date.now() / 1000); // セッション開始時刻
-  document.getElementById('startBtn').textContent = '■ STOP';
-  document.getElementById('startBtn').classList.add('active');
-  document.getElementById('liveDot').className = 'live-dot scanning';
-
-  const interval = parseInt(document.getElementById('intervalSec').value) * 1000 || 20000;
-
-  // 初回即実行
-  await runScan();
-  if (!isRunning) return; // runScan中にSTOPされた場合
-
-  monitorTimer = setInterval(runScan, interval);
-}
-
-async function manualCatchup() {
-  if (!apiKey()) { alert('Helius API Keyを入力してください'); return; }
-  const btn = document.getElementById('catchupBtn');
-  const seconds = parseInt(document.getElementById('scanRange').value) || 1800;
-  btn.disabled = true; btn.textContent = '⏳ スキャン中...';
-
-  // SCAN中はrunScanを一時停止（checkBinance2との競合防止）
-  const wasRunning = isRunning;
-  if (wasRunning) { clearInterval(monitorTimer); monitorTimer = null; }
-
-  try {
-    await checkWatched();
-    await scanPast30Min(seconds);
-  } finally {
-    btn.disabled = false; btn.textContent = '🔍 SCAN';
-    if (wasRunning && isRunning) {
-      const interval = parseInt(document.getElementById('intervalSec').value) * 1000 || 20000;
-      monitorTimer = setInterval(runScan, interval);
-    }
-  }
-}
 
 async function runScan() {
   stats.scans++;
@@ -1686,6 +1501,148 @@ async function runScan() {
   updateStats();
 }
 
+// ─────────────────────────────────────────
+// MONITOR CONTROL
+// ─────────────────────────────────────────
+async function toggleMonitor() {
+  const btn = document.getElementById('startBtn');
+  if (!apiKey()) { alert('Helius APIキーを入力してください'); return; }
+
+  if (isRunning) {
+    isRunning = false;
+    clearInterval(monitorTimer);
+    monitorTimer = null;
+    btn.textContent = '▶ START';
+    btn.classList.remove('active');
+    document.getElementById('liveDot').className = 'live-dot';
+    return;
+  }
+
+  isRunning = true;
+  sessionStart = Math.floor(Date.now() / 1000);
+  btn.textContent = '■ STOP';
+  btn.classList.add('active');
+  document.getElementById('liveDot').className = 'live-dot scanning';
+
+  await runScan();
+  if (!isRunning) return;
+  const interval = parseInt(document.getElementById('intervalSec').value) * 1000 || 20000;
+  monitorTimer = setInterval(runScan, interval);
+}
+
+async function manualCatchup() {
+  if (!apiKey()) { alert('Helius API Keyを入力してください'); return; }
+  const btn = document.getElementById('catchupBtn');
+  const seconds = parseInt(document.getElementById('scanRange').value) || 1800;
+  btn.disabled = true; btn.textContent = '⏳ スキャン中...';
+
+  const wasRunning = isRunning;
+  if (wasRunning) { clearInterval(monitorTimer); monitorTimer = null; }
+
+  try {
+    await checkWatched();
+    await scanPast30Min(seconds);
+  } finally {
+    btn.disabled = false; btn.textContent = '🔍 SCAN';
+    if (wasRunning && isRunning) {
+      const interval = parseInt(document.getElementById('intervalSec').value) * 1000 || 20000;
+      monitorTimer = setInterval(runScan, interval);
+    }
+  }
+}
+
+async function checkWatched() {
+  for (const [addr, info] of Object.entries(watchedWallets)) {
+    const sigs = await safeGetSignatures(addr, 20);
+    if (!sigs.length) continue;
+
+    const newLastSig = sigs[0]?.signature || info.lastSig;
+    for (const s of sigs) {
+      if (!s.signature) continue;
+      if (s.signature === info.lastSig) break;
+      processedSigs.set(s.signature, Date.now());
+
+      const tx = await safeGetTx(s.signature);
+      if (!tx) continue;
+      const bt = txTime(tx.blockTime);
+
+      const transfers = parseSolTransfers(tx);
+      for (const t of transfers) {
+        if (t.address === addr) continue;
+        addEvent({ html: `
+          <div class="ev-meta">
+            <span class="badge badge-transfer">TRANSFER</span>
+            <span class="ev-time">${now()}</span>
+          </div>
+          <div class="ev-title">💸 送金を検知</div>
+          <div class="ev-detail">
+            ⏰ <span>${bt}</span><br>
+            🏷 <span>${info.nickname || info.label}</span><br>
+            💰 <span>${t.amount.toFixed(3)} SOL</span> → <span style="cursor:pointer;color:var(--accent)" onclick="copyText('${t.address}')">${short(t.address)}</span><br>
+            🔗 <a href="${solscanTx(s.signature)}" target="_blank">TX</a>
+          </div>` });
+      }
+
+      const createdMint = parseCoinCreation(tx);
+      if (createdMint) {
+        stats.created++;
+        trackCoin(createdMint, 'create', addr);
+        addCreatedCoin(createdMint, info.nickname || info.label, tx.blockTime);
+        addEvent({ html: `
+          <div class="ev-meta">
+            <span class="badge badge-pump">COIN CREATED</span>
+            <span class="ev-time">${now()}</span>
+          </div>
+          <div class="ev-title">🎨 コイン作成を検知</div>
+          <div class="ev-detail">
+            ⏰ <span>${bt}</span><br>
+            🏷 <span>${info.nickname || info.label}</span><br>
+            🪙 CA:<br>${mintLabel(createdMint)}
+          </div>
+          <div class="ev-coin">
+            <a href="${pumpUrl(createdMint)}" target="_blank">PUMP</a>
+            <a href="${solscanTx(s.signature)}" target="_blank">TX</a>
+          </div>` });
+        updateStats();
+      }
+
+      const buys = parseTokenBuys(tx);
+      if (buys.length > 0) {
+        for (const b of buys) {
+          if (createdMint && b.mint === createdMint) continue;
+          stats.buys++;
+          trackCoin(b.mint, 'buy', addr);
+          addEvent({ html: `
+            <div class="ev-meta">
+              <span class="badge badge-buy">TOKEN BUY</span>
+              <span class="ev-time">${now()}</span>
+            </div>
+            <div class="ev-title">🎯 トークン購入を検知</div>
+            <div class="ev-detail">
+              ⏰ <span>${bt}</span><br>
+              🏷 <span>${info.nickname || info.label}</span><br>
+              👛 <span style="cursor:pointer;color:var(--accent)" onclick="copyText('${addr}')">${short(addr)}</span><br>
+              🪙 CA:<br>${mintLabel(b.mint)}
+            </div>
+            <div class="ev-coin">
+              <a href="${dexUrl(b.mint)}" target="_blank">DEX</a>
+              ${isPump(b.mint) ? `<a href="${pumpUrl(b.mint)}" target="_blank">PUMP</a>` : ''}
+              <a href="${solscanTx(s.signature)}" target="_blank">TX</a>
+            </div>` });
+          updateStats();
+        }
+      }
+    }
+
+    if (newLastSig && watchedWallets[addr]) watchedWallets[addr].lastSig = newLastSig;
+  }
+
+  addEvent({ html: `
+    <div class="ev-meta"><span class="badge" style="background:rgba(0,229,255,.06);color:var(--dim);border:1px solid var(--dim)">WATCH</span><span class="ev-time">${now()}</span></div>
+    <div class="ev-title" style="color:var(--dim);font-size:10px">👁 監視ウォレット ${Object.keys(watchedWallets).length}件チェック完了</div>` });
+  saveState();
+}
+
 function clearAll() {
   events = [];
   watchedWallets = {};
@@ -1694,9 +1651,7 @@ function clearAll() {
   // キャッシュもクリア
   _rpcCache.clear(); // RPCキャッシュもクリア
   stats = { wallets:0, detected:0, buys:0, scans:0, created:0 }; coinBuys = {}; createdCoins = [];
-  // 全取引所をOFF
-  Object.keys(exchangeWallets).forEach(a => exchangeWallets[a].enabled = false);
-  localStorage.removeItem('wr_exchange');
+  // 取引所のON/OFF状態は保持（再選択不要）
   // 監視停止
   if (isRunning) {
     isRunning = false;
