@@ -152,8 +152,6 @@ font-family:‘Orbitron’,monospace; font-size:9px; letter-spacing:2px; color:v
 .ca-cell { background:rgba(0,229,255,.04); border:1px solid var(–border); padding:8px 10px; }
 .ca-val { font-family:‘Orbitron’,monospace; font-size:13px; color:var(–accent); }
 .ca-lbl { font-family:‘Share Tech Mono’,monospace; font-size:8px; color:var(–dim); letter-spacing:1px; margin-top:3px; }
-.ca-ai { background:rgba(0,255,157,.04); border:1px solid rgba(0,255,157,.2); padding:10px 12px; margin-top:8px; font-size:10px; color:var(–text); line-height:1.7; }
-.ca-ai-label { font-family:‘Orbitron’,monospace; font-size:8px; color:var(–green); letter-spacing:2px; margin-bottom:6px; }
 .ca-spinner { display:inline-block; width:12px; height:12px; border:2px solid var(–dim); border-top-color:var(–accent); border-radius:50%; animation:spin .8s linear infinite; margin-right:6px; }
 
 /* ── EVENTS LIST ── */
@@ -172,6 +170,7 @@ cursor:default;
 .event-item.ev-type-transfer { border-left:3px solid var(–accent2); padding-left:13px; }
 .event-item.ev-type-info     { border-left:none; }
 @keyframes slideIn { from{opacity:0;transform:translateX(-16px)} to{opacity:1;transform:none} }
+@keyframes spin { to{transform:rotate(360deg)} }
 
 .ev-meta { display:flex; align-items:center; gap:8px; margin-bottom:7px; }
 
@@ -569,7 +568,7 @@ class Semaphore {
   }
   release() { this.cur--; if (this.q.length) this.q.shift()(); }
 }
-const GLOBAL_SEM = new Semaphore(6);
+const GLOBAL_SEM = new Semaphore(3);
 
 const _rpcCache = new Map();
 function setCache(key, value, ttl = 30000) { _rpcCache.set(key, { ts: Date.now(), ttl, value }); }
@@ -579,9 +578,22 @@ function getCache(key) {
   return e.value;
 }
 
-async function withBackoff(fn, maxRetry = 4, base = 200) {
+async function withBackoff(fn, maxRetry = 6, base = 500) {
   for (let i = 0; i <= maxRetry; i++) {
-    try { return await fn(); } catch(err) {
+    try {
+      const res = await fn();
+      // fetchレスポンスの場合は429チェック
+      if (res && typeof res.status === 'number') {
+        if (res.status === 429) {
+          const retryAfter = parseInt(res.headers?.get?.('Retry-After') || '1', 10);
+          const delay = Math.round((retryAfter * 1000 + Math.pow(2, i) * base) * (0.8 + Math.random() * 0.4));
+          await new Promise(r => setTimeout(r, delay));
+          continue;
+        }
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      }
+      return res;
+    } catch(err) {
       if (i === maxRetry) throw err;
       const delay = Math.round(base * Math.pow(2, i) * (0.8 + Math.random() * 0.4));
       await new Promise(r => setTimeout(r, delay));
@@ -597,7 +609,7 @@ async function safeGetSignatures(addr, limit = 20) {
   try {
     const res = await withBackoff(() => rpc('getSignaturesForAddress', [addr, { limit, commitment: 'confirmed' }])).catch(() => []);
     const result = res || [];
-    setCache(key, result, 30000);
+    setCache(key, result, 90000);
     return result;
   } finally { GLOBAL_SEM.release(); }
 }
@@ -609,7 +621,7 @@ async function safeGetTx(sig) {
   await GLOBAL_SEM.acquire();
   try {
     const res = await withBackoff(() => rpc('getTransaction', [sig, { encoding: 'jsonParsed', maxSupportedTransactionVersion: 0 }])).catch(() => null);
-    if (res) setCache(key, res, 60000);
+    if (res) setCache(key, res, 120000);
     return res;
   } finally { GLOBAL_SEM.release(); }
 }
@@ -1695,38 +1707,12 @@ async function analyzeCA() {
         <div class="ca-cell"><div class="ca-val">${price}</div><div class="ca-lbl">PRICE</div></div>
       </div>
       ${desc ? `<div style="font-size:9px;color:var(--dim);margin-bottom:8px;line-height:1.6">${desc.slice(0,150)}${desc.length>150?'...':''}</div>` : ''}
-      <div class="ca-ai"><span class="ca-spinner"></span> AI分析中...</div>
+      <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
+        <a href="https://dexscreener.com/solana/${ca}" target="_blank" style="font-size:9px;color:var(--accent);text-decoration:none;border:1px solid var(--accent);padding:4px 10px;font-family:'Share Tech Mono',monospace">📈 DEXSCREENER</a>
+        <a href="https://solscan.io/token/${ca}" target="_blank" style="font-size:9px;color:var(--dim);text-decoration:none;border:1px solid var(--border);padding:4px 10px;font-family:'Share Tech Mono',monospace">🔍 SOLSCAN</a>
+        <a href="https://pump.fun/${ca}" target="_blank" style="font-size:9px;color:var(--gold);text-decoration:none;border:1px solid rgba(255,184,0,.3);padding:4px 10px;font-family:'Share Tech Mono',monospace">🚀 PUMP.FUN</a>
+      </div>
     `;
-
-    // 6. Claude AI分析
-    const prompt = `あなたはSolanaのトークン分析の専門家です。以下のデータを元に日本語で簡潔に分析してください。
-
-トークン名: ${name} (${symbol})
-保有者数: ${holders}
-時価総額: ${mc}
-作成からの経過: ${ageStr}
-価格: ${price}
-概要: ${desc || 'なし'}
-
-以下の点を3〜5文で簡潔にまとめてください：
-・このトークンの概要と特徴
-・保有者数・MC・作成時期から見た現状評価
-・注意点やリスク（あれば）`;
-
-    const aiRes = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 1000,
-        messages: [{role:'user', content: prompt}]
-      })
-    });
-    const aiJson = await aiRes.json();
-    const aiText = aiJson.content?.[0]?.text || 'AI分析に失敗しました';
-
-    const aiDiv = result.querySelector('.ca-ai');
-    if (aiDiv) aiDiv.innerHTML = `<div class="ca-ai-label">🤖 AI ANALYSIS</div>${aiText}`;
 
   } catch(e) {
     result.innerHTML = `<span style="color:var(--accent2)">エラー: ${e.message}</span>`;
@@ -1745,4 +1731,3 @@ function fmtMC(n) {
 
 </body>
 </html>
-
