@@ -370,6 +370,7 @@ animation:tickerRun 25s linear infinite;
   </div>
   <button class="btn green-btn" id="startBtn" onclick="toggleMonitor()">▶ START</button>
   <button class="btn red" id="clearBtn" onclick="clearAll()">✕ CLEAR</button>
+  <button class="btn" onclick="clearWatched()" style="border-color:#ff6b35;color:#ff6b35">👁 監視リセット</button>
   <select id="scanRange" style="background:#1a2f50;color:#ffb800;border:1px solid #ffb800;padding:8px 8px;font-family:monospace;font-size:11px;cursor:pointer;border-radius:2px">
     <option value="600" style="background:#1a2f50;color:#ffb800">10分</option>
     <option value="1800" style="background:#1a2f50;color:#ffb800">30分</option>
@@ -986,9 +987,12 @@ async function scanPast30Min(seconds) {
         const dest = t.address;
         if (!dest || isExchangeAddr(dest)) continue;
         if (t.amount < 0.01) { skipCount++; continue; } // 0.01 SOL未満はスキップ
-        // 新規ウォレット判定: cutoff以降に作られたか確認
-        const fresh = await isNewWallet(dest, cutoff);
-        if (!fresh) { skipCount++; continue; }
+        // 新規ウォレット判定: preBalance=0なら初めての入金（追加APIコールなし）
+        const accounts2 = tx.transaction?.message?.accountKeys || [];
+        const destIdx = accounts2.findIndex(a => (typeof a === 'string' ? a : a?.pubkey) === dest);
+        if (destIdx === -1) { skipCount++; continue; }
+        const preBalance = tx.meta?.preBalances?.[destIdx] || 0;
+        if (preBalance !== 0) { skipCount++; continue; }
 
         const label = `${(exchangeWallets[wallet]?.name||"Exchange")}出金 #${stats.detected + 1}`;
         watchedWallets[dest] = { label, since: now(), lastSig: null, source: exchangeWallets[wallet]?.name || 'exchange' };
@@ -1628,13 +1632,25 @@ async function checkWatched() {
   saveState();
 }
 
+function clearWatched() {
+  watchedWallets = {};
+  processedSigs.clear();
+  stats.wallets = 0;
+  stats.detected = 0;
+  localStorage.removeItem('wr_wallets');
+  localStorage.removeItem('wr_sigs');
+  renderWatchedList();
+  updateStats();
+  saveState();
+}
+
 function clearAll() {
   events = [];
-  watchedWallets = {};
+  // watchedWalletsは保持（CLEARしても監視継続）
   processedSigs.clear();
   sessionStart = 0;
   // キャッシュもクリア
-  _rpcCache.clear(); // RPCキャッシュもクリア
+  _rpcCache.clear();
   stats = { wallets:0, detected:0, buys:0, scans:0, created:0 }; coinBuys = {}; createdCoins = [];
   // 取引所のON/OFF状態は保持（再選択不要）
   // 監視停止
