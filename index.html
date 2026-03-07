@@ -92,12 +92,11 @@ display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap;
 
 .input-wrap {
 flex:1; min-width:200px;
-position:relative;
+display:flex; flex-direction:column; gap:3px;
 }
 .input-label {
 font-family:‘Share Tech Mono’,monospace; font-size:9px;
 color:var(–dim); letter-spacing:2px;
-position:absolute; top:-14px; left:0;
 }
 input[type=text], input[type=number] {
 width:100%;
@@ -147,6 +146,15 @@ padding:11px 16px; border-bottom:1px solid var(–border);
 font-family:‘Orbitron’,monospace; font-size:9px; letter-spacing:2px; color:var(–accent);
 }
 .ph-count { font-size:10px; color:var(–dim); }
+
+/* CA ANALYZER */
+.ca-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:10px; }
+.ca-cell { background:rgba(0,229,255,.04); border:1px solid var(–border); padding:8px 10px; }
+.ca-val { font-family:‘Orbitron’,monospace; font-size:13px; color:var(–accent); }
+.ca-lbl { font-family:‘Share Tech Mono’,monospace; font-size:8px; color:var(–dim); letter-spacing:1px; margin-top:3px; }
+.ca-ai { background:rgba(0,255,157,.04); border:1px solid rgba(0,255,157,.2); padding:10px 12px; margin-top:8px; font-size:10px; color:var(–text); line-height:1.7; }
+.ca-ai-label { font-family:‘Orbitron’,monospace; font-size:8px; color:var(–green); letter-spacing:2px; margin-bottom:6px; }
+.ca-spinner { display:inline-block; width:12px; height:12px; border:2px solid var(–dim); border-top-color:var(–accent); border-radius:50%; animation:spin .8s linear infinite; margin-right:6px; }
 
 /* ── EVENTS LIST ── */
 #events-list { max-height:520px; overflow-y:auto; scrollbar-width:thin; scrollbar-color:var(–dim) transparent; }
@@ -217,6 +225,32 @@ background:none; border:none; color:var(–dim); cursor:pointer;
 font-size:12px; padding:2px 5px; transition:color .15s;
 }
 .wallet-remove:hover { color:var(–accent2); }
+
+/* ── NAME POPUP ── */
+.name-popup-overlay {
+position:fixed; inset:0; background:rgba(0,0,0,.7);
+z-index:10000; display:flex; align-items:center; justify-content:center;
+}
+.name-popup {
+background:var(–panel); border:1px solid var(–accent);
+padding:20px; width:300px; max-width:90vw;
+}
+.name-popup-title {
+font-family:‘Orbitron’,monospace; font-size:10px; letter-spacing:2px;
+color:var(–accent); margin-bottom:12px;
+}
+.name-popup-addr {
+font-family:‘Share Tech Mono’,monospace; font-size:9px; color:var(–dim);
+margin-bottom:12px; word-break:break-all;
+}
+.name-popup input {
+width:100%; background:#0a1628; color:var(–text);
+border:1px solid var(–border); padding:8px 10px;
+font-family:‘Share Tech Mono’,monospace; font-size:12px;
+outline:none; margin-bottom:12px;
+}
+.name-popup input:focus { border-color:var(–accent); }
+.name-popup-btns { display:flex; gap:8px; justify-content:flex-end; }
 
 /* stats */
 .stats-grid { display:grid; grid-template-columns:1fr 1fr; gap:1px; background:var(–border); }
@@ -348,6 +382,18 @@ animation:tickerRun 25s linear infinite;
 </div>
 
 <!-- SCAN TARGETS moved to top -->
+
+<!-- CA ANALYZER -->
+<div class="panel">
+  <div class="ph"><span>🤖 CA ANALYZER</span></div>
+  <div style="padding:10px 12px;display:flex;gap:8px;border-bottom:1px solid var(--border)">
+    <input type="text" id="caInput" placeholder="CAを貼り付け..." style="flex:1;font-size:10px;background:#0a1628;color:var(--accent);border:1px solid var(--border);padding:7px 9px;font-family:'Share Tech Mono',monospace;outline:none"/>
+    <button class="btn" onclick="analyzeCA()" id="caBtn" style="padding:7px 12px;font-size:9px;border-color:var(--accent);color:var(--accent)">分析</button>
+  </div>
+  <div id="ca-result" style="padding:12px 14px;font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--dim);min-height:60px">
+    CAを入力して分析ボタンを押してください
+  </div>
+</div>
 
 <!-- CREATED COINS -->
 <div class="panel">
@@ -824,12 +870,13 @@ async function scanPast30Min(seconds) {
 
   // Step1: Binance2の過去30分の出金を取得
   const newWallets = [];
+  let skipCount = 0;
   for (const wallet of getExchangeAddrs()) {
-    const fetchLimit = 300; // 30分遡るのに十分な件数
+    const fetchLimit = seconds <= 600 ? 100 : 300; // 10分=100件、30分=300件
     const sigs = await safeGetSignatures(wallet, fetchLimit);
     for (const s of sigs) {
       if (!s.blockTime || s.blockTime < cutoff) continue;
-      if (watchedWallets[s.signature]) continue; // watchedのみスキップ（過去分は再処理する）
+      // 過去スキャンはprocessedSigsを参照しない（遡るのが目的）
       processedSigs.set(s.signature, Date.now());
 
       const tx = await safeGetTx(s.signature);
@@ -839,11 +886,11 @@ async function scanPast30Min(seconds) {
       for (const t of transfers) {
         const dest = t.address;
         if (!dest || isExchangeAddr(dest)) continue;
-        if (t.amount < 0.1) continue; // 0.1 SOL未満はスキップ
-        if (watchedWallets[dest]) continue;
+        if (t.amount < 0.1) { skipCount++; continue; } // 0.1 SOL未満はスキップ
+        if (watchedWallets[dest]) { skipCount++; continue; }
 
         const fresh = await isActiveWithin30Min(dest, seconds);
-        if (!fresh) continue;
+        if (!fresh) { skipCount++; continue; }
 
         const label = `${(exchangeWallets[wallet]?.name||"Exchange")}出金 #${stats.detected + 1}`;
         watchedWallets[dest] = { label, since: now(), lastSig: null, source: 'binance2' };
@@ -878,7 +925,7 @@ async function scanPast30Min(seconds) {
     const sigs = await safeGetSignatures(addr, 20);
     for (const s of sigs) {
       if (!s.blockTime || s.blockTime < cutoff) continue;
-      if (sigProcessed(s.signature)) continue;
+      // 過去スキャンはprocessedSigsを参照しない（再処理する）
       processedSigs.set(s.signature, Date.now());
       watchedWallets[addr].lastSig = s.signature;
 
@@ -943,7 +990,7 @@ async function scanPast30Min(seconds) {
     }
   }
 
-  addEvent({ html: `<div class="ev-meta"><span class="badge" style="background:rgba(0,255,157,.1);color:var(--green);border:1px solid var(--green)">DONE</span><span class="ev-time">${now()}</span></div><div class="ev-title">✅ 過去${rangeLabel}スキャン完了</div><div class="ev-detail" style="color:var(--dim)">新規ウォレット: <span>${newWallets.length}件</span> 検知</div>` });
+  addEvent({ html: `<div class="ev-meta"><span class="badge" style="background:rgba(0,255,157,.1);color:var(--green);border:1px solid var(--green)">DONE</span><span class="ev-time">${now()}</span></div><div class="ev-title">✅ 過去${rangeLabel}スキャン完了</div><div class="ev-detail" style="color:var(--dim)">新規ウォレット: <span>${newWallets.length}件</span> 検知 &nbsp;|&nbsp; スキップ: <span>${skipCount}件</span></div>` });
   saveState();
 }
 
@@ -1023,7 +1070,7 @@ function renderCreatedList() {
 // ─────────────────────────────────────────
 // mint → 表示名（既知なら名前、不明なら短縮アドレス）
 function mintLabel(mint) {
-  if (KNOWN_TOKENS[mint]) return `<span style="color:var(--gold);font-weight:bold">${KNOWN_TOKENS[mint]}</span>`;
+  if (KNOWN_TOKENS[mint]) return `<span style="color:var(--gold);font-weight:bold;font-size:15px;font-family:'Orbitron',monospace;letter-spacing:2px">${KNOWN_TOKENS[mint]}</span>`;
   return `<span style="color:var(--green);font-size:11px;word-break:break-all;cursor:pointer" onclick="copyText('${mint}')" title="タップでコピー">📋 ${mint}</span>`;
 }
 
@@ -1145,7 +1192,7 @@ function renderWatchedList() {
     <div class="wallet-row">
       <div class="wallet-dot"></div>
       <div class="wallet-info">
-        <div class="wallet-label">${info.label}</div>
+        <div class="wallet-label" onclick="openRenamePopup('${addr}')" style="cursor:pointer" title="タップで名前変更">✏️ ${info.nickname || info.label}</div>
         <div class="wallet-addr" onclick="copyText('${addr}')" style="cursor:pointer" title="タップでコピー">📋 ${addr}</div>
         <div class="wallet-since">追加: ${info.since}</div>
       </div>
@@ -1158,6 +1205,46 @@ function removeWallet(addr) {
   delete watchedWallets[addr];
   renderWatchedList();
   updateStats();
+}
+
+function openRenamePopup(addr) {
+  const info = watchedWallets[addr];
+  if (!info) return;
+  const current = info.nickname || '';
+
+  const overlay = document.createElement('div');
+  overlay.className = 'name-popup-overlay';
+  overlay.innerHTML = `
+    <div class="name-popup">
+      <div class="name-popup-title">✏️ 名前を設定</div>
+      <div class="name-popup-addr">${addr}</div>
+      <input type="text" id="popupNameInput" placeholder="例: クジラA・仕込み師1..." maxlength="30" value="${current}" />
+      <div class="name-popup-btns">
+        <button class="btn" onclick="document.getElementById('namePopupOverlay').remove()">キャンセル</button>
+        <button class="btn primary" onclick="applyRename('${addr}')">保存</button>
+      </div>
+    </div>
+  `;
+  overlay.id = 'namePopupOverlay';
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+  document.body.appendChild(overlay);
+  setTimeout(() => document.getElementById('popupNameInput')?.focus(), 50);
+  document.getElementById('popupNameInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') applyRename(addr);
+    if (e.key === 'Escape') overlay.remove();
+  });
+}
+
+function applyRename(addr) {
+  const input = document.getElementById('popupNameInput');
+  if (!input) return;
+  const name = input.value.trim();
+  if (watchedWallets[addr]) {
+    watchedWallets[addr].nickname = name || '';
+    saveState();
+    renderWatchedList();
+  }
+  document.getElementById('namePopupOverlay')?.remove();
 }
 
 function addManualWallet() {
@@ -1394,8 +1481,8 @@ async function manualCatchup() {
   if (!apiKey()) { alert('Helius API Keyを入力してください'); return; }
   const btn = document.getElementById('catchupBtn');
   const seconds = parseInt(document.getElementById('scanRange').value) || 1800;
-  const rangeLabels = {1800:'30分', 3600:'1時間'};
   btn.disabled = true; btn.textContent = '⏳ スキャン中...';
+  await checkWatched();
   await scanPast30Min(seconds);
   btn.disabled = false; btn.textContent = '🔍 SCAN';
 }
@@ -1527,6 +1614,133 @@ setInterval(async () => {
     }
   }
 }, 10000);
+
+// ─────────────────────────────────────────
+// CA ANALYZER
+// ─────────────────────────────────────────
+async function analyzeCA() {
+  const ca = document.getElementById('caInput').value.trim();
+  if (!ca || ca.length < 32) { alert('正しいCAを入力してください'); return; }
+  const key = apiKey();
+  if (!key) { alert('Helius APIキーを入力してください'); return; }
+
+  const btn = document.getElementById('caBtn');
+  const result = document.getElementById('ca-result');
+  btn.disabled = true; btn.textContent = '...';
+  result.innerHTML = '<span class="ca-spinner"></span> データ取得中...';
+
+  try {
+    // 1. Helius: トークンメタデータ（getAsset）
+    const metaRes = await fetch(`https://mainnet.helius-rpc.com/?api-key=${key}`, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({jsonrpc:'2.0',id:1,method:'getAsset',params:{id:ca}})
+    });
+    const metaJson = await metaRes.json();
+    const asset = metaJson.result;
+    const name   = asset?.content?.metadata?.name   || '不明';
+    const symbol = asset?.content?.metadata?.symbol || '?';
+    const desc   = asset?.content?.metadata?.description || '';
+
+    // 2. Helius: 保有者数
+    let holders = '—';
+    try {
+      const holdRes = await fetch(`https://mainnet.helius-rpc.com/?api-key=${key}`, {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({jsonrpc:'2.0',id:1,method:'getTokenAccounts',params:{mint:ca,limit:1,displayOptions:{showZeroBalance:false}}})
+      });
+      const holdJson = await holdRes.json();
+      holders = holdJson.result?.total ?? '—';
+    } catch {}
+
+    // 3. Helius: 作成時刻（最古のTXから）
+    let ageStr = '—';
+    try {
+      const sigRes = await safeGetSignatures(ca, 300);
+      if (sigRes && sigRes.length > 0) {
+        const oldest = sigRes[sigRes.length - 1];
+        if (oldest.blockTime) {
+          const diffMin = Math.floor((Date.now() - oldest.blockTime * 1000) / 60000);
+          if (diffMin < 60) ageStr = diffMin + '分前';
+          else if (diffMin < 1440) ageStr = Math.floor(diffMin/60) + '時間前';
+          else ageStr = Math.floor(diffMin/1440) + '日前';
+        }
+      }
+    } catch {}
+
+    // 4. DexScreener: MC・価格
+    let mc = '—';
+    let price = '—';
+    try {
+      const dexRes = await fetch(`https://api.dexscreener.com/latest/dex/tokens/${ca}`);
+      const dexJson = await dexRes.json();
+      const pair = dexJson.pairs?.[0];
+      if (pair) {
+        mc    = pair.fdv      ? '$' + fmtMC(pair.fdv) : '—';
+        price = pair.priceUsd ? '$' + parseFloat(pair.priceUsd).toExponential(3) : '—';
+      }
+    } catch {}
+
+    // 5. 基本情報を描画
+    result.innerHTML = `
+      <div style="margin-bottom:8px">
+        <div style="font-family:'Orbitron',monospace;font-size:13px;color:var(--accent)">${name} <span style="color:var(--dim);font-size:10px">${symbol}</span></div>
+        <div style="font-size:9px;color:var(--dim);margin-top:2px;word-break:break-all;cursor:pointer" onclick="copyText('${ca}')" title="タップでコピー">📋 ${ca}</div>
+      </div>
+      <div class="ca-grid">
+        <div class="ca-cell"><div class="ca-val">${holders}</div><div class="ca-lbl">HOLDERS</div></div>
+        <div class="ca-cell"><div class="ca-val">${mc}</div><div class="ca-lbl">MARKET CAP</div></div>
+        <div class="ca-cell"><div class="ca-val">${ageStr}</div><div class="ca-lbl">CREATED</div></div>
+        <div class="ca-cell"><div class="ca-val">${price}</div><div class="ca-lbl">PRICE</div></div>
+      </div>
+      ${desc ? `<div style="font-size:9px;color:var(--dim);margin-bottom:8px;line-height:1.6">${desc.slice(0,150)}${desc.length>150?'...':''}</div>` : ''}
+      <div class="ca-ai"><span class="ca-spinner"></span> AI分析中...</div>
+    `;
+
+    // 6. Claude AI分析
+    const prompt = `あなたはSolanaのトークン分析の専門家です。以下のデータを元に日本語で簡潔に分析してください。
+
+トークン名: ${name} (${symbol})
+保有者数: ${holders}
+時価総額: ${mc}
+作成からの経過: ${ageStr}
+価格: ${price}
+概要: ${desc || 'なし'}
+
+以下の点を3〜5文で簡潔にまとめてください：
+・このトークンの概要と特徴
+・保有者数・MC・作成時期から見た現状評価
+・注意点やリスク（あれば）`;
+
+    const aiRes = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        messages: [{role:'user', content: prompt}]
+      })
+    });
+    const aiJson = await aiRes.json();
+    const aiText = aiJson.content?.[0]?.text || 'AI分析に失敗しました';
+
+    const aiDiv = result.querySelector('.ca-ai');
+    if (aiDiv) aiDiv.innerHTML = `<div class="ca-ai-label">🤖 AI ANALYSIS</div>${aiText}`;
+
+  } catch(e) {
+    result.innerHTML = `<span style="color:var(--accent2)">エラー: ${e.message}</span>`;
+  } finally {
+    btn.disabled = false; btn.textContent = '分析';
+  }
+}
+
+function fmtMC(n) {
+  if (n >= 1e9) return (n/1e9).toFixed(2)+'B';
+  if (n >= 1e6) return (n/1e6).toFixed(2)+'M';
+  if (n >= 1e3) return (n/1e3).toFixed(2)+'K';
+  return n.toFixed(0);
+}
 </script>
 
 </body>
