@@ -616,8 +616,6 @@ setInterval(() => {
 function apiKey()  { return document.getElementById('heliusKey').value.trim(); }
 function rpcUrl()  { return `https://mainnet.helius-rpc.com/?api-key=${apiKey()}`; }
 
-let _lastRpcErrMsg = null;
-let _lastRpcErrTime = 0;
 async function rpc(method, params) {
   const res = await fetch(rpcUrl(), {
     method:'POST',
@@ -625,17 +623,7 @@ async function rpc(method, params) {
     body: JSON.stringify({ jsonrpc:'2.0', id:1, method, params })
   });
   const d = await res.json();
-  if (d.error) {
-    const msg = d.error.message || JSON.stringify(d.error);
-    // 同じエラーは30秒に1回だけUI表示（リトライによる量産を防ぐ）
-    const now_ms = Date.now();
-    if (msg !== _lastRpcErrMsg || now_ms - _lastRpcErrTime > 30000) {
-      _lastRpcErrMsg = msg;
-      _lastRpcErrTime = now_ms;
-      addEvent({ html: `<div class="ev-meta"><span class="badge" style="background:rgba(255,50,50,.15);color:#ff5050;border:1px solid #ff5050">RPC ERROR</span><span class="ev-time">${now()}</span></div><div class="ev-title">❌ Helius APIエラー</div><div class="ev-detail" style="color:var(--dim)">${msg}<br>APIキーを確認してください</div>` });
-    }
-    return null;
-  }
+  if (d.error) return null;
   return d.result;
 }
 
