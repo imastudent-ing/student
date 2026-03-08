@@ -810,7 +810,14 @@ function parseSolTransfers(tx) {
     if (meta.err) return [];
     const pre      = meta.preBalances  || [];
     const post     = meta.postBalances || [];
-    const accounts = tx.transaction?.message?.accountKeys || [];
+    // バージョン0トランザクション（アドレスルックアップテーブル使用）に対応:
+    // accountKeys は静的アカウントのみだが、preBalances/postBalances は
+    // 静的 + ルックアップテーブルロードアカウント全てを含む。
+    // meta.loadedAddresses で不足分を補完する。
+    const staticAccounts = tx.transaction?.message?.accountKeys || [];
+    const loadedWritable = meta.loadedAddresses?.writable || [];
+    const loadedReadonly = meta.loadedAddresses?.readonly || [];
+    const accounts = [...staticAccounts, ...loadedWritable, ...loadedReadonly];
     const out = [];
     for (let i = 0; i < pre.length; i++) {
       const diff = (post[i] - pre[i]) / 1e9;
