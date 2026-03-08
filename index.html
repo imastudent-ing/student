@@ -616,6 +616,7 @@ setInterval(() => {
 function apiKey()  { return document.getElementById('heliusKey').value.trim(); }
 function rpcUrl()  { return `https://mainnet.helius-rpc.com/?api-key=${apiKey()}`; }
 
+let _apiKeyErrShown = false;
 async function rpc(method, params) {
   const res = await fetch(rpcUrl(), {
     method:'POST',
@@ -623,7 +624,18 @@ async function rpc(method, params) {
     body: JSON.stringify({ jsonrpc:'2.0', id:1, method, params })
   });
   const d = await res.json();
-  if (d.error) return null;
+  if (d.error) {
+    // HTTPステータス401/403、またはエラーメッセージにAPIキー関連の文言がある場合のみ表示
+    const msg = (d.error.message || '').toLowerCase();
+    const isKeyError = res.status === 401 || res.status === 403
+      || msg.includes('api key') || msg.includes('unauthorized') || msg.includes('invalid key');
+    if (isKeyError && !_apiKeyErrShown) {
+      _apiKeyErrShown = true;
+      addEvent({ html: `<div class="ev-meta"><span class="badge" style="background:rgba(255,50,50,.15);color:#ff5050;border:1px solid #ff5050">API KEY ERROR</span><span class="ev-time">${now()}</span></div><div class="ev-title">❌ Helius APIキーが無効です</div><div class="ev-detail" style="color:var(--dim)">有効なAPIキーを入力してください<br><a href="https://dev.helius.xyz" target="_blank">dev.helius.xyz</a> で取得できます</div>` });
+    }
+    return null;
+  }
+  _apiKeyErrShown = false;
   return d.result;
 }
 
