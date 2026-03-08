@@ -623,6 +623,12 @@ async function rpc(method, params) {
     body: JSON.stringify({ jsonrpc:'2.0', id:1, method, params })
   });
   const d = await res.json();
+  if (d.error) {
+    // APIキー無効・レート制限などのRPCエラーをUIに表示
+    const msg = d.error.message || JSON.stringify(d.error);
+    addEvent({ html: `<div class="ev-meta"><span class="badge" style="background:rgba(255,50,50,.15);color:#ff5050;border:1px solid #ff5050">RPC ERROR</span><span class="ev-time">${now()}</span></div><div class="ev-title">❌ Helius APIエラー</div><div class="ev-detail" style="color:var(--dim)">${msg}<br>APIキーを確認してください</div>` });
+    throw new Error(msg);
+  }
   return d.result;
 }
 
@@ -810,7 +816,14 @@ function parseSolTransfers(tx) {
     if (meta.err) return [];
     const pre      = meta.preBalances  || [];
     const post     = meta.postBalances || [];
-    const accounts = tx.transaction?.message?.accountKeys || [];
+    // バージョン0トランザクション（アドレスルックアップテーブル使用）に対応:
+    // accountKeys は静的アカウントのみだが、preBalances/postBalances は
+    // 静的 + ルックアップテーブルロードアカウント全てを含む。
+    // meta.loadedAddresses で不足分を補完する。
+    const staticAccounts = tx.transaction?.message?.accountKeys || [];
+    const loadedWritable = meta.loadedAddresses?.writable || [];
+    const loadedReadonly = meta.loadedAddresses?.readonly || [];
+    const accounts = [...staticAccounts, ...loadedWritable, ...loadedReadonly];
     const out = [];
     for (let i = 0; i < pre.length; i++) {
       const diff = (post[i] - pre[i]) / 1e9;
@@ -986,11 +999,18 @@ async function scanPast30Min(seconds) {
   // Step1: 全取引所の過去スキャン出金を取得
   const newWallets = [];
   let skipCount = 0;
+  const exchSigCounts = {}; // 取引所ごとのsigs取得件数（診断用）
   console.log(`[SCAN] スキャン開始 range=${rangeLabel} cutoff=${new Date(cutoff*1000).toLocaleTimeString()} 取引所=${getExchangeAddrs().map(a=>exchangeWallets[a]?.name).join(',')}`);
   for (const wallet of getExchangeAddrs()) {
-    const maxPages = seconds <= 600 ? 5 : 10; // 10分=5ページ、30分=10ページ
+    const maxPages = seconds <= 600 ? 5 : 30; // 10分=5ページ、30分=30ページ（高頻度取引所対応）
     const sigs = await getSignaturesUntil(wallet, cutoff, maxPages);
-    console.log(`[SCAN] ${exchangeWallets[wallet]?.name} sigs取得: ${sigs.length}件 cutoff=${new Date(cutoff*1000).toLocaleTimeString()}`);
+    const exchName = exchangeWallets[wallet]?.name || wallet.slice(0, 8);
+    exchSigCounts[exchName] = sigs.length;
+    console.log(`[SCAN] ${exchName} sigs取得: ${sigs.length}件 cutoff=${new Date(cutoff*1000).toLocaleTimeString()}`);
+    // 0件の場合はUIに警告表示（アドレスが間違っている可能性）
+    if (sigs.length === 0) {
+      addEvent({ html: `<div class="ev-meta"><span class="badge" style="background:rgba(255,100,100,.1);color:#ff6464;border:1px solid #ff6464">WARNING</span><span class="ev-time">${now()}</span></div><div class="ev-title">⚠️ ${exchName}: 過去${rangeLabel}のTXが0件</div><div class="ev-detail" style="color:var(--dim)">このアドレスに直近のTXがありません。Hot Walletアドレスが正しいか確認してください。<br>📋 <span style="font-size:10px;word-break:break-all">${wallet}</span></div>` });
+    }
     // TXを並列取得（最大5件同時）
     const chunks = [];
     for (let i = 0; i < sigs.length; i += 5) chunks.push(sigs.slice(i, i + 5));
@@ -1000,9 +1020,10 @@ async function scanPast30Min(seconds) {
         const s = chunk[ci];
         const tx = txs[ci];
       if (!s.blockTime || s.blockTime < cutoff) continue;
-      processedSigs.set(s.signature, Date.now());
 
+      // TX取得失敗時はprocessed扱いにしない（次回スキャンで再試行できるように）
       if (!tx) continue;
+      processedSigs.set(s.signature, Date.now());
 
       const transfers = parseSolTransfers(tx);
       for (const t of transfers) {
@@ -1124,7 +1145,8 @@ async function scanPast30Min(seconds) {
     if (newLastSig && watchedWallets[addr]) watchedWallets[addr].lastSig = newLastSig;
   }
 
-  addEvent({ html: `<div class="ev-meta"><span class="badge" style="background:rgba(0,255,157,.1);color:var(--green);border:1px solid var(--green)">DONE</span><span class="ev-time">${now()}</span></div><div class="ev-title">✅ 過去${rangeLabel}スキャン完了</div><div class="ev-detail" style="color:var(--dim)">新規ウォレット: <span>${newWallets.length}件</span> 検知 &nbsp;|&nbsp; スキップ: <span>${skipCount}件</span></div>` });
+  const exchSummary = Object.entries(exchSigCounts).map(([n, c]) => `${n}: ${c}件`).join(' / ');
+  addEvent({ html: `<div class="ev-meta"><span class="badge" style="background:rgba(0,255,157,.1);color:var(--green);border:1px solid var(--green)">DONE</span><span class="ev-time">${now()}</span></div><div class="ev-title">✅ 過去${rangeLabel}スキャン完了</div><div class="ev-detail" style="color:var(--dim)">新規ウォレット: <span>${newWallets.length}件</span> 検知 &nbsp;|&nbsp; スキップ: <span>${skipCount}件</span><br>取引所TX取得数: <span>${exchSummary}</span></div>` });
   saveState();
 }
 
@@ -1447,10 +1469,11 @@ async function checkBinance2() {
     const sigs = await getSignaturesUntil(wallet, cutoff, maxPages);
     for (const s of sigs) {
       if (!s.signature || sigProcessed(s.signature)) continue;
-      processedSigs.set(s.signature, Date.now());
 
       const tx = await safeGetTx(s.signature);
+      // TX取得失敗時はprocessed扱いにしない（次回スキャンで再試行できるように）
       if (!tx) continue;
+      processedSigs.set(s.signature, Date.now());
 
       const transfers = parseSolTransfers(tx);
       for (const t of transfers) {
