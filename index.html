@@ -616,8 +616,7 @@ setInterval(() => {
 function apiKey()  { return document.getElementById('heliusKey').value.trim(); }
 function rpcUrl()  { return `https://mainnet.helius-rpc.com/?api-key=${apiKey()}`; }
 
-let _lastRpcErrMsg = null;
-let _lastRpcErrTime = 0;
+let _apiKeyErrShown = false;
 async function rpc(method, params) {
   const res = await fetch(rpcUrl(), {
     method:'POST',
@@ -626,16 +625,17 @@ async function rpc(method, params) {
   });
   const d = await res.json();
   if (d.error) {
-    const msg = d.error.message || JSON.stringify(d.error);
-    // 同じエラーは30秒に1回だけUI表示（リトライによる量産を防ぐ）
-    const now_ms = Date.now();
-    if (msg !== _lastRpcErrMsg || now_ms - _lastRpcErrTime > 30000) {
-      _lastRpcErrMsg = msg;
-      _lastRpcErrTime = now_ms;
-      addEvent({ html: `<div class="ev-meta"><span class="badge" style="background:rgba(255,50,50,.15);color:#ff5050;border:1px solid #ff5050">RPC ERROR</span><span class="ev-time">${now()}</span></div><div class="ev-title">❌ Helius APIエラー</div><div class="ev-detail" style="color:var(--dim)">${msg}<br>APIキーを確認してください</div>` });
+    // HTTPステータス401/403、またはエラーメッセージにAPIキー関連の文言がある場合のみ表示
+    const msg = (d.error.message || '').toLowerCase();
+    const isKeyError = res.status === 401 || res.status === 403
+      || msg.includes('api key') || msg.includes('unauthorized') || msg.includes('invalid key');
+    if (isKeyError && !_apiKeyErrShown) {
+      _apiKeyErrShown = true;
+      addEvent({ html: `<div class="ev-meta"><span class="badge" style="background:rgba(255,50,50,.15);color:#ff5050;border:1px solid #ff5050">API KEY ERROR</span><span class="ev-time">${now()}</span></div><div class="ev-title">❌ Helius APIキーが無効です</div><div class="ev-detail" style="color:var(--dim)">有効なAPIキーを入力してください<br><a href="https://dev.helius.xyz" target="_blank">dev.helius.xyz</a> で取得できます</div>` });
     }
     return null;
   }
+  _apiKeyErrShown = false;
   return d.result;
 }
 
@@ -751,27 +751,6 @@ async function getBalance(addr) {
 }
 
 // 過去N秒スキャン用：最初のTXがseconds以内であればOK（TX件数制限なし）
-async function isActiveWithin30Min(addr, seconds) {
-  seconds = seconds || 1800;
-  try {
-    const limit = 300;
-    const sigs = await safeGetSignatures(addr, limit);
-    if (!sigs || sigs.length === 0) return false;
-    const oldest = sigs[sigs.length - 1];
-    const blockTime = oldest.blockTime;
-    if (!blockTime) return false;
-    const ageSecs = Date.now() / 1000 - blockTime;
-    if (sigs.length >= limit) return false;
-    if (ageSecs > seconds) return false;
-    const tx = await safeGetTx(oldest.signature);
-    if (!tx) return false;
-    const accounts = tx.transaction?.message?.accountKeys || [];
-    const preBalances = tx.meta?.preBalances || [];
-    const idx = accounts.findIndex(a => (typeof a === 'string' ? a : a?.pubkey) === addr);
-    if (idx === -1) return false;
-    return (preBalances[idx] || 0) === 0;
-  } catch(e) { return false; }
-}
 
 // ─────────────────────────────────────────
 // SCORING: 新規ウォレット判定スコアリング
@@ -879,7 +858,11 @@ function parseCoinCreation(tx) {
     const meta = tx.meta || {};
     if (meta.err) return null;
 
-    const accounts = tx.transaction?.message?.accountKeys || [];
+    // v0トランザクション対応: loadedAddressesを含む全アカウントリストを構築
+    const staticAccounts = tx.transaction?.message?.accountKeys || [];
+    const loadedWritable = meta.loadedAddresses?.writable || [];
+    const loadedReadonly = meta.loadedAddresses?.readonly || [];
+    const accounts = [...staticAccounts, ...loadedWritable, ...loadedReadonly];
     const getAddr = a => typeof a === 'string' ? a : a?.pubkey;
 
     // Pump.funまたはBagsが絡んでいるか確認
