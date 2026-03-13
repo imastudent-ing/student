@@ -1256,8 +1256,13 @@ const rankingMcCache = {};
 function renderRanking() {
   const list = document.getElementById('ranking-list');
   const entries = Object.entries(coinBuys)
-    .sort((a, b) => b[1].count - a[1].count)
-    .slice(0, 10);
+    .sort((a, b) => {
+      const diff = b[1].count - a[1].count;
+      if (diff !== 0) return diff;
+      const mcA = rankingMcCache[a[0]]?.mc || 0;
+      const mcB = rankingMcCache[b[0]]?.mc || 0;
+      return mcB - mcA;
+    });
   document.getElementById('rankCount').textContent = Object.keys(coinBuys).length;
   if (!entries.length) {
     list.innerHTML = '<div class="empty" style="padding:20px 16px;font-size:10px">データなし</div>';
@@ -1289,15 +1294,19 @@ function renderRanking() {
 }
 
 async function updateRankingMC() {
-  const mints = Object.keys(coinBuys).slice(0, 10);
+  const mints = Object.keys(coinBuys);
   if (!mints.length) return;
   try {
-    const res = await fetch(`https://api.dexscreener.com/latest/dex/tokens/${mints.join(',')}`);
-    const json = await res.json();
-    const pairs = json.pairs || [];
-    for (const mint of mints) {
-      const pair = pairs.find(p => p.baseToken?.address === mint);
-      if (pair?.fdv) rankingMcCache[mint] = { mc: pair.fdv };
+    const chunkSize = 30;
+    for (let i = 0; i < mints.length; i += chunkSize) {
+      const chunk = mints.slice(i, i + chunkSize);
+      const res = await fetch(`https://api.dexscreener.com/latest/dex/tokens/${chunk.join(',')}`);
+      const json = await res.json();
+      const pairs = json.pairs || [];
+      for (const mint of chunk) {
+        const pair = pairs.find(p => p.baseToken?.address === mint);
+        if (pair?.fdv) rankingMcCache[mint] = { mc: pair.fdv };
+      }
     }
     renderRanking();
   } catch {}
