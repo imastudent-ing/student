@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>$YJKW | 白くまミームコイン on Solana</title>
+  <meta name="description" content="白くまフードのあの男が、Solanaでコインになった。$YJKW コミュニティサイト。ライブチャート、買い方、ロードマップ、白くまクリッカー。CA: 6WqTZgmwi5ytyMaCFm88xoLPu26Bips35V4u6CCopump">
+  <meta name="theme-color" content="#0b0906">
+  <link rel="canonical" href="https://imastudent-ing.github.io/student/yjkw/">
+
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="$YJKW — 白くまミームコイン on Solana">
+  <meta property="og:description" content="かわいさは最強のユーティリティ。白くまコイン $YJKW のコミュニティサイト。ライブデータ・買い方・Xコミュニティはこちら。">
+  <meta property="og:url" content="https://imastudent-ing.github.io/student/yjkw/">
+  <meta property="og:image" content="https://imastudent-ing.github.io/student/yjkw/assets/img/og.jpg">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="$YJKW — 白くまミームコイン on Solana">
+  <meta name="twitter:description" content="かわいさは最強のユーティリティ。白くまコイン $YJKW のコミュニティサイト。">
+  <meta name="twitter:image" content="https://imastudent-ing.github.io/student/yjkw/assets/img/og.jpg">
+
+  <link rel="icon" type="image/png" sizes="64x64" href="assets/img/favicon-64.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="assets/img/coin-192.png">
+  <link rel="apple-touch-icon" href="assets/img/coin-192.png">
+  <link rel="manifest" href="site.webmanifest">
+
+  <link rel="preload" as="image" href="assets/img/coin-480.webp" type="image/webp">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;500;700;800&family=Outfit:wght@600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/style.css">
+  <noscript>
+    <style>
+      #loader{display:none!important}
+      [data-reveal]{opacity:1!important;transform:none!important;filter:none!important}
+      .hero-inner>*{opacity:1!important;transform:none!important}
+    </style>
+  </noscript>
+</head>
+<body>
+
+  <!-- ローディング -->
+  <div id="loader" aria-hidden="true">
+    <div class="loader-coin"><img src="assets/img/coin-192.png" alt="" width="96" height="96"></div>
+    <div class="loader-bar"><i id="loaderFill"></i></div>
+    <div class="loader-pct" id="loaderPct">0%</div>
+  </div>
+
+  <div id="progress" aria-hidden="true"><i id="progressFill"></i></div>
+
+  <a class="skip-link" href="#about">本文へスキップ</a>
+
+  <!-- ヘッダー -->
+  <header id="header">
+    <nav class="nav container" aria-label="メインナビゲーション">
+      <a class="brand" href="#home">
+        <img src="assets/img/coin-96.png" alt="" width="34" height="34">
+        <span>$YJKW</span>
+      </a>
+      <ul class="nav-links">
+        <li><a href="#about">YJKWとは</a></li>
+        <li><a href="#stats">データ</a></li>
+        <li><a href="#tokenomics">トークノミクス</a></li>
+        <li><a href="#howtobuy">買い方</a></li>
+        <li><a href="#clicker">ゲーム</a></li>
+        <li><a href="#roadmap">ロードマップ</a></li>
+        <li><a href="#faq">FAQ</a></li>
+      </ul>
+      <div class="nav-cta">
+        <a class="btn btn-sm btn-primary" href="https://pump.fun/coin/6WqTZgmwi5ytyMaCFm88xoLPu26Bips35V4u6CCopump" target="_blank" rel="noopener">買う 🚀</a>
+        <button id="navToggle" class="nav-toggle" aria-label="メニューを開く" aria-expanded="false"><i></i><i></i><i></i></button>
+      </div>
+    </nav>
+  </header>
+
+  <!-- モバイルメニュー -->
+  <div id="mobileMenu" aria-hidden="true">
+    <ul>
+      <li><a href="#about">YJKWとは</a></li>
+      <li><a href="#stats">データ</a></li>
+      <li><a href="#tokenomics">トークノミクス</a></li>
+      <li><a href="#howtobuy">買い方</a></li>
+      <li><a href="#clicker">ゲーム</a></li>
+      <li><a href="#roadmap">ロードマップ</a></li>
+      <li><a href="#community">コミュニティ</a></li>
+      <li><a href="#faq">FAQ</a></li>
+    </ul>
+    <div class="menu-actions">
+      <a class="btn btn-primary" href="https://pump.fun/coin/6WqTZgmwi5ytyMaCFm88xoLPu26Bips35V4u6CCopump" target="_blank" rel="noopener">pump.funで買う 🚀</a>
+      <a class="btn btn-ghost" href="https://x.com/i/communities/2038327343748730919" target="_blank" rel="noopener">Xコミュニティ 🐻‍❄️</a>
+    </div>
+  </div>
+
+  <main id="main">
+
+    <!-- ヒーロー -->
+    <section class="hero" id="home">
+      <canvas id="particles" aria-hidden="true"></canvas>
+      <div class="hero-bg" aria-hidden="true">
+        <span class="orb orb-1"></span>
+        <span class="orb orb-2"></span>
+        <span class="deco deco-1" data-parallax="-0.12">❄️</span>
+        <span class="deco deco-2" data-parallax="0.18">🧊</span>
+        <span class="deco deco-3" data-parallax="-0.2">🪙</span>
+        <span class="deco deco-4" data-parallax="0.1">❄️</span>
+      </div>
+      <div class="hero-inner container">
+        <p class="hero-badge"><span class="dot"></span>SOLANA MEME COIN — pump.fun 発</p>
+        <div class="hero-coin-wrap">
+          <span class="hero-ring" aria-hidden="true"></span>
+          <span class="hero-glow" aria-hidden="true"></span>
+          <button id="heroCoin" class="hero-coin" aria-label="コインをタップ">
+            <picture>
+              <source srcset="assets/img/coin-480.webp" type="image/webp">
+              <img id="heroCoinImg" src="assets/img/coin-480.png" alt="$YJKW 白くまコイン" width="480" height="480" fetchpriority="high">
+            </picture>
+          </button>
+        </div>
+        <h1 class="hero-title">$YJKW</h1>
+        <p class="hero-tagline">白くまになった、あの男。</p>
+        <p class="hero-sub">かわいさは最強のユーティリティ。Solana に舞い降りた白くまコイン。</p>
+        <div class="hero-ctas">
+          <a class="btn btn-primary btn-lg" href="https://pump.fun/coin/6WqTZgmwi5ytyMaCFm88xoLPu26Bips35V4u6CCopump" target="_blank" rel="noopener">pump.funで買う 🚀</a>
+          <a class="btn btn-ghost btn-lg" href="https://x.com/i/communities/2038327343748730919" target="_blank" rel="noopener">Xコミュニティに参加 🐻‍❄️</a>
+        </div>
+        <div class="ca-pill">
+          <span class="ca-label">CA</span>
+          <code class="ca-text">6WqTZgmwi5ytyMaCFm88xoLPu26Bips35V4u6CCopump</code>
+          <button class="copy-ca" aria-label="コントラクトアドレスをコピー">コピー</button>
+        </div>
+        <div class="scroll-cue" aria-hidden="true"><span>下にスワイプ</span><i>↓</i></div>
+      </div>
+    </section>
+
+    <!-- マーキー -->
+    <div class="marquee" aria-hidden="true">
+      <div class="marquee-track">
+        <span>$YJKW</span><span>🐻‍❄️</span><span>SHIROKUMA</span><span>🪙</span><span>かわいいは正義</span><span>❄️</span><span>TO THE ARCTIC</span><span>🧊</span><span>ヌルヌル動く</span><span>💛</span>
+        <span>$YJKW</span><span>🐻‍❄️</span><span>SHIROKUMA</span><span>🪙</span><span>かわいいは正義</span><span>❄️</span><span>TO THE ARCTIC</span><span>🧊</span><span>ヌルヌル動く</span><span>💛</span>
+      </div>
+    </div>
+
+    <!-- YJKWとは -->
+    <section class="section" id="about">
+      <div class="container">
+        <div class="sec-head" data-reveal>
+          <p class="sec-label">ABOUT</p>
+          <h2>$YJKW とは?</h2>
+          <p class="sec-lead">フードを被ったその瞬間、男は白くまになった。<br>ミームは、もう止められない。</p>
+        </div>
+        <div class="card-grid">
+          <article class="card" data-reveal style="--d:.0s">
+            <span class="card-emoji">🐻‍❄️</span>
+            <h3>白くま印のミーム</h3>
+            <p>主役は白くまフードのあの男。見た瞬間にちょっと笑ったら、あなたはもう仲間です。</p>
+          </article>
+          <article class="card" data-reveal style="--d:.08s">
+            <span class="card-emoji">⚡</span>
+            <h3>Solanaでサクサク</h3>
+            <p>手数料はほぼゼロ、着金は一瞬。ヌルヌル動くのは、このサイトだけじゃない。</p>
+          </article>
+          <article class="card" data-reveal style="--d:.16s">
+            <span class="card-emoji">🤝</span>
+            <h3>コミュニティが本体</h3>
+            <p>ホルダーもミーム職人も、みんな X コミュニティに集合。ミームを作る人がいちばん偉い。</p>
+          </article>
+          <article class="card" data-reveal style="--d:.24s">
+            <span class="card-emoji">💎</span>
+            <h3>ガチホは文化</h3>
+            <p>チャートが赤くても、白くまは白いまま。慌てない。それが北極スタイル。</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- ライブデータ -->
+    <section class="section" id="stats">
+      <div class="container">
+        <div class="sec-head" data-reveal>
+          <p class="sec-label">LIVE DATA</p>
+          <h2>リアルタイムデータ</h2>
+          <p class="sec-lead"><span class="live-dot" aria-hidden="true"></span>30秒ごとに自動更新 <span class="stat-updated" id="statUpdated"></span></p>
+        </div>
+        <div class="stat-grid" data-reveal>
+          <div class="stat-tile">
+            <p class="stat-label">現在価格</p>
+            <p class="stat-value" id="statPrice">—</p>
+            <p class="stat-delta" id="statDelta"></p>
+          </div>
+          <div class="stat-tile">
+            <p class="stat-label">時価総額</p>
+            <p class="stat-value" id="statMcap">—</p>
+          </div>
+          <div class="stat-tile">
+            <p class="stat-label">24時間出来高</p>
+            <p class="stat-value" id="statVol">—</p>
+          </div>
+          <div class="stat-tile">
+            <p class="stat-label">流動性</p>
+            <p class="stat-value" id="statLiq">—</p>
+          </div>
+        </div>
+        <p class="stat-note" id="statNote" data-reveal hidden></p>
+        <div class="chart-wrap" id="chartWrap" data-reveal>
+          <div class="chart-skeleton" id="chartSkeleton"><span>チャートを読み込み中…</span></div>
+        </div>
+        <div class="link-row" data-reveal>
+          <a href="https://dexscreener.com/solana/6WqTZgmwi5ytyMaCFm88xoLPu26Bips35V4u6CCopump" target="_blank" rel="noopener">DexScreener ↗</a>
+          <a href="https://solscan.io/token/6WqTZgmwi5ytyMaCFm88xoLPu26Bips35V4u6CCopump" target="_blank" rel="noopener">Solscan ↗</a>
+          <a href="https://pump.fun/coin/6WqTZgmwi5ytyMaCFm88xoLPu26Bips35V4u6CCopump" target="_blank" rel="noopener">pump.fun ↗</a>
+          <a href="https://jup.ag/swap/SOL-6WqTZgmwi5ytyMaCFm88xoLPu26Bips35V4u6CCopump" target="_blank" rel="noopener">Jupiter ↗</a>
+        </div>
+        <p class="stat-source">データ提供: DexScreener API</p>
+      </div>
+    </section>
+
+    <div class="marquee marquee-rev" aria-hidden="true">
+      <div class="marquee-track">
+        <span>HOLD</span><span>🐻‍❄️</span><span>なでなで</span><span>🪙</span><span>PUMP IT</span><span>❄️</span><span>白くま増殖中</span><span>🧊</span><span>$YJKW</span><span>💛</span>
+        <span>HOLD</span><span>🐻‍❄️</span><span>なでなで</span><span>🪙</span><span>PUMP IT</span><span>❄️</span><span>白くま増殖中</span><span>🧊</span><span>$YJKW</span><span>💛</span>
+      </div>
+    </div>
+
+    <!-- トークノミクス -->
+    <section class="section" id="tokenomics">
+      <div class="container">
+        <div class="sec-head" data-reveal>
+          <p class="sec-label">TOKENOMICS</p>
+          <h2>トークノミクス</h2>
+          <p class="sec-lead">シンプル・イズ・ベスト。仕掛けはゼロ、白くまは 100%。</p>
+        </div>
+        <div class="tok-grid">
+          <article class="tok-card" data-reveal style="--d:.0s">
+            <p class="tok-label">総供給量</p>
+            <p class="tok-value"><span id="supplyCount" data-count="1000000000">0</span></p>
+            <p class="tok-desc">$YJKW — 10億枚。白くまは増えても、供給は増えません。</p>
+          </article>
+          <article class="tok-card" data-reveal style="--d:.08s">
+            <p class="tok-label">売買税</p>
+            <p class="tok-value">0% <span class="tok-slash">/</span> 0%</p>
+            <p class="tok-desc">買っても売っても税金ゼロ。とられるのは心だけ。</p>
+          </article>
+          <article class="tok-card" data-reveal style="--d:.16s">
+            <p class="tok-label">ミント権限</p>
+            <p class="tok-value">放棄済み</p>
+            <p class="tok-desc">pump.fun 標準仕様。あとから増刷はできない仕組みです。</p>
+          </article>
+          <article class="tok-card" data-reveal style="--d:.24s">
+            <p class="tok-label">流動性</p>
+            <p class="tok-value">LP バーン</p>
+            <p class="tok-desc">Raydium 移行時に LP はバーン(pump.fun 標準仕様)。</p>
+          </article>
+        </div>
+        <p class="tok-note" data-reveal>※ pump.fun ローンチの標準仕様に基づく記載です。最新のオンチェーン情報は必ず <a href="https://solscan.io/token/6WqTZgmwi5ytyMaCFm88xoLPu26Bips35V4u6CCopump" target="_blank" rel="noopener">Solscan</a> でご確認ください。</p>
+      </div>
+    </section>
+
+    <!-- 買い方 -->
+    <section class="section" id="howtobuy">
+      <div class="container">
+        <div class="sec-head" data-reveal>
+          <p class="sec-label">HOW TO BUY</p>
+          <h2>買い方 4ステップ</h2>
+          <p class="sec-lead">はじめてでも5分で白くまファミリー。</p>
+        </div>
+        <ol class="steps">
+          <li class="step" data-reveal style="--d:.0s">
+            <span class="step-num">01</span>
+            <div>
+              <h3>👛 ウォレットを用意</h3>
+              <p><a href="https://phantom.com" target="_blank" rel="noopener">Phantom</a> などの Solana ウォレットをスマホかブラウザにインストール。</p>
+            </div>
+          </li>
+          <li class="step" data-reveal style="--d:.08s">
+            <span class="step-num">02</span>
+            <div>
+              <h3>◎ SOL を入手</h3>
+              <p>取引所で SOL を購入して、自分のウォレットへ送金します。</p>
+            </div>
+          </li>
+          <li class="step" data-reveal style="--d:.16s">
+            <span class="step-num">03</span>
+            <div>
+              <h3>🔁 $YJKW にスワップ</h3>
+              <p>pump.fun で CA を貼り付けてスワップ。<button class="copy-ca link-btn">CAをコピー</button> して検索窓へ。</p>
+            </div>
+          </li>
+          <li class="step" data-reveal style="--d:.24s">
+            <span class="step-num">04</span>
+            <div>
+              <h3>🐻‍❄️ 白くまファミリー入り</h3>
+              <p>X コミュニティで「買ったよ」と報告。歓迎の圧がすごい。</p>
+            </div>
+          </li>
+        </ol>
+        <div class="center-cta" data-reveal>
+          <a class="btn btn-primary btn-lg" href="https://pump.fun/coin/6WqTZgmwi5ytyMaCFm88xoLPu26Bips35V4u6CCopump" target="_blank" rel="noopener">pump.funを開く 🚀</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- クリッカー -->
+    <section class="section" id="clicker">
+      <div class="container">
+        <div class="sec-head" data-reveal>
+          <p class="sec-label">GAME</p>
+          <h2>白くまクリッカー</h2>
+          <p class="sec-lead">コインをタップして白くまをなでなでしよう。記録はこの端末に保存されます。</p>
+        </div>
+        <div class="clicker-box" data-reveal>
+          <div class="clicker-coin-wrap">
+            <span id="comboBadge" class="combo-badge" aria-hidden="true"></span>
+            <button id="clickerCoin" class="clicker-coin" aria-label="白くまをなでる">
+              <img src="assets/img/coin-480.png" alt="" width="240" height="240" draggable="false">
+            </button>
+          </div>
+          <p class="clicker-count"><span id="clickCount">0</span><small> なでなで</small></p>
+          <p class="clicker-rank">ランク: <strong id="clickRank">こぐま見習い</strong></p>
+          <button id="shareX" class="btn btn-ghost">記録をXでシェア 🐻‍❄️</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ロードマップ -->
+    <section class="section" id="roadmap">
+      <div class="container">
+        <div class="sec-head" data-reveal>
+          <p class="sec-label">ROADMAP</p>
+          <h2>ロードマップ</h2>
+          <p class="sec-lead">目指すのは月ではなく、北極。</p>
+        </div>
+        <ol class="timeline">
+          <li class="tl-item done" data-reveal>
+            <div class="tl-dot" aria-hidden="true"></div>
+            <div class="tl-body">
+              <p class="tl-phase">PHASE 1 <span class="tl-badge">達成 ✅</span></p>
+              <h3>誕生 🐣</h3>
+              <ul>
+                <li>pump.fun でローンチ</li>
+                <li>X コミュニティ開設</li>
+                <li>このサイトが爆誕</li>
+              </ul>
+            </div>
+          </li>
+          <li class="tl-item" data-reveal>
+            <div class="tl-dot" aria-hidden="true"></div>
+            <div class="tl-body">
+              <p class="tl-phase">PHASE 2</p>
+              <h3>増殖 🧬</h3>
+              <ul>
+                <li>ミーム量産体制の確立</li>
+                <li>アイコンを白くま化する人が現れる</li>
+                <li>ホルダーの輪がじわじわ拡大</li>
+              </ul>
+            </div>
+          </li>
+          <li class="tl-item" data-reveal>
+            <div class="tl-dot" aria-hidden="true"></div>
+            <div class="tl-body">
+              <p class="tl-phase">PHASE 3</p>
+              <h3>覚醒 ⚡</h3>
+              <ul>
+                <li>タイムラインが白くまで埋まる</li>
+                <li>「YJKWって何?」がトレンドの入口に</li>
+                <li>白くまが夢に出てくる</li>
+              </ul>
+            </div>
+          </li>
+          <li class="tl-item" data-reveal>
+            <div class="tl-dot" aria-hidden="true"></div>
+            <div class="tl-body">
+              <p class="tl-phase">PHASE 4</p>
+              <h3>伝説 🌕</h3>
+              <ul>
+                <li>月…ではなく北極へ</li>
+                <li>挨拶が「YJKW」になる</li>
+                <li>その先は、誰にもわからない</li>
+              </ul>
+            </div>
+          </li>
+        </ol>
+      </div>
+    </section>
+
+    <!-- コミュニティ -->
+    <section class="section" id="community">
+      <div class="container">
+        <div class="community-card" data-reveal>
+          <img src="assets/img/coin-192.png" alt="" width="88" height="88" class="community-coin">
+          <p class="sec-label">COMMUNITY</p>
+          <h2>白くまの巣穴へようこそ</h2>
+          <p>ミーム、雑談、値動きの悲鳴。ぜんぶここで起きています。<br>$YJKW の公式リンクは X コミュニティのみです。</p>
+          <a class="btn btn-primary btn-lg" href="https://x.com/i/communities/2038327343748730919" target="_blank" rel="noopener">Xコミュニティに参加する 🐻‍❄️</a>
+          <p class="community-warn">⚠️ DM で届く勧誘リンクはすべて詐欺です。絶対に開かないでください。</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- FAQ -->
+    <section class="section" id="faq">
+      <div class="container">
+        <div class="sec-head" data-reveal>
+          <p class="sec-label">FAQ</p>
+          <h2>よくある質問</h2>
+        </div>
+        <div class="faq-list">
+          <details class="faq-item" data-reveal style="--d:.0s">
+            <summary>$YJKW って何ですか?</summary>
+            <div class="faq-a"><p>白くまフードの男をシンボルにした Solana のミームコインです。ユーティリティは「かわいい」と「笑える」。それ以上でも、それ以下でもありません。</p></div>
+          </details>
+          <details class="faq-item" data-reveal style="--d:.06s">
+            <summary>どこで買えますか?</summary>
+            <div class="faq-a"><p><a href="https://pump.fun/coin/6WqTZgmwi5ytyMaCFm88xoLPu26Bips35V4u6CCopump" target="_blank" rel="noopener">pump.fun</a> で CA を貼り付けて購入できます。Raydium 移行後は Jupiter などの DEX でもスワップできるようになります。</p></div>
+          </details>
+          <details class="faq-item" data-reveal style="--d:.12s">
+            <summary>コントラクトアドレス(CA)は?</summary>
+            <div class="faq-a"><p><code class="inline-ca">6WqTZgmwi5ytyMaCFm88xoLPu26Bips35V4u6CCopump</code> <button class="copy-ca link-btn">コピー</button></p><p>類似トークンにご注意を。購入前に必ずこの CA と一致しているか確認してください。</p></div>
+          </details>
+          <details class="faq-item" data-reveal style="--d:.18s">
+            <summary>公式の SNS はどれですか?</summary>
+            <div class="faq-a"><p>X コミュニティのみです。このサイトのボタンからアクセスしてください。DM で送られてくるリンク・エアドロップ案内は開かないでください。</p></div>
+          </details>
+          <details class="faq-item" data-reveal style="--d:.24s">
+            <summary>値上がりしますか?</summary>
+            <div class="faq-a"><p>わかりません(正直)。ミームコインは価格変動がとても激しいハイリスク資産です。必ず余剰資金で、自分で調べて(DYOR)判断してください。これは投資助言ではありません。</p></div>
+          </details>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- フッター -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-top">
+        <div class="footer-brand">
+          <img src="assets/img/coin-96.png" alt="" width="44" height="44">
+          <span>$YJKW</span>
+        </div>
+        <div class="ca-pill ca-pill-footer">
+          <span class="ca-label">CA</span>
+          <code class="ca-text">6WqTZgmwi5ytyMaCFm88xoLPu26Bips35V4u6CCopump</code>
+          <button class="copy-ca" aria-label="コントラクトアドレスをコピー">コピー</button>
+        </div>
+        <nav class="footer-links" aria-label="フッターリンク">
+          <a href="https://pump.fun/coin/6WqTZgmwi5ytyMaCFm88xoLPu26Bips35V4u6CCopump" target="_blank" rel="noopener">pump.fun</a>
+          <a href="https://dexscreener.com/solana/6WqTZgmwi5ytyMaCFm88xoLPu26Bips35V4u6CCopump" target="_blank" rel="noopener">DexScreener</a>
+          <a href="https://solscan.io/token/6WqTZgmwi5ytyMaCFm88xoLPu26Bips35V4u6CCopump" target="_blank" rel="noopener">Solscan</a>
+          <a href="https://x.com/i/communities/2038327343748730919" target="_blank" rel="noopener">Xコミュニティ</a>
+        </nav>
+      </div>
+      <p class="disclaimer">本サイトは $YJKW コミュニティによるサイトであり、投資助言ではありません(NFA)。暗号資産、とくにミームコインは価格変動リスクが極めて高い資産です。購入・保有はご自身の判断と責任で、必ず余剰資金の範囲で行ってください。DYOR。</p>
+      <p class="copyright">© <span id="year">2026</span> $YJKW Community. Made with 💛 and 🐻‍❄️</p>
+    </div>
+  </footer>
+
+  <button id="toTop" aria-label="ページの先頭へ戻る">↑</button>
+  <div id="toast" role="status" aria-live="polite"></div>
+  <div id="rainLayer" aria-hidden="true"></div>
+
+  <script src="assets/js/main.js" defer></script>
+</body>
+</html>

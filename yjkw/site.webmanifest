@@ -1,0 +1,13 @@
+{
+  "name": "$YJKW — 白くまミームコイン",
+  "short_name": "$YJKW",
+  "description": "白くまコイン $YJKW のコミュニティサイト",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#0b0906",
+  "theme_color": "#0b0906",
+  "icons": [
+    { "src": "assets/img/coin-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "assets/img/coin-480.png", "sizes": "480x480", "type": "image/png" }
+  ]
+}
