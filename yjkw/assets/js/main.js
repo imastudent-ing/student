@@ -17,10 +17,16 @@
   const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
   const lerp = (a, b, t) => a + (b - a) * t;
 
+  // localStorage が使えない環境 (プライベートブラウズ等) でも落ちないように
+  const store = {
+    get(k) { try { return localStorage.getItem(k); } catch { return null; } },
+    set(k, v) { try { localStorage.setItem(k, v); } catch { /* noop */ } },
+  };
+
   /* ------------------------------------------------------------------
      i18n — HTMLは日本語がデフォルト。EN辞書 + 起動時スナップショットで切替
   ------------------------------------------------------------------ */
-  let lang = localStorage.getItem('yjkw_lang');
+  let lang = store.get('yjkw_lang');
   if (lang !== 'ja' && lang !== 'en') {
     lang = (navigator.language || '').toLowerCase().startsWith('ja') ? 'ja' : 'en';
   }
@@ -201,7 +207,7 @@
 
   function applyLang(next) {
     lang = next;
-    localStorage.setItem('yjkw_lang', lang);
+    store.set('yjkw_lang', lang);
     document.documentElement.lang = lang;
     $$('[data-i18n]').forEach(el => {
       const k = el.dataset.i18n;
@@ -742,7 +748,7 @@
   const comboBadge = $('#comboBadge');
   const coinWrap = $('.clicker-coin-wrap');
 
-  let pets = parseInt(localStorage.getItem(PETS_KEY) || '0', 10) || 0;
+  let pets = parseInt(store.get(PETS_KEY) || '0', 10) || 0;
   let combo = 0;
   let lastTap = 0;
   let comboTimer = null;
@@ -785,7 +791,7 @@
 
   function petOnce() {
     pets++;
-    localStorage.setItem(PETS_KEY, String(pets));
+    store.set(PETS_KEY, String(pets));
     renderClicker();
 
     clickerCoin.classList.add('pop');
