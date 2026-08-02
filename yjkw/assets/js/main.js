@@ -7,6 +7,7 @@
   const CA = '6WqTZgmwi5ytyMaCFm88xoLPu26Bips35V4u6CCopump';
   const LINK_PUMP = 'https://pump.fun/coin/' + CA;
   const LINK_COMMUNITY = 'https://x.com/i/communities/2038327343748730919';
+  const LINK_LINE = 'https://line.me/ti/g2/mXHRwb6TejJAqhPZrjCuC_Na2dxY-K0DcHL38w?utm_source=invitation&utm_medium=link_copy&utm_campaign=default';
 
   const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
   const finePointer = matchMedia('(hover: hover) and (pointer: fine)').matches;
@@ -15,6 +16,212 @@
   const $$ = (s, c = document) => [...c.querySelectorAll(s)];
   const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
   const lerp = (a, b, t) => a + (b - a) * t;
+
+  /* ------------------------------------------------------------------
+     i18n — HTMLは日本語がデフォルト。EN辞書 + 起動時スナップショットで切替
+  ------------------------------------------------------------------ */
+  let lang = localStorage.getItem('yjkw_lang');
+  if (lang !== 'ja' && lang !== 'en') {
+    lang = (navigator.language || '').toLowerCase().startsWith('ja') ? 'ja' : 'en';
+  }
+
+  const STR = {
+    ja: {
+      docTitle: '$YJKW | やじゅかわミームコイン on Solana',
+      metaDesc: '野獣なのに、かわいい。やじゅかわコイン $YJKW のコミュニティサイト。ライブチャート、買い方、Xコミュニティ、LINEオープンチャットはこちら。CA: ' + CA,
+      copied: 'CAをコピーしました 🐻‍❄️',
+      copyFail: 'コピーできませんでした…長押しで選択してください',
+      updated: t => `(${t} 更新)`,
+      noPairNote: `まだDEXペアが見つかりません(pump.funボンディングカーブ中の可能性があります)。最新情報は <a href="${LINK_PUMP}" target="_blank" rel="noopener">pump.fun ↗</a> でチェック!`,
+      failNote: `データを取得できませんでした。<a href="https://dexscreener.com/solana/${CA}" target="_blank" rel="noopener">DexScreener ↗</a> で直接確認できます。`,
+      chartLoading: 'チャートを読み込み中…',
+      chartNoPair: `チャートは DEX ペア生成後に表示されます — <a href="${LINK_PUMP}" target="_blank" rel="noopener">pump.fun で見る ↗</a>`,
+      chartFail: `<a href="https://dexscreener.com/solana/${CA}" target="_blank" rel="noopener">DexScreener でチャートを見る ↗</a>`,
+      share: (n, r) => `やじゅかわコイン $YJKW を ${n} 回なでなでした🐻‍❄️✨\nランク:「${r}」\n#YJKW $YJKW`,
+      milestones: {
+        10: '🎉 10なでなで!「駆け出しやじゅかわ」に進化!',
+        50: '🎉 50なでなで!「なでなで職人」に進化!',
+        100: '💯 100なでなで!「一人前のやじゅかわ」に進化!',
+        500: '🔥 500なでなで!「やじゅかわエリート」に進化!',
+        1000: '👑 1,000なでなで!「やじゅかわマスター」に進化!',
+        5000: '🌟 5,000なでなで!「やじゅかわの神」爆誕!!',
+      },
+    },
+    en: {
+      docTitle: '$YJKW | YAJUKAWA Meme Coin on Solana',
+      metaDesc: 'Beast mode, but adorable. Community site for $YJKW, the yajukawa coin on Solana. Live chart, how to buy, X community & LINE OpenChat. CA: ' + CA,
+      copied: 'CA copied 🐻‍❄️',
+      copyFail: 'Could not copy — please select the address manually',
+      updated: t => `(updated ${t})`,
+      noPairNote: `No DEX pair found yet (likely still on the pump.fun bonding curve). Check <a href="${LINK_PUMP}" target="_blank" rel="noopener">pump.fun ↗</a> for the latest!`,
+      failNote: `Could not fetch data. You can check directly on <a href="https://dexscreener.com/solana/${CA}" target="_blank" rel="noopener">DexScreener ↗</a>.`,
+      chartLoading: 'Loading chart…',
+      chartNoPair: `The chart appears once a DEX pair exists — <a href="${LINK_PUMP}" target="_blank" rel="noopener">view on pump.fun ↗</a>`,
+      chartFail: `<a href="https://dexscreener.com/solana/${CA}" target="_blank" rel="noopener">View the chart on DexScreener ↗</a>`,
+      share: (n, r) => `I petted the yajukawa coin $YJKW ${n} times 🐻‍❄️✨\nRank: "${r}"\n#YJKW $YJKW`,
+      milestones: {
+        10: '🎉 10 pets! Evolved into "Junior yajukawa"!',
+        50: '🎉 50 pets! Evolved into "Pet-pet artisan"!',
+        100: '💯 100 pets! Evolved into "Certified yajukawa"!',
+        500: '🔥 500 pets! Evolved into "Elite yajukawa"!',
+        1000: '👑 1,000 pets! Evolved into "Yajukawa master"!',
+        5000: '🌟 5,000 pets! "Yajukawa god" has arrived!!',
+      },
+    },
+  };
+
+  const EN = {
+    'common.skip': 'Skip to content',
+    'common.copy': 'Copy',
+    'nav.about': 'About',
+    'nav.stats': 'Live Data',
+    'nav.tok': 'Tokenomics',
+    'nav.buy': 'How to Buy',
+    'nav.game': 'Game',
+    'nav.map': 'Roadmap',
+    'nav.faq': 'FAQ',
+    'nav.community': 'Community',
+    'nav.buyBtn': 'Buy 🚀',
+    'hero.badge': 'SOLANA MEME COIN — born on pump.fun',
+    'hero.tagline': 'Beast mode, but adorable.',
+    'hero.sub': 'YAJUKAWA = yajū (beast) × kawaii (cute). The miracle meme coin that landed on Solana.',
+    'hero.ctaPump': 'Buy on pump.fun 🚀',
+    'hero.ctaX': 'Join the X Community 🐻‍❄️',
+    'hero.ctaLine': 'LINE OpenChat 💬',
+    'hero.cue': 'SWIPE DOWN',
+    'about.h2': 'What is $YJKW?',
+    'about.lead': 'The moment he put on that hood, a man became “yajukawa”.<br>The meme can no longer be stopped.',
+    'about.c1.h': 'The yajukawa meme',
+    'about.c1.p': 'Beast × cute — a miracle fusion. If it made you smirk for even a second, you are already one of us.',
+    'about.c2.h': 'Silky smooth on Solana',
+    'about.c2.p': 'Near-zero fees, instant settlement. This site is not the only thing here that runs buttery smooth.',
+    'about.c3.h': 'Community is the product',
+    'about.c3.p': 'Holders and meme artisans all hang out in the X community and the LINE OpenChat. Meme makers outrank everyone.',
+    'about.c4.h': 'Diamond paws',
+    'about.c4.p': 'Red candles? Yajukawa stays cute anyway. No panic — pets only.',
+    'stats.h2': 'Live Data',
+    'stats.lead': 'Auto-refreshes every 30 seconds',
+    'stats.price': 'Price',
+    'stats.mcap': 'Market cap',
+    'stats.vol': '24h volume',
+    'stats.liq': 'Liquidity',
+    'stats.source': 'Data: DexScreener API',
+    'tok.h2': 'Tokenomics',
+    'tok.lead': 'Simple is best. Zero tricks, 100% yajukawa.',
+    'tok.supply.l': 'Total supply',
+    'tok.supply.d': '$YJKW — 1 billion. Yajukawa multiplies; the supply never does.',
+    'tok.tax.l': 'Buy / sell tax',
+    'tok.tax.d': 'Zero tax both ways. The only thing it takes is your heart.',
+    'tok.mint.l': 'Mint authority',
+    'tok.mint.v': 'Revoked',
+    'tok.mint.d': 'pump.fun standard — no extra tokens can ever be minted.',
+    'tok.lp.l': 'Liquidity',
+    'tok.lp.v': 'LP burned',
+    'tok.lp.d': 'LP is burned on Raydium migration (pump.fun standard).',
+    'tok.note': `※ Based on standard pump.fun launch mechanics. Always verify the latest on-chain data on <a href="https://solscan.io/token/${CA}" target="_blank" rel="noopener">Solscan</a>.`,
+    'buy.h2': 'How to buy — 4 steps',
+    'buy.lead': 'From zero to yajukawa family in five minutes.',
+    'buy.s1.h': '👛 Get a wallet',
+    'buy.s1.p': 'Install a Solana wallet such as <a href="https://phantom.com" target="_blank" rel="noopener">Phantom</a> on your phone or browser.',
+    'buy.s2.h': '◎ Get some SOL',
+    'buy.s2.p': 'Buy SOL on an exchange and send it to your own wallet.',
+    'buy.s3.h': '🔁 Swap for $YJKW',
+    'buy.s3.p': 'Paste the CA on pump.fun and swap. <button class="copy-ca link-btn">Copy the CA</button> and drop it in the search bar.',
+    'buy.s4.h': '🐻‍❄️ Join the family',
+    'buy.s4.p': 'Post “I bought some” in the community. The welcome energy is intense.',
+    'buy.cta': 'Open pump.fun 🚀',
+    'game.h2': 'Yajukawa Clicker',
+    'game.lead': 'Tap the coin to pet the yajukawa. Your record is saved on this device.',
+    'clicker.unit': ' pets',
+    'clicker.rankLabel': 'Rank: ',
+    'game.share': 'Share on X 🐻‍❄️',
+    'map.h2': 'Roadmap',
+    'map.lead': 'Destination: the moon. Cuteness beats gravity.',
+    'map.done': 'DONE ✅',
+    'map.p1.h': 'Birth 🐣',
+    'map.p1.l1': 'Launched on pump.fun',
+    'map.p1.l2': 'X community opened',
+    'map.p1.l3': 'LINE OpenChat opened',
+    'map.p1.l4': 'This site was born',
+    'map.p2.h': 'Multiplication 🧬',
+    'map.p2.l1': 'Meme production at full scale',
+    'map.p2.l2': 'PFPs start turning into yajukawa',
+    'map.p2.l3': 'The holder circle keeps growing',
+    'map.p3.h': 'Awakening ⚡',
+    'map.p3.l1': 'Timelines flooded with yajukawa',
+    'map.p3.l2': '“What is YJKW?” becomes the entry point',
+    'map.p3.l3': 'Yajukawa appears in your dreams',
+    'map.p4.h': 'Legend 🌕',
+    'map.p4.l1': 'To the moon — cuteness beats gravity',
+    'map.p4.l2': '“YJKW” becomes a greeting',
+    'map.p4.l3': 'Beyond that, nobody knows',
+    'comm.h2': 'Welcome to the yajukawa clubhouse',
+    'comm.p': 'Memes, chatter, and screams at the chart — it all happens here.<br>$YJKW has two official communities: X and LINE.',
+    'comm.x': 'Join the X Community 🐻‍❄️',
+    'comm.line': 'Join the LINE OpenChat 💬',
+    'comm.sub': 'LINE OpenChat: “Yajukawa YJKW Community”',
+    'comm.warn': '⚠️ Any invite link that arrives by DM is a scam. Never open them.',
+    'faq.h2': 'FAQ',
+    'faq.q1.q': 'What is $YJKW?',
+    'faq.q1.a': 'A Solana meme coin symbolized by the man in the bear hood — “yajukawa”. Its utility is being cute and being funny. Nothing more, nothing less.',
+    'faq.q2.q': 'Where can I buy it?',
+    'faq.q2.a': `You can buy it on <a href="${LINK_PUMP}" target="_blank" rel="noopener">pump.fun</a> — paste the CA and swap. After the Raydium migration you will also be able to swap on DEXs like Jupiter.`,
+    'faq.q3.q': 'What is the contract address (CA)?',
+    'faq.q3.a': 'Watch out for copycat tokens. Always make sure the CA matches exactly before you buy.',
+    'faq.q4.q': 'Which communities are official?',
+    'faq.q4.a': 'Two: the X community and the LINE OpenChat “Yajukawa YJKW Community”. Use the buttons on this site. Never open links or airdrop offers sent to you by DM.',
+    'faq.q5.q': 'Will the price go up?',
+    'faq.q5.a': 'Honestly: nobody knows. Meme coins are extremely volatile, high-risk assets. Only use money you can afford to lose, and always DYOR. This is not financial advice.',
+    'footer.x': 'X Community',
+    'footer.line': 'LINE OpenChat',
+    'footer.disclaimer': 'This is a community site for $YJKW and is not financial advice (NFA). Crypto assets — meme coins especially — are extremely volatile and high-risk. Buy and hold at your own risk, only with funds you can afford to lose. DYOR.',
+  };
+
+  const ARIA_EN = {
+    'aria.lang': 'Switch language',
+    'aria.menu': 'Menu',
+    'aria.copy': 'Copy contract address',
+    'aria.hero': 'Tap the coin',
+    'aria.clicker': 'Pet the yajukawa',
+    'aria.top': 'Back to top',
+  };
+
+  const jaHTML = {};
+  const ariaJA = {};
+
+  function snapshotJa() {
+    $$('[data-i18n]').forEach(el => {
+      if (!(el.dataset.i18n in jaHTML)) jaHTML[el.dataset.i18n] = el.innerHTML;
+    });
+    $$('[data-i18n-aria]').forEach(el => {
+      const k = el.dataset.i18nAria;
+      if (!(k in ariaJA)) ariaJA[k] = el.getAttribute('aria-label') || '';
+    });
+  }
+
+  function applyLang(next) {
+    lang = next;
+    localStorage.setItem('yjkw_lang', lang);
+    document.documentElement.lang = lang;
+    $$('[data-i18n]').forEach(el => {
+      const k = el.dataset.i18n;
+      const v = lang === 'ja' ? jaHTML[k] : EN[k];
+      if (v != null) el.innerHTML = v;
+    });
+    $$('[data-i18n-aria]').forEach(el => {
+      const k = el.dataset.i18nAria;
+      const v = lang === 'ja' ? ariaJA[k] : ARIA_EN[k];
+      if (v) el.setAttribute('aria-label', v);
+    });
+    document.title = STR[lang].docTitle;
+    const md = $('meta[name="description"]');
+    if (md) md.content = STR[lang].metaDesc;
+    $$('.lang-toggle span').forEach(s =>
+      s.classList.toggle('active', s.dataset.l === lang));
+    renderClicker();
+    renderStatMeta();
+    measureParallax();
+  }
 
   /* ------------------------------------------------------------------
      マスター rAF ループ
@@ -34,7 +241,7 @@
 
   /* ------------------------------------------------------------------
      慣性スムーススクロール(デスクトップのホイールのみ)
-     モバイルはネイティブスクロール + 後述の fxY 補間でヌルヌルに
+     モバイルはネイティブスクロール + fxY 補間でヌルヌルに
   ------------------------------------------------------------------ */
   let targetY = window.scrollY;
   let animY = window.scrollY;
@@ -297,26 +504,30 @@
   }
 
   /* ------------------------------------------------------------------
-     CAコピー
+     CAコピー(言語切替でボタンが再生成されるためデリゲーション)
   ------------------------------------------------------------------ */
-  $$('.copy-ca').forEach(btn => {
-    btn.addEventListener('click', async () => {
-      let ok = false;
-      try {
-        await navigator.clipboard.writeText(CA);
-        ok = true;
-      } catch {
-        const ta = document.createElement('textarea');
-        ta.value = CA;
-        ta.style.cssText = 'position:fixed;opacity:0';
-        document.body.appendChild(ta);
-        ta.select();
-        try { ok = document.execCommand('copy'); } catch { /* noop */ }
-        ta.remove();
-      }
-      toast(ok ? 'CAをコピーしました 🐻‍❄️' : 'コピーできませんでした…長押しで選択してください');
-    });
+  document.addEventListener('click', (e) => {
+    const btn = e.target.closest('.copy-ca');
+    if (!btn) return;
+    copyCA();
   });
+
+  async function copyCA() {
+    let ok = false;
+    try {
+      await navigator.clipboard.writeText(CA);
+      ok = true;
+    } catch {
+      const ta = document.createElement('textarea');
+      ta.value = CA;
+      ta.style.cssText = 'position:fixed;opacity:0';
+      document.body.appendChild(ta);
+      ta.select();
+      try { ok = document.execCommand('copy'); } catch { /* noop */ }
+      ta.remove();
+    }
+    toast(ok ? STR[lang].copied : STR[lang].copyFail);
+  }
 
   /* ------------------------------------------------------------------
      コインレイン
@@ -427,17 +638,35 @@
   let chartMounted = false;
   let chartVisible = false;
   let gotData = false;
+  let lastUpdatedStr = '';
+  let noteState = null; // null | 'nopair' | 'fail'
 
-  function showNote(html) {
-    statNote.innerHTML = html;
-    statNote.hidden = false;
+  function renderStatMeta() {
+    statUpdated.textContent = lastUpdatedStr ? STR[lang].updated(lastUpdatedStr) : '';
+    if (noteState === 'nopair') {
+      statNote.innerHTML = STR[lang].noPairNote;
+      statNote.hidden = false;
+    } else if (noteState === 'fail') {
+      statNote.innerHTML = STR[lang].failNote;
+      statNote.hidden = false;
+    } else {
+      statNote.hidden = true;
+    }
+    if (!chartMounted && chartSkeleton.isConnected) {
+      const span = chartSkeleton.querySelector('span');
+      if (span) {
+        span.innerHTML = noteState === 'nopair' ? STR[lang].chartNoPair
+          : noteState === 'fail' ? STR[lang].chartFail
+          : STR[lang].chartLoading;
+      }
+    }
   }
 
   function mountChartIfReady() {
     if (chartMounted || !pairAddr || !chartVisible) return;
     chartMounted = true;
     const iframe = document.createElement('iframe');
-    iframe.title = '$YJKW 価格チャート (DexScreener)';
+    iframe.title = '$YJKW chart (DexScreener)';
     iframe.loading = 'lazy';
     iframe.src = `https://dexscreener.com/solana/${pairAddr}?embed=1&theme=dark&trades=0&info=0`;
     iframe.addEventListener('load', () => chartSkeleton.remove());
@@ -457,11 +686,11 @@
       if (!res.ok) throw new Error('http ' + res.status);
       const data = await res.json();
       const pairs = (data.pairs || []).filter(p => p.chainId === 'solana');
+      lastUpdatedStr = new Date().toLocaleTimeString(lang === 'ja' ? 'ja-JP' : 'en-US');
 
       if (!pairs.length) {
-        showNote(`まだDEXペアが見つかりません(pump.funボンディングカーブ中の可能性があります)。最新情報は <a href="${LINK_PUMP}" target="_blank" rel="noopener">pump.fun ↗</a> でチェック!`);
-        chartSkeleton.innerHTML = `<span>チャートは DEX ペア生成後に表示されます — <a href="${LINK_PUMP}" target="_blank" rel="noopener">pump.fun で見る ↗</a></span>`;
-        statUpdated.textContent = '(' + new Date().toLocaleTimeString('ja-JP') + ' 時点)';
+        noteState = 'nopair';
+        renderStatMeta();
         return;
       }
 
@@ -481,9 +710,9 @@
         statDelta.textContent = '';
       }
 
-      statUpdated.textContent = '(' + new Date().toLocaleTimeString('ja-JP') + ' 更新)';
-      statNote.hidden = true;
+      noteState = null;
       gotData = true;
+      renderStatMeta();
 
       if (best.pairAddress) {
         pairAddr = best.pairAddress;
@@ -491,8 +720,8 @@
       }
     } catch {
       if (!gotData) {
-        showNote(`データを取得できませんでした。<a href="https://dexscreener.com/solana/${CA}" target="_blank" rel="noopener">DexScreener ↗</a> で直接確認できます。`);
-        chartSkeleton.innerHTML = `<span><a href="https://dexscreener.com/solana/${CA}" target="_blank" rel="noopener">DexScreener でチャートを見る ↗</a></span>`;
+        noteState = 'fail';
+        renderStatMeta();
       }
     }
   }
@@ -504,7 +733,7 @@
   });
 
   /* ------------------------------------------------------------------
-     白くまクリッカー
+     やじゅかわクリッカー
   ------------------------------------------------------------------ */
   const PETS_KEY = 'yjkw_pets';
   const clickerCoin = $('#clickerCoin');
@@ -520,33 +749,24 @@
   let popTimer = null;
 
   const RANKS = [
-    [0, 'こぐま見習い'],
-    [10, 'こぐま'],
-    [50, '白くま見習い'],
-    [100, '一人前の白くま'],
-    [500, '白くまエリート'],
-    [1000, '白くまマスター'],
-    [5000, '白くまの神'],
+    [0, 'やじゅかわ見習い', 'Yajukawa rookie'],
+    [10, '駆け出しやじゅかわ', 'Junior yajukawa'],
+    [50, 'なでなで職人', 'Pet-pet artisan'],
+    [100, '一人前のやじゅかわ', 'Certified yajukawa'],
+    [500, 'やじゅかわエリート', 'Elite yajukawa'],
+    [1000, 'やじゅかわマスター', 'Yajukawa master'],
+    [5000, 'やじゅかわの神', 'Yajukawa god'],
   ];
-  const MILESTONES = {
-    10: '🎉 10なでなで!「こぐま」に進化!',
-    50: '🎉 50なでなで!「白くま見習い」に進化!',
-    100: '💯 100なでなで!「一人前の白くま」に進化!',
-    500: '🔥 500なでなで!「白くまエリート」に進化!',
-    1000: '👑 1,000なでなで!「白くまマスター」に進化!',
-    5000: '🌟 5,000なでなで!「白くまの神」爆誕!!',
-  };
 
   function rankFor(n) {
-    let r = RANKS[0][1];
-    RANKS.forEach(([min, name]) => { if (n >= min) r = name; });
-    return r;
+    let r = RANKS[0];
+    RANKS.forEach(row => { if (n >= row[0]) r = row; });
+    return lang === 'ja' ? r[1] : r[2];
   }
   function renderClicker() {
     clickCountEl.textContent = pets.toLocaleString('en-US');
     clickRankEl.textContent = rankFor(pets);
   }
-  renderClicker();
 
   function floatLabel() {
     if (reduced || !coinWrap) return;
@@ -584,8 +804,9 @@
       comboTimer = setTimeout(() => comboBadge.classList.remove('show'), 900);
     }
 
-    if (MILESTONES[pets]) {
-      toast(MILESTONES[pets]);
+    const msg = STR[lang].milestones[pets];
+    if (msg) {
+      toast(msg);
       coinRain(18);
     }
   }
@@ -594,7 +815,7 @@
   clickerCoin.addEventListener('click', (e) => { if (e.detail === 0) petOnce(); }); // キーボード操作
 
   $('#shareX').addEventListener('click', () => {
-    const text = `白くまコイン $YJKW を ${pets.toLocaleString('en-US')} 回なでなでした🐻‍❄️✨\nランク:「${rankFor(pets)}」\n#YJKW`;
+    const text = STR[lang].share(pets.toLocaleString('en-US'), rankFor(pets));
     const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(LINK_COMMUNITY)}`;
     window.open(url, '_blank', 'noopener,width=560,height=640');
   });
@@ -616,6 +837,15 @@
     }, { rootMargin: '-40% 0px -55% 0px' });
     sectionsForNav.forEach(s => navIO.observe(s));
   }
+
+  /* ------------------------------------------------------------------
+     言語トグル
+  ------------------------------------------------------------------ */
+  snapshotJa();
+  $$('.lang-toggle').forEach(btn => {
+    btn.addEventListener('click', () => applyLang(lang === 'ja' ? 'en' : 'ja'));
+  });
+  applyLang(lang);
 
   /* ------------------------------------------------------------------
      ローディング
@@ -657,5 +887,5 @@
     targetY = clamp(targetY, 0, maxScroll());
   });
 
-  console.log('%c$YJKW 🐻‍❄️ かわいいは正義', 'font-size:16px;font-weight:bold;color:#f5c542');
+  console.log('%c$YJKW 🐻‍❄️ 野獣なのに、かわいい。/ Beast mode, but adorable.', 'font-size:16px;font-weight:bold;color:#f5c542');
 })();

@@ -3,19 +3,19 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <title>$YJKW | 白くまミームコイン on Solana</title>
-  <meta name="description" content="白くまフードのあの男が、Solanaでコインになった。$YJKW コミュニティサイト。ライブチャート、買い方、ロードマップ、白くまクリッカー。CA: 6WqTZgmwi5ytyMaCFm88xoLPu26Bips35V4u6CCopump">
+  <title>$YJKW | やじゅかわミームコイン on Solana</title>
+  <meta name="description" content="野獣なのに、かわいい。やじゅかわコイン $YJKW のコミュニティサイト。ライブチャート、買い方、Xコミュニティ、LINEオープンチャットはこちら。CA: 6WqTZgmwi5ytyMaCFm88xoLPu26Bips35V4u6CCopump">
   <meta name="theme-color" content="#0b0906">
   <link rel="canonical" href="https://imastudent-ing.github.io/student/yjkw/">
 
   <meta property="og:type" content="website">
-  <meta property="og:title" content="$YJKW — 白くまミームコイン on Solana">
-  <meta property="og:description" content="かわいさは最強のユーティリティ。白くまコイン $YJKW のコミュニティサイト。ライブデータ・買い方・Xコミュニティはこちら。">
+  <meta property="og:title" content="$YJKW — やじゅかわミームコイン on Solana">
+  <meta property="og:description" content="野獣なのに、かわいい。やじゅかわコイン $YJKW のコミュニティサイト。ライブデータ・買い方・Xコミュニティ・LINEオープンチャットはこちら。">
   <meta property="og:url" content="https://imastudent-ing.github.io/student/yjkw/">
   <meta property="og:image" content="https://imastudent-ing.github.io/student/yjkw/assets/img/og.jpg">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="$YJKW — 白くまミームコイン on Solana">
-  <meta name="twitter:description" content="かわいさは最強のユーティリティ。白くまコイン $YJKW のコミュニティサイト。">
+  <meta name="twitter:title" content="$YJKW — YAJUKAWA Meme Coin on Solana">
+  <meta name="twitter:description" content="Beast mode, but adorable. The yajukawa coin on Solana.">
   <meta name="twitter:image" content="https://imastudent-ing.github.io/student/yjkw/assets/img/og.jpg">
 
   <link rel="icon" type="image/png" sizes="64x64" href="assets/img/favicon-64.png">
@@ -47,7 +47,7 @@
 
   <div id="progress" aria-hidden="true"><i id="progressFill"></i></div>
 
-  <a class="skip-link" href="#about">本文へスキップ</a>
+  <a class="skip-link" href="#about" data-i18n="common.skip">本文へスキップ</a>
 
   <!-- ヘッダー -->
   <header id="header">
@@ -57,17 +57,18 @@
         <span>$YJKW</span>
       </a>
       <ul class="nav-links">
-        <li><a href="#about">YJKWとは</a></li>
-        <li><a href="#stats">データ</a></li>
-        <li><a href="#tokenomics">トークノミクス</a></li>
-        <li><a href="#howtobuy">買い方</a></li>
-        <li><a href="#clicker">ゲーム</a></li>
-        <li><a href="#roadmap">ロードマップ</a></li>
-        <li><a href="#faq">FAQ</a></li>
+        <li><a href="#about" data-i18n="nav.about">YJKWとは</a></li>
+        <li><a href="#stats" data-i18n="nav.stats">データ</a></li>
+        <li><a href="#tokenomics" data-i18n="nav.tok">トークノミクス</a></li>
+        <li><a href="#howtobuy" data-i18n="nav.buy">買い方</a></li>
+        <li><a href="#clicker" data-i18n="nav.game">ゲーム</a></li>
+        <li><a href="#roadmap" data-i18n="nav.map">ロードマップ</a></li>
+        <li><a href="#faq" data-i18n="nav.faq">FAQ</a></li>
       </ul>
       <div class="nav-cta">
-        <a class="btn btn-sm btn-primary" href="https://pump.fun/coin/6WqTZgmwi5ytyMaCFm88xoLPu26Bips35V4u6CCopump" target="_blank" rel="noopener">買う 🚀</a>
-        <button id="navToggle" class="nav-toggle" aria-label="メニューを開く" aria-expanded="false"><i></i><i></i><i></i></button>
+        <button class="lang-toggle" data-i18n-aria="aria.lang" aria-label="言語切り替え"><span data-l="ja">JA</span><span data-l="en">EN</span></button>
+        <a class="btn btn-sm btn-primary" href="https://pump.fun/coin/6WqTZgmwi5ytyMaCFm88xoLPu26Bips35V4u6CCopump" target="_blank" rel="noopener" data-i18n="nav.buyBtn">買う 🚀</a>
+        <button id="navToggle" class="nav-toggle" data-i18n-aria="aria.menu" aria-label="メニュー" aria-expanded="false"><i></i><i></i><i></i></button>
       </div>
     </nav>
   </header>
@@ -75,18 +76,20 @@
   <!-- モバイルメニュー -->
   <div id="mobileMenu" aria-hidden="true">
     <ul>
-      <li><a href="#about">YJKWとは</a></li>
-      <li><a href="#stats">データ</a></li>
-      <li><a href="#tokenomics">トークノミクス</a></li>
-      <li><a href="#howtobuy">買い方</a></li>
-      <li><a href="#clicker">ゲーム</a></li>
-      <li><a href="#roadmap">ロードマップ</a></li>
-      <li><a href="#community">コミュニティ</a></li>
-      <li><a href="#faq">FAQ</a></li>
+      <li><a href="#about" data-i18n="nav.about">YJKWとは</a></li>
+      <li><a href="#stats" data-i18n="nav.stats">データ</a></li>
+      <li><a href="#tokenomics" data-i18n="nav.tok">トークノミクス</a></li>
+      <li><a href="#howtobuy" data-i18n="nav.buy">買い方</a></li>
+      <li><a href="#clicker" data-i18n="nav.game">ゲーム</a></li>
+      <li><a href="#roadmap" data-i18n="nav.map">ロードマップ</a></li>
+      <li><a href="#community" data-i18n="nav.community">コミュニティ</a></li>
+      <li><a href="#faq" data-i18n="nav.faq">FAQ</a></li>
     </ul>
     <div class="menu-actions">
-      <a class="btn btn-primary" href="https://pump.fun/coin/6WqTZgmwi5ytyMaCFm88xoLPu26Bips35V4u6CCopump" target="_blank" rel="noopener">pump.funで買う 🚀</a>
-      <a class="btn btn-ghost" href="https://x.com/i/communities/2038327343748730919" target="_blank" rel="noopener">Xコミュニティ 🐻‍❄️</a>
+      <a class="btn btn-primary" href="https://pump.fun/coin/6WqTZgmwi5ytyMaCFm88xoLPu26Bips35V4u6CCopump" target="_blank" rel="noopener" data-i18n="hero.ctaPump">pump.funで買う 🚀</a>
+      <a class="btn btn-ghost" href="https://x.com/i/communities/2038327343748730919" target="_blank" rel="noopener" data-i18n="hero.ctaX">Xコミュニティに参加 🐻‍❄️</a>
+      <a class="btn btn-line" href="https://line.me/ti/g2/mXHRwb6TejJAqhPZrjCuC_Na2dxY-K0DcHL38w?utm_source=invitation&amp;utm_medium=link_copy&amp;utm_campaign=default" target="_blank" rel="noopener" data-i18n="hero.ctaLine">LINEオープンチャット 💬</a>
+      <button class="lang-toggle lang-toggle-menu" data-i18n-aria="aria.lang" aria-label="言語切り替え"><span data-l="ja">日本語</span><span data-l="en">English</span></button>
     </div>
   </div>
 
@@ -98,44 +101,45 @@
       <div class="hero-bg" aria-hidden="true">
         <span class="orb orb-1"></span>
         <span class="orb orb-2"></span>
-        <span class="deco deco-1" data-parallax="-0.12">❄️</span>
-        <span class="deco deco-2" data-parallax="0.18">🧊</span>
+        <span class="deco deco-1" data-parallax="-0.12">✨</span>
+        <span class="deco deco-2" data-parallax="0.18">🌕</span>
         <span class="deco deco-3" data-parallax="-0.2">🪙</span>
-        <span class="deco deco-4" data-parallax="0.1">❄️</span>
+        <span class="deco deco-4" data-parallax="0.1">💛</span>
       </div>
       <div class="hero-inner container">
-        <p class="hero-badge"><span class="dot"></span>SOLANA MEME COIN — pump.fun 発</p>
+        <p class="hero-badge"><span class="dot"></span><span data-i18n="hero.badge">SOLANA MEME COIN — pump.fun 発</span></p>
         <div class="hero-coin-wrap">
           <span class="hero-ring" aria-hidden="true"></span>
           <span class="hero-glow" aria-hidden="true"></span>
-          <button id="heroCoin" class="hero-coin" aria-label="コインをタップ">
+          <button id="heroCoin" class="hero-coin" data-i18n-aria="aria.hero" aria-label="コインをタップ">
             <picture>
               <source srcset="assets/img/coin-480.webp" type="image/webp">
-              <img id="heroCoinImg" src="assets/img/coin-480.png" alt="$YJKW 白くまコイン" width="480" height="480" fetchpriority="high">
+              <img id="heroCoinImg" src="assets/img/coin-480.png" alt="$YJKW やじゅかわコイン" width="480" height="480" fetchpriority="high">
             </picture>
           </button>
         </div>
         <h1 class="hero-title">$YJKW</h1>
-        <p class="hero-tagline">白くまになった、あの男。</p>
-        <p class="hero-sub">かわいさは最強のユーティリティ。Solana に舞い降りた白くまコイン。</p>
+        <p class="hero-tagline" data-i18n="hero.tagline">野獣なのに、かわいい。</p>
+        <p class="hero-sub" data-i18n="hero.sub">やじゅかわ = 野獣 × かわいい。Solana に舞い降りた奇跡のミームコイン。</p>
         <div class="hero-ctas">
-          <a class="btn btn-primary btn-lg" href="https://pump.fun/coin/6WqTZgmwi5ytyMaCFm88xoLPu26Bips35V4u6CCopump" target="_blank" rel="noopener">pump.funで買う 🚀</a>
-          <a class="btn btn-ghost btn-lg" href="https://x.com/i/communities/2038327343748730919" target="_blank" rel="noopener">Xコミュニティに参加 🐻‍❄️</a>
+          <a class="btn btn-primary btn-lg" href="https://pump.fun/coin/6WqTZgmwi5ytyMaCFm88xoLPu26Bips35V4u6CCopump" target="_blank" rel="noopener" data-i18n="hero.ctaPump">pump.funで買う 🚀</a>
+          <a class="btn btn-ghost btn-lg" href="https://x.com/i/communities/2038327343748730919" target="_blank" rel="noopener" data-i18n="hero.ctaX">Xコミュニティに参加 🐻‍❄️</a>
+          <a class="btn btn-line btn-lg" href="https://line.me/ti/g2/mXHRwb6TejJAqhPZrjCuC_Na2dxY-K0DcHL38w?utm_source=invitation&amp;utm_medium=link_copy&amp;utm_campaign=default" target="_blank" rel="noopener" data-i18n="hero.ctaLine">LINEオープンチャット 💬</a>
         </div>
         <div class="ca-pill">
           <span class="ca-label">CA</span>
           <code class="ca-text">6WqTZgmwi5ytyMaCFm88xoLPu26Bips35V4u6CCopump</code>
-          <button class="copy-ca" aria-label="コントラクトアドレスをコピー">コピー</button>
+          <button class="copy-ca" data-i18n-aria="aria.copy" aria-label="コントラクトアドレスをコピー" data-i18n="common.copy">コピー</button>
         </div>
-        <div class="scroll-cue" aria-hidden="true"><span>下にスワイプ</span><i>↓</i></div>
+        <div class="scroll-cue" aria-hidden="true"><span data-i18n="hero.cue">下にスワイプ</span><i>↓</i></div>
       </div>
     </section>
 
     <!-- マーキー -->
     <div class="marquee" aria-hidden="true">
       <div class="marquee-track">
-        <span>$YJKW</span><span>🐻‍❄️</span><span>SHIROKUMA</span><span>🪙</span><span>かわいいは正義</span><span>❄️</span><span>TO THE ARCTIC</span><span>🧊</span><span>ヌルヌル動く</span><span>💛</span>
-        <span>$YJKW</span><span>🐻‍❄️</span><span>SHIROKUMA</span><span>🪙</span><span>かわいいは正義</span><span>❄️</span><span>TO THE ARCTIC</span><span>🧊</span><span>ヌルヌル動く</span><span>💛</span>
+        <span>$YJKW</span><span>🐻‍❄️</span><span>YAJUKAWA</span><span>🪙</span><span>野獣なのにかわいい</span><span>✨</span><span>TO THE MOON</span><span>🌕</span><span>ヌルヌル動く</span><span>💛</span>
+        <span>$YJKW</span><span>🐻‍❄️</span><span>YAJUKAWA</span><span>🪙</span><span>野獣なのにかわいい</span><span>✨</span><span>TO THE MOON</span><span>🌕</span><span>ヌルヌル動く</span><span>💛</span>
       </div>
     </div>
 
@@ -144,29 +148,35 @@
       <div class="container">
         <div class="sec-head" data-reveal>
           <p class="sec-label">ABOUT</p>
-          <h2>$YJKW とは?</h2>
-          <p class="sec-lead">フードを被ったその瞬間、男は白くまになった。<br>ミームは、もう止められない。</p>
+          <h2 data-i18n="about.h2">$YJKW とは?</h2>
+          <p class="sec-lead" data-i18n="about.lead">フードを被ったその瞬間、男は「やじゅかわ」になった。<br>ミームは、もう止められない。</p>
+        </div>
+        <div class="about-banner" data-reveal>
+          <picture>
+            <source srcset="assets/img/banner-1200.webp" type="image/webp">
+            <img src="assets/img/banner-1200.png" alt="YAJUKAWA" width="1200" height="364" loading="lazy">
+          </picture>
         </div>
         <div class="card-grid">
           <article class="card" data-reveal style="--d:.0s">
             <span class="card-emoji">🐻‍❄️</span>
-            <h3>白くま印のミーム</h3>
-            <p>主役は白くまフードのあの男。見た瞬間にちょっと笑ったら、あなたはもう仲間です。</p>
+            <h3 data-i18n="about.c1.h">やじゅかわミーム</h3>
+            <p data-i18n="about.c1.p">野獣とかわいいの、奇跡の融合。見た瞬間にちょっと笑ったら、あなたはもう仲間です。</p>
           </article>
           <article class="card" data-reveal style="--d:.08s">
             <span class="card-emoji">⚡</span>
-            <h3>Solanaでサクサク</h3>
-            <p>手数料はほぼゼロ、着金は一瞬。ヌルヌル動くのは、このサイトだけじゃない。</p>
+            <h3 data-i18n="about.c2.h">Solanaでサクサク</h3>
+            <p data-i18n="about.c2.p">手数料はほぼゼロ、着金は一瞬。ヌルヌル動くのは、このサイトだけじゃない。</p>
           </article>
           <article class="card" data-reveal style="--d:.16s">
             <span class="card-emoji">🤝</span>
-            <h3>コミュニティが本体</h3>
-            <p>ホルダーもミーム職人も、みんな X コミュニティに集合。ミームを作る人がいちばん偉い。</p>
+            <h3 data-i18n="about.c3.h">コミュニティが本体</h3>
+            <p data-i18n="about.c3.p">ホルダーもミーム職人も、X コミュニティと LINE オープンチャットに集合。ミームを作る人がいちばん偉い。</p>
           </article>
           <article class="card" data-reveal style="--d:.24s">
             <span class="card-emoji">💎</span>
-            <h3>ガチホは文化</h3>
-            <p>チャートが赤くても、白くまは白いまま。慌てない。それが北極スタイル。</p>
+            <h3 data-i18n="about.c4.h">ガチホは文化</h3>
+            <p data-i18n="about.c4.p">チャートが赤くても、やじゅかわは今日もかわいい。慌てず、なでなで。</p>
           </article>
         </div>
       </div>
@@ -177,25 +187,25 @@
       <div class="container">
         <div class="sec-head" data-reveal>
           <p class="sec-label">LIVE DATA</p>
-          <h2>リアルタイムデータ</h2>
-          <p class="sec-lead"><span class="live-dot" aria-hidden="true"></span>30秒ごとに自動更新 <span class="stat-updated" id="statUpdated"></span></p>
+          <h2 data-i18n="stats.h2">リアルタイムデータ</h2>
+          <p class="sec-lead"><span class="live-dot" aria-hidden="true"></span><span data-i18n="stats.lead">30秒ごとに自動更新</span> <span class="stat-updated" id="statUpdated"></span></p>
         </div>
         <div class="stat-grid" data-reveal>
           <div class="stat-tile">
-            <p class="stat-label">現在価格</p>
+            <p class="stat-label" data-i18n="stats.price">現在価格</p>
             <p class="stat-value" id="statPrice">—</p>
             <p class="stat-delta" id="statDelta"></p>
           </div>
           <div class="stat-tile">
-            <p class="stat-label">時価総額</p>
+            <p class="stat-label" data-i18n="stats.mcap">時価総額</p>
             <p class="stat-value" id="statMcap">—</p>
           </div>
           <div class="stat-tile">
-            <p class="stat-label">24時間出来高</p>
+            <p class="stat-label" data-i18n="stats.vol">24時間出来高</p>
             <p class="stat-value" id="statVol">—</p>
           </div>
           <div class="stat-tile">
-            <p class="stat-label">流動性</p>
+            <p class="stat-label" data-i18n="stats.liq">流動性</p>
             <p class="stat-value" id="statLiq">—</p>
           </div>
         </div>
@@ -209,14 +219,14 @@
           <a href="https://pump.fun/coin/6WqTZgmwi5ytyMaCFm88xoLPu26Bips35V4u6CCopump" target="_blank" rel="noopener">pump.fun ↗</a>
           <a href="https://jup.ag/swap/SOL-6WqTZgmwi5ytyMaCFm88xoLPu26Bips35V4u6CCopump" target="_blank" rel="noopener">Jupiter ↗</a>
         </div>
-        <p class="stat-source">データ提供: DexScreener API</p>
+        <p class="stat-source" data-i18n="stats.source">データ提供: DexScreener API</p>
       </div>
     </section>
 
     <div class="marquee marquee-rev" aria-hidden="true">
       <div class="marquee-track">
-        <span>HOLD</span><span>🐻‍❄️</span><span>なでなで</span><span>🪙</span><span>PUMP IT</span><span>❄️</span><span>白くま増殖中</span><span>🧊</span><span>$YJKW</span><span>💛</span>
-        <span>HOLD</span><span>🐻‍❄️</span><span>なでなで</span><span>🪙</span><span>PUMP IT</span><span>❄️</span><span>白くま増殖中</span><span>🧊</span><span>$YJKW</span><span>💛</span>
+        <span>HOLD</span><span>🐻‍❄️</span><span>なでなで</span><span>🪙</span><span>KAWAII IS JUSTICE</span><span>✨</span><span>やじゅかわ増殖中</span><span>🌕</span><span>$YJKW</span><span>💛</span>
+        <span>HOLD</span><span>🐻‍❄️</span><span>なでなで</span><span>🪙</span><span>KAWAII IS JUSTICE</span><span>✨</span><span>やじゅかわ増殖中</span><span>🌕</span><span>$YJKW</span><span>💛</span>
       </div>
     </div>
 
@@ -225,32 +235,32 @@
       <div class="container">
         <div class="sec-head" data-reveal>
           <p class="sec-label">TOKENOMICS</p>
-          <h2>トークノミクス</h2>
-          <p class="sec-lead">シンプル・イズ・ベスト。仕掛けはゼロ、白くまは 100%。</p>
+          <h2 data-i18n="tok.h2">トークノミクス</h2>
+          <p class="sec-lead" data-i18n="tok.lead">シンプル・イズ・ベスト。仕掛けはゼロ、やじゅかわは 100%。</p>
         </div>
         <div class="tok-grid">
           <article class="tok-card" data-reveal style="--d:.0s">
-            <p class="tok-label">総供給量</p>
+            <p class="tok-label" data-i18n="tok.supply.l">総供給量</p>
             <p class="tok-value"><span id="supplyCount" data-count="1000000000">0</span></p>
-            <p class="tok-desc">$YJKW — 10億枚。白くまは増えても、供給は増えません。</p>
+            <p class="tok-desc" data-i18n="tok.supply.d">$YJKW — 10億枚。やじゅかわは増えても、供給は増えません。</p>
           </article>
           <article class="tok-card" data-reveal style="--d:.08s">
-            <p class="tok-label">売買税</p>
+            <p class="tok-label" data-i18n="tok.tax.l">売買税</p>
             <p class="tok-value">0% <span class="tok-slash">/</span> 0%</p>
-            <p class="tok-desc">買っても売っても税金ゼロ。とられるのは心だけ。</p>
+            <p class="tok-desc" data-i18n="tok.tax.d">買っても売っても税金ゼロ。とられるのは心だけ。</p>
           </article>
           <article class="tok-card" data-reveal style="--d:.16s">
-            <p class="tok-label">ミント権限</p>
-            <p class="tok-value">放棄済み</p>
-            <p class="tok-desc">pump.fun 標準仕様。あとから増刷はできない仕組みです。</p>
+            <p class="tok-label" data-i18n="tok.mint.l">ミント権限</p>
+            <p class="tok-value" data-i18n="tok.mint.v">放棄済み</p>
+            <p class="tok-desc" data-i18n="tok.mint.d">pump.fun 標準仕様。あとから増刷はできない仕組みです。</p>
           </article>
           <article class="tok-card" data-reveal style="--d:.24s">
-            <p class="tok-label">流動性</p>
-            <p class="tok-value">LP バーン</p>
-            <p class="tok-desc">Raydium 移行時に LP はバーン(pump.fun 標準仕様)。</p>
+            <p class="tok-label" data-i18n="tok.lp.l">流動性</p>
+            <p class="tok-value" data-i18n="tok.lp.v">LP バーン</p>
+            <p class="tok-desc" data-i18n="tok.lp.d">Raydium 移行時に LP はバーン(pump.fun 標準仕様)。</p>
           </article>
         </div>
-        <p class="tok-note" data-reveal>※ pump.fun ローンチの標準仕様に基づく記載です。最新のオンチェーン情報は必ず <a href="https://solscan.io/token/6WqTZgmwi5ytyMaCFm88xoLPu26Bips35V4u6CCopump" target="_blank" rel="noopener">Solscan</a> でご確認ください。</p>
+        <p class="tok-note" data-reveal data-i18n="tok.note">※ pump.fun ローンチの標準仕様に基づく記載です。最新のオンチェーン情報は必ず <a href="https://solscan.io/token/6WqTZgmwi5ytyMaCFm88xoLPu26Bips35V4u6CCopump" target="_blank" rel="noopener">Solscan</a> でご確認ください。</p>
       </div>
     </section>
 
@@ -259,41 +269,41 @@
       <div class="container">
         <div class="sec-head" data-reveal>
           <p class="sec-label">HOW TO BUY</p>
-          <h2>買い方 4ステップ</h2>
-          <p class="sec-lead">はじめてでも5分で白くまファミリー。</p>
+          <h2 data-i18n="buy.h2">買い方 4ステップ</h2>
+          <p class="sec-lead" data-i18n="buy.lead">はじめてでも5分でやじゅかわファミリー。</p>
         </div>
         <ol class="steps">
           <li class="step" data-reveal style="--d:.0s">
             <span class="step-num">01</span>
             <div>
-              <h3>👛 ウォレットを用意</h3>
-              <p><a href="https://phantom.com" target="_blank" rel="noopener">Phantom</a> などの Solana ウォレットをスマホかブラウザにインストール。</p>
+              <h3 data-i18n="buy.s1.h">👛 ウォレットを用意</h3>
+              <p data-i18n="buy.s1.p"><a href="https://phantom.com" target="_blank" rel="noopener">Phantom</a> などの Solana ウォレットをスマホかブラウザにインストール。</p>
             </div>
           </li>
           <li class="step" data-reveal style="--d:.08s">
             <span class="step-num">02</span>
             <div>
-              <h3>◎ SOL を入手</h3>
-              <p>取引所で SOL を購入して、自分のウォレットへ送金します。</p>
+              <h3 data-i18n="buy.s2.h">◎ SOL を入手</h3>
+              <p data-i18n="buy.s2.p">取引所で SOL を購入して、自分のウォレットへ送金します。</p>
             </div>
           </li>
           <li class="step" data-reveal style="--d:.16s">
             <span class="step-num">03</span>
             <div>
-              <h3>🔁 $YJKW にスワップ</h3>
-              <p>pump.fun で CA を貼り付けてスワップ。<button class="copy-ca link-btn">CAをコピー</button> して検索窓へ。</p>
+              <h3 data-i18n="buy.s3.h">🔁 $YJKW にスワップ</h3>
+              <p data-i18n="buy.s3.p">pump.fun で CA を貼り付けてスワップ。<button class="copy-ca link-btn">CAをコピー</button> して検索窓へ。</p>
             </div>
           </li>
           <li class="step" data-reveal style="--d:.24s">
             <span class="step-num">04</span>
             <div>
-              <h3>🐻‍❄️ 白くまファミリー入り</h3>
-              <p>X コミュニティで「買ったよ」と報告。歓迎の圧がすごい。</p>
+              <h3 data-i18n="buy.s4.h">🐻‍❄️ やじゅかわファミリー入り</h3>
+              <p data-i18n="buy.s4.p">コミュニティで「買ったよ」と報告。歓迎の圧がすごい。</p>
             </div>
           </li>
         </ol>
         <div class="center-cta" data-reveal>
-          <a class="btn btn-primary btn-lg" href="https://pump.fun/coin/6WqTZgmwi5ytyMaCFm88xoLPu26Bips35V4u6CCopump" target="_blank" rel="noopener">pump.funを開く 🚀</a>
+          <a class="btn btn-primary btn-lg" href="https://pump.fun/coin/6WqTZgmwi5ytyMaCFm88xoLPu26Bips35V4u6CCopump" target="_blank" rel="noopener" data-i18n="buy.cta">pump.funを開く 🚀</a>
         </div>
       </div>
     </section>
@@ -303,19 +313,19 @@
       <div class="container">
         <div class="sec-head" data-reveal>
           <p class="sec-label">GAME</p>
-          <h2>白くまクリッカー</h2>
-          <p class="sec-lead">コインをタップして白くまをなでなでしよう。記録はこの端末に保存されます。</p>
+          <h2 data-i18n="game.h2">やじゅかわクリッカー</h2>
+          <p class="sec-lead" data-i18n="game.lead">コインをタップしてやじゅかわをなでなでしよう。記録はこの端末に保存されます。</p>
         </div>
         <div class="clicker-box" data-reveal>
           <div class="clicker-coin-wrap">
             <span id="comboBadge" class="combo-badge" aria-hidden="true"></span>
-            <button id="clickerCoin" class="clicker-coin" aria-label="白くまをなでる">
+            <button id="clickerCoin" class="clicker-coin" data-i18n-aria="aria.clicker" aria-label="やじゅかわをなでる">
               <img src="assets/img/coin-480.png" alt="" width="240" height="240" draggable="false">
             </button>
           </div>
-          <p class="clicker-count"><span id="clickCount">0</span><small> なでなで</small></p>
-          <p class="clicker-rank">ランク: <strong id="clickRank">こぐま見習い</strong></p>
-          <button id="shareX" class="btn btn-ghost">記録をXでシェア 🐻‍❄️</button>
+          <p class="clicker-count"><span id="clickCount">0</span><small data-i18n="clicker.unit"> なでなで</small></p>
+          <p class="clicker-rank"><span data-i18n="clicker.rankLabel">ランク: </span><strong id="clickRank">やじゅかわ見習い</strong></p>
+          <button id="shareX" class="btn btn-ghost" data-i18n="game.share">記録をXでシェア 🐻‍❄️</button>
         </div>
       </div>
     </section>
@@ -325,19 +335,20 @@
       <div class="container">
         <div class="sec-head" data-reveal>
           <p class="sec-label">ROADMAP</p>
-          <h2>ロードマップ</h2>
-          <p class="sec-lead">目指すのは月ではなく、北極。</p>
+          <h2 data-i18n="map.h2">ロードマップ</h2>
+          <p class="sec-lead" data-i18n="map.lead">目指すのは月。かわいさは重力を超える。</p>
         </div>
         <ol class="timeline">
           <li class="tl-item done" data-reveal>
             <div class="tl-dot" aria-hidden="true"></div>
             <div class="tl-body">
-              <p class="tl-phase">PHASE 1 <span class="tl-badge">達成 ✅</span></p>
-              <h3>誕生 🐣</h3>
+              <p class="tl-phase">PHASE 1 <span class="tl-badge" data-i18n="map.done">達成 ✅</span></p>
+              <h3 data-i18n="map.p1.h">誕生 🐣</h3>
               <ul>
-                <li>pump.fun でローンチ</li>
-                <li>X コミュニティ開設</li>
-                <li>このサイトが爆誕</li>
+                <li data-i18n="map.p1.l1">pump.fun でローンチ</li>
+                <li data-i18n="map.p1.l2">X コミュニティ開設</li>
+                <li data-i18n="map.p1.l3">LINE オープンチャット開設</li>
+                <li data-i18n="map.p1.l4">このサイトが爆誕</li>
               </ul>
             </div>
           </li>
@@ -345,11 +356,11 @@
             <div class="tl-dot" aria-hidden="true"></div>
             <div class="tl-body">
               <p class="tl-phase">PHASE 2</p>
-              <h3>増殖 🧬</h3>
+              <h3 data-i18n="map.p2.h">増殖 🧬</h3>
               <ul>
-                <li>ミーム量産体制の確立</li>
-                <li>アイコンを白くま化する人が現れる</li>
-                <li>ホルダーの輪がじわじわ拡大</li>
+                <li data-i18n="map.p2.l1">ミーム量産体制の確立</li>
+                <li data-i18n="map.p2.l2">アイコンをやじゅかわ化する人が現れる</li>
+                <li data-i18n="map.p2.l3">ホルダーの輪がじわじわ拡大</li>
               </ul>
             </div>
           </li>
@@ -357,11 +368,11 @@
             <div class="tl-dot" aria-hidden="true"></div>
             <div class="tl-body">
               <p class="tl-phase">PHASE 3</p>
-              <h3>覚醒 ⚡</h3>
+              <h3 data-i18n="map.p3.h">覚醒 ⚡</h3>
               <ul>
-                <li>タイムラインが白くまで埋まる</li>
-                <li>「YJKWって何?」がトレンドの入口に</li>
-                <li>白くまが夢に出てくる</li>
+                <li data-i18n="map.p3.l1">タイムラインがやじゅかわで埋まる</li>
+                <li data-i18n="map.p3.l2">「YJKWって何?」がトレンドの入口に</li>
+                <li data-i18n="map.p3.l3">やじゅかわが夢に出てくる</li>
               </ul>
             </div>
           </li>
@@ -369,11 +380,11 @@
             <div class="tl-dot" aria-hidden="true"></div>
             <div class="tl-body">
               <p class="tl-phase">PHASE 4</p>
-              <h3>伝説 🌕</h3>
+              <h3 data-i18n="map.p4.h">伝説 🌕</h3>
               <ul>
-                <li>月…ではなく北極へ</li>
-                <li>挨拶が「YJKW」になる</li>
-                <li>その先は、誰にもわからない</li>
+                <li data-i18n="map.p4.l1">月へ。かわいさは重力を超える</li>
+                <li data-i18n="map.p4.l2">挨拶が「YJKW」になる</li>
+                <li data-i18n="map.p4.l3">その先は、誰にもわからない</li>
               </ul>
             </div>
           </li>
@@ -387,10 +398,14 @@
         <div class="community-card" data-reveal>
           <img src="assets/img/coin-192.png" alt="" width="88" height="88" class="community-coin">
           <p class="sec-label">COMMUNITY</p>
-          <h2>白くまの巣穴へようこそ</h2>
-          <p>ミーム、雑談、値動きの悲鳴。ぜんぶここで起きています。<br>$YJKW の公式リンクは X コミュニティのみです。</p>
-          <a class="btn btn-primary btn-lg" href="https://x.com/i/communities/2038327343748730919" target="_blank" rel="noopener">Xコミュニティに参加する 🐻‍❄️</a>
-          <p class="community-warn">⚠️ DM で届く勧誘リンクはすべて詐欺です。絶対に開かないでください。</p>
+          <h2 data-i18n="comm.h2">やじゅかわの集会所へようこそ</h2>
+          <p data-i18n="comm.p">ミーム、雑談、値動きの悲鳴。ぜんぶここで起きています。<br>$YJKW の公式コミュニティは X と LINE の2つです。</p>
+          <div class="community-ctas">
+            <a class="btn btn-primary btn-lg" href="https://x.com/i/communities/2038327343748730919" target="_blank" rel="noopener" data-i18n="comm.x">Xコミュニティに参加 🐻‍❄️</a>
+            <a class="btn btn-line btn-lg" href="https://line.me/ti/g2/mXHRwb6TejJAqhPZrjCuC_Na2dxY-K0DcHL38w?utm_source=invitation&amp;utm_medium=link_copy&amp;utm_campaign=default" target="_blank" rel="noopener" data-i18n="comm.line">LINEオープンチャットに参加 💬</a>
+          </div>
+          <p class="community-sub" data-i18n="comm.sub">LINE オープンチャット「ヤジュカワ YJKW コミュニティー」開催中</p>
+          <p class="community-warn" data-i18n="comm.warn">⚠️ DM で届く勧誘リンクはすべて詐欺です。絶対に開かないでください。</p>
         </div>
       </div>
     </section>
@@ -400,28 +415,28 @@
       <div class="container">
         <div class="sec-head" data-reveal>
           <p class="sec-label">FAQ</p>
-          <h2>よくある質問</h2>
+          <h2 data-i18n="faq.h2">よくある質問</h2>
         </div>
         <div class="faq-list">
           <details class="faq-item" data-reveal style="--d:.0s">
-            <summary>$YJKW って何ですか?</summary>
-            <div class="faq-a"><p>白くまフードの男をシンボルにした Solana のミームコインです。ユーティリティは「かわいい」と「笑える」。それ以上でも、それ以下でもありません。</p></div>
+            <summary data-i18n="faq.q1.q">$YJKW って何ですか?</summary>
+            <div class="faq-a"><p data-i18n="faq.q1.a">クマさんフードのあの男「やじゅかわ」をシンボルにした Solana のミームコインです。ユーティリティは「かわいい」と「笑える」。それ以上でも、それ以下でもありません。</p></div>
           </details>
           <details class="faq-item" data-reveal style="--d:.06s">
-            <summary>どこで買えますか?</summary>
-            <div class="faq-a"><p><a href="https://pump.fun/coin/6WqTZgmwi5ytyMaCFm88xoLPu26Bips35V4u6CCopump" target="_blank" rel="noopener">pump.fun</a> で CA を貼り付けて購入できます。Raydium 移行後は Jupiter などの DEX でもスワップできるようになります。</p></div>
+            <summary data-i18n="faq.q2.q">どこで買えますか?</summary>
+            <div class="faq-a"><p data-i18n="faq.q2.a"><a href="https://pump.fun/coin/6WqTZgmwi5ytyMaCFm88xoLPu26Bips35V4u6CCopump" target="_blank" rel="noopener">pump.fun</a> で CA を貼り付けて購入できます。Raydium 移行後は Jupiter などの DEX でもスワップできるようになります。</p></div>
           </details>
           <details class="faq-item" data-reveal style="--d:.12s">
-            <summary>コントラクトアドレス(CA)は?</summary>
-            <div class="faq-a"><p><code class="inline-ca">6WqTZgmwi5ytyMaCFm88xoLPu26Bips35V4u6CCopump</code> <button class="copy-ca link-btn">コピー</button></p><p>類似トークンにご注意を。購入前に必ずこの CA と一致しているか確認してください。</p></div>
+            <summary data-i18n="faq.q3.q">コントラクトアドレス(CA)は?</summary>
+            <div class="faq-a"><p><code class="inline-ca">6WqTZgmwi5ytyMaCFm88xoLPu26Bips35V4u6CCopump</code> <button class="copy-ca link-btn" data-i18n="common.copy">コピー</button></p><p data-i18n="faq.q3.a">類似トークンにご注意を。購入前に必ずこの CA と一致しているか確認してください。</p></div>
           </details>
           <details class="faq-item" data-reveal style="--d:.18s">
-            <summary>公式の SNS はどれですか?</summary>
-            <div class="faq-a"><p>X コミュニティのみです。このサイトのボタンからアクセスしてください。DM で送られてくるリンク・エアドロップ案内は開かないでください。</p></div>
+            <summary data-i18n="faq.q4.q">公式のコミュニティはどれですか?</summary>
+            <div class="faq-a"><p data-i18n="faq.q4.a">X コミュニティと、LINE オープンチャット「ヤジュカワ YJKW コミュニティー」の2つです。このサイトのボタンからアクセスしてください。DM で送られてくるリンク・エアドロップ案内は開かないでください。</p></div>
           </details>
           <details class="faq-item" data-reveal style="--d:.24s">
-            <summary>値上がりしますか?</summary>
-            <div class="faq-a"><p>わかりません(正直)。ミームコインは価格変動がとても激しいハイリスク資産です。必ず余剰資金で、自分で調べて(DYOR)判断してください。これは投資助言ではありません。</p></div>
+            <summary data-i18n="faq.q5.q">値上がりしますか?</summary>
+            <div class="faq-a"><p data-i18n="faq.q5.a">わかりません(正直)。ミームコインは価格変動がとても激しいハイリスク資産です。必ず余剰資金で、自分で調べて(DYOR)判断してください。これは投資助言ではありません。</p></div>
           </details>
         </div>
       </div>
@@ -440,21 +455,22 @@
         <div class="ca-pill ca-pill-footer">
           <span class="ca-label">CA</span>
           <code class="ca-text">6WqTZgmwi5ytyMaCFm88xoLPu26Bips35V4u6CCopump</code>
-          <button class="copy-ca" aria-label="コントラクトアドレスをコピー">コピー</button>
+          <button class="copy-ca" data-i18n-aria="aria.copy" aria-label="コントラクトアドレスをコピー" data-i18n="common.copy">コピー</button>
         </div>
         <nav class="footer-links" aria-label="フッターリンク">
           <a href="https://pump.fun/coin/6WqTZgmwi5ytyMaCFm88xoLPu26Bips35V4u6CCopump" target="_blank" rel="noopener">pump.fun</a>
           <a href="https://dexscreener.com/solana/6WqTZgmwi5ytyMaCFm88xoLPu26Bips35V4u6CCopump" target="_blank" rel="noopener">DexScreener</a>
           <a href="https://solscan.io/token/6WqTZgmwi5ytyMaCFm88xoLPu26Bips35V4u6CCopump" target="_blank" rel="noopener">Solscan</a>
-          <a href="https://x.com/i/communities/2038327343748730919" target="_blank" rel="noopener">Xコミュニティ</a>
+          <a href="https://x.com/i/communities/2038327343748730919" target="_blank" rel="noopener" data-i18n="footer.x">Xコミュニティ</a>
+          <a href="https://line.me/ti/g2/mXHRwb6TejJAqhPZrjCuC_Na2dxY-K0DcHL38w?utm_source=invitation&amp;utm_medium=link_copy&amp;utm_campaign=default" target="_blank" rel="noopener" data-i18n="footer.line">LINEオープンチャット</a>
         </nav>
       </div>
-      <p class="disclaimer">本サイトは $YJKW コミュニティによるサイトであり、投資助言ではありません(NFA)。暗号資産、とくにミームコインは価格変動リスクが極めて高い資産です。購入・保有はご自身の判断と責任で、必ず余剰資金の範囲で行ってください。DYOR。</p>
+      <p class="disclaimer" data-i18n="footer.disclaimer">本サイトは $YJKW コミュニティによるサイトであり、投資助言ではありません(NFA)。暗号資産、とくにミームコインは価格変動リスクが極めて高い資産です。購入・保有はご自身の判断と責任で、必ず余剰資金の範囲で行ってください。DYOR。</p>
       <p class="copyright">© <span id="year">2026</span> $YJKW Community. Made with 💛 and 🐻‍❄️</p>
     </div>
   </footer>
 
-  <button id="toTop" aria-label="ページの先頭へ戻る">↑</button>
+  <button id="toTop" data-i18n-aria="aria.top" aria-label="ページの先頭へ戻る">↑</button>
   <div id="toast" role="status" aria-live="polite"></div>
   <div id="rainLayer" aria-hidden="true"></div>
 
