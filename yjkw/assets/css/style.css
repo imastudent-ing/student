@@ -196,7 +196,7 @@ code { font-family: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, mo
   color: var(--cream);
 }
 .brand:hover { text-decoration: none; }
-.brand img { border-radius: 50%; box-shadow: 0 0 0 2px rgba(245, 197, 66, 0.35); }
+.brand img { border-radius: 26%; box-shadow: 0 0 0 2px rgba(245, 197, 66, 0.35); }
 
 .nav-links {
   display: flex;
@@ -1174,7 +1174,7 @@ body.loaded .hero-inner > :nth-child(8) { transition-delay: 0.9s; }
 }
 .community-coin {
   margin: 0 auto 18px;
-  border-radius: 50%;
+  border-radius: 22%;
   box-shadow: 0 0 0 3px rgba(245, 197, 66, 0.3), 0 12px 40px rgba(245, 197, 66, 0.3);
   animation: coin-float 4.5s ease-in-out infinite;
 }
@@ -1280,7 +1280,7 @@ body.loaded .hero-inner > :nth-child(8) { transition-delay: 0.9s; }
   font-size: 1.4rem;
   color: var(--cream);
 }
-.footer-brand img { border-radius: 50%; box-shadow: 0 0 0 2px rgba(245, 197, 66, 0.35); }
+.footer-brand img { border-radius: 26%; box-shadow: 0 0 0 2px rgba(245, 197, 66, 0.35); }
 .ca-pill-footer { max-width: 100%; }
 .footer-links {
   display: flex;
@@ -1359,7 +1359,7 @@ body.loaded .hero-inner > :nth-child(8) { transition-delay: 0.9s; }
 #rainLayer img {
   position: absolute;
   top: 0;
-  border-radius: 50%;
+  border-radius: 26%;
   will-change: transform;
 }
 
