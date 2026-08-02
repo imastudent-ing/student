@@ -31,7 +31,8 @@ yjkw/
 ## 公開
 
 Netlify にデプロイ済み(https://tourmaline-bunny-2d0b32.netlify.app)。
-独自ドメインは **https://yjkw.xyz/**(canonical / OGP は yjkw.xyz 前提で設定済み)。
+独自ドメインは **https://www.yjkw.today/**(canonical / OGP は www.yjkw.today 前提で設定済み。
+apex の yjkw.today は www へ自動リダイレクト)。
 
 更新手順: このフォルダの中身を ZIP にして、Netlify の対象サイト →
 **Deploys** タブにドラッグ&ドロップするだけ。静的ホスティングならどこでも動きます。
