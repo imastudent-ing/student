@@ -29,7 +29,7 @@
     ja: {
       docTitle: '$YJKW | やじゅかわミームコイン on Solana',
       metaDesc: '野獣なのに、かわいい。やじゅかわコイン $YJKW のコミュニティサイト。ライブチャート、買い方、Xコミュニティ、LINEオープンチャットはこちら。CA: ' + CA,
-      copied: 'CAをコピーしました 🐻‍❄️',
+      copied: 'CAをコピーしました 🐾',
       copyFail: 'コピーできませんでした…長押しで選択してください',
       updated: t => `(${t} 更新)`,
       noPairNote: `まだDEXペアが見つかりません(pump.funボンディングカーブ中の可能性があります)。最新情報は <a href="${LINK_PUMP}" target="_blank" rel="noopener">pump.fun ↗</a> でチェック!`,
@@ -37,7 +37,7 @@
       chartLoading: 'チャートを読み込み中…',
       chartNoPair: `チャートは DEX ペア生成後に表示されます — <a href="${LINK_PUMP}" target="_blank" rel="noopener">pump.fun で見る ↗</a>`,
       chartFail: `<a href="https://dexscreener.com/solana/${CA}" target="_blank" rel="noopener">DexScreener でチャートを見る ↗</a>`,
-      share: (n, r) => `やじゅかわコイン $YJKW を ${n} 回なでなでした🐻‍❄️✨\nランク:「${r}」\n#YJKW $YJKW`,
+      share: (n, r) => `やじゅかわコイン $YJKW を ${n} 回なでなでした🐾✨\nランク:「${r}」\n#YJKW $YJKW`,
       milestones: {
         10: '🎉 10なでなで!「駆け出しやじゅかわ」に進化!',
         50: '🎉 50なでなで!「なでなで職人」に進化!',
@@ -50,7 +50,7 @@
     en: {
       docTitle: '$YJKW | YAJUKAWA Meme Coin on Solana',
       metaDesc: 'Beast mode, but adorable. Community site for $YJKW, the yajukawa coin on Solana. Live chart, how to buy, X community & LINE OpenChat. CA: ' + CA,
-      copied: 'CA copied 🐻‍❄️',
+      copied: 'CA copied 🐾',
       copyFail: 'Could not copy — please select the address manually',
       updated: t => `(updated ${t})`,
       noPairNote: `No DEX pair found yet (likely still on the pump.fun bonding curve). Check <a href="${LINK_PUMP}" target="_blank" rel="noopener">pump.fun ↗</a> for the latest!`,
@@ -58,7 +58,7 @@
       chartLoading: 'Loading chart…',
       chartNoPair: `The chart appears once a DEX pair exists — <a href="${LINK_PUMP}" target="_blank" rel="noopener">view on pump.fun ↗</a>`,
       chartFail: `<a href="https://dexscreener.com/solana/${CA}" target="_blank" rel="noopener">View the chart on DexScreener ↗</a>`,
-      share: (n, r) => `I petted the yajukawa coin $YJKW ${n} times 🐻‍❄️✨\nRank: "${r}"\n#YJKW $YJKW`,
+      share: (n, r) => `I petted the yajukawa coin $YJKW ${n} times 🐾✨\nRank: "${r}"\n#YJKW $YJKW`,
       milestones: {
         10: '🎉 10 pets! Evolved into "Junior yajukawa"!',
         50: '🎉 50 pets! Evolved into "Pet-pet artisan"!',
@@ -86,7 +86,7 @@
     'hero.tagline': 'Beast mode, but adorable.',
     'hero.sub': 'YAJUKAWA = yajū (beast) × kawaii (cute). The miracle meme coin that landed on Solana.',
     'hero.ctaPump': 'Buy on pump.fun 🚀',
-    'hero.ctaX': 'Join the X Community 🐻‍❄️',
+    'hero.ctaX': 'Join the X Community 🐾',
     'hero.ctaLine': 'LINE OpenChat 💬',
     'hero.cue': 'SWIPE DOWN',
     'about.h2': 'What is $YJKW?',
@@ -127,14 +127,14 @@
     'buy.s2.p': 'Buy SOL on an exchange and send it to your own wallet.',
     'buy.s3.h': '🔁 Swap for $YJKW',
     'buy.s3.p': 'Paste the CA on pump.fun and swap. <button class="copy-ca link-btn">Copy the CA</button> and drop it in the search bar.',
-    'buy.s4.h': '🐻‍❄️ Join the family',
+    'buy.s4.h': '🐾 Join the family',
     'buy.s4.p': 'Post “I bought some” in the community. The welcome energy is intense.',
     'buy.cta': 'Open pump.fun 🚀',
     'game.h2': 'Yajukawa Clicker',
     'game.lead': 'Tap the coin to pet the yajukawa. Your record is saved on this device.',
     'clicker.unit': ' pets',
     'clicker.rankLabel': 'Rank: ',
-    'game.share': 'Share on X 🐻‍❄️',
+    'game.share': 'Share on X 🐾',
     'map.h2': 'Roadmap',
     'map.lead': 'Destination: the moon. Cuteness beats gravity.',
     'map.done': 'DONE ✅',
@@ -157,13 +157,13 @@
     'map.p4.l3': 'Beyond that, nobody knows',
     'comm.h2': 'Welcome to the yajukawa clubhouse',
     'comm.p': 'Memes, chatter, and screams at the chart — it all happens here.<br>$YJKW has two official communities: X and LINE.',
-    'comm.x': 'Join the X Community 🐻‍❄️',
+    'comm.x': 'Join the X Community 🐾',
     'comm.line': 'Join the LINE OpenChat 💬',
     'comm.sub': 'LINE OpenChat: “Yajukawa YJKW Community”',
     'comm.warn': '⚠️ Any invite link that arrives by DM is a scam. Never open them.',
     'faq.h2': 'FAQ',
     'faq.q1.q': 'What is $YJKW?',
-    'faq.q1.a': 'A Solana meme coin symbolized by the man in the bear hood — “yajukawa”. Its utility is being cute and being funny. Nothing more, nothing less.',
+    'faq.q1.a': 'A Solana meme coin symbolized by the man in the fluffy white hood — “yajukawa”. Its utility is being cute and being funny. Nothing more, nothing less.',
     'faq.q2.q': 'Where can I buy it?',
     'faq.q2.a': `You can buy it on <a href="${LINK_PUMP}" target="_blank" rel="noopener">pump.fun</a> — paste the CA and swap. After the Raydium migration you will also be able to swap on DEXs like Jupiter.`,
     'faq.q3.q': 'What is the contract address (CA)?',
@@ -772,7 +772,7 @@
     if (reduced || !coinWrap) return;
     const span = document.createElement('span');
     span.className = 'float-label';
-    span.textContent = Math.random() < 0.12 ? '🐻‍❄️' : Math.random() < 0.5 ? '+1' : '💛';
+    span.textContent = Math.random() < 0.12 ? '🐾' : Math.random() < 0.5 ? '+1' : '💛';
     span.style.left = 18 + Math.random() * 64 + '%';
     span.style.top = 8 + Math.random() * 30 + '%';
     coinWrap.appendChild(span);
@@ -887,5 +887,5 @@
     targetY = clamp(targetY, 0, maxScroll());
   });
 
-  console.log('%c$YJKW 🐻‍❄️ 野獣なのに、かわいい。/ Beast mode, but adorable.', 'font-size:16px;font-weight:bold;color:#f5c542');
+  console.log('%c$YJKW 🐾 野獣なのに、かわいい。/ Beast mode, but adorable.', 'font-size:16px;font-weight:bold;color:#f5c542');
 })();
