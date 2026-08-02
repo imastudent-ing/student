@@ -28,8 +28,10 @@ yjkw/
 - X コミュニティ / LINE オープンチャット導線(ヒーロー・メニュー・コミュニティ・フッター)
 - レスポンシブ / `prefers-reduced-motion` 対応 / OGP・PWA アイコン完備
 
-## 公開方法
+## 公開
 
-静的ホスティングならどこでも動きます。GitHub Pages の場合はリポジトリの
-**Settings → Pages → Deploy from a branch** で `main` を選ぶと
-`https://<user>.github.io/student/yjkw/` で公開されます。
+Netlify にデプロイ済み(https://tourmaline-bunny-2d0b32.netlify.app)。
+独自ドメインは **https://yjkw.xyz/**(canonical / OGP は yjkw.xyz 前提で設定済み)。
+
+更新手順: このフォルダの中身を ZIP にして、Netlify の対象サイト →
+**Deploys** タブにドラッグ&ドロップするだけ。静的ホスティングならどこでも動きます。
