@@ -1,0 +1,13 @@
+{
+  "name": "pumpfun-monitor",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node monitor.js"
+  },
+  "dependencies": {
+    "@solana/web3.js": "^1.95.3",
+    "dotenv": "^16.4.5"
+  }
+}
