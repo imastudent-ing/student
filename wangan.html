@@ -170,7 +170,7 @@
 <div class="screen hidden" id="scr-course">
   <div class="wrapcol">
     <div class="logo" style="font-size:22px;margin:8px 0 0;">COURSE SELECT</div>
-    <h2 class="sec">実在都市高速 4コース</h2>
+    <h2 class="sec">全7コース - 都市高速 / 地下環状 / 山岳</h2>
     <div class="courselist" id="courseList"></div>
     <div class="btnrow">
       <button class="sub" id="btn-course-back">← クルマ選択</button>
@@ -477,6 +477,32 @@
         { name: '中腹スイーパー',  avg: 129, pieces: [[260,22,5],[200,-26,4],[150,0,4,'t'],[240,18,5],[200,0,6],[220,-20,4]] },
         { name: '七曲り(上)',     avg: 74, pieces: [[120,0,6],[110,-125,4],[130,18,5],[110,125,4],[130,-14,6],[110,118,4],[140,0,5]] },
         { name: '大観山頂上',      avg: 131, pieces: [[240,-18,4],[260,24,3],[220,0,2],[260,-14,0],[300,0,-2]] },
+      ],
+    },
+    {
+      id: 'yamate', name: '山手トンネル 中央環状', len: '8.2km',
+      desc: '大橋JCTの地下ループから始まる、9割が地下トンネルの環状線。出口のない高速S字が延々と続き、閉所での速度感覚が試される。',
+      theme: { pole: '#ffb84d', tunnelLight: '#ffd98a', build: '#0a0e20' },
+      trafficRate: 0.46, hazards: 1,
+      sections: [
+        { name: '大橋JCT 地下ループ', avg: 60, pieces: [[60,0,-2],[170,100,-3],[90,-18,-2],[90,0,-1]] },
+        { name: '富ヶ谷~初台',   avg: 132, pieces: [[300,0,0,'t'],[260,14,0,'t'],[220,-8,0,'t'],[280,-16,0,'t'],[240,10,0,'t'],[300,0,0,'t']] },
+        { name: '西新宿JCT',     avg: 139, pieces: [[250,0,0,'t'],[200,26,0,'t'],[180,-10,0,'t'],[220,20,0,'t'],[200,0,0,'t'],[240,-14,0,'t']] },
+        { name: '中野長者橋',    avg: 117, pieces: [[320,0,0,'t'],[260,-12,0,'t'],[240,8,0,'t'],[300,-18,0,'t'],[260,0,0,'t'],[280,12,0,'t']] },
+        { name: '熊野町JCT~出口', avg: 145, pieces: [[280,10,0,'t'],[240,-20,0,'t'],[260,0,0,'t'],[220,16,0,'t'],[200,0,2],[240,-8,3]] },
+      ],
+    },
+    {
+      id: 'iroha', name: 'いろは坂 下り', len: '4.9km',
+      desc: '標高差440mを一気に下る連続カーブの一方通行。下り勾配でブレーキが利きにくい中、R40級ヘアピンが牙を剥く。',
+      theme: { pole: '#ffd98a', tunnelLight: '#ffd98a', build: '#0b1410', rural: true },
+      trafficRate: 0.10, hazards: 0,
+      sections: [
+        { name: '明智平~第48カーブ',   avg: 67, pieces: [[220,0,-5],[110,-125,-4],[130,14,-6],[110,135,-5],[140,-10,-6],[110,-120,-4],[150,0,-5]] },
+        { name: 'つづら折り(上段)',   avg: 73, pieces: [[120,10,-6],[110,130,-5],[120,-16,-6],[100,-135,-4],[130,8,-6],[110,125,-5],[130,0,-5]] },
+        { name: '黒髪平',             avg: 131, pieces: [[240,-20,-5],[200,24,-4],[180,0,-5],[220,-16,-6],[200,12,-4]] },
+        { name: 'つづら折り(下段)',   avg: 72, pieces: [[110,-130,-5],[130,12,-6],[110,140,-4],[120,-14,-6],[100,-125,-5],[140,10,-5],[120,0,-4]] },
+        { name: '馬返し',             avg: 145, pieces: [[260,18,-4],[220,-22,-3],[240,0,-3],[260,14,-2],[280,0,-1]] },
       ],
     },
   ];
@@ -824,7 +850,7 @@
     initSky();
     posZ = 0; posX = 0; camXm = 0; vMs = 0; heading = 0; steerIn = 0;
     yawRate = 0; vLat = 0; slipAngle = 0; understeer = false; alignSt = 0; prevSnF = 0;
-    prevAccel = false; liftTimer = 0;
+    prevAccel = false; liftTimer = 0; camYawSm = 0; camRollSm = 0;
     bodyPitch = 0; bodyPitchV = 0; bodyRoll = 0; bodyRollV = 0; bodyHeave = 0; bodyHeaveV = 0; prevGrade = 0;
     resetTraffic();
     gear = 1; rpm = ph.idle; shiftTimer = 0;
@@ -974,14 +1000,20 @@
 
     // ================= 横方向: 二輪モデル + タイヤ特性曲線 =================
     let steerTarget = left ? -1 : right ? 1 : 0;
-    let steerRate = 8.5 - Math.min(4.5, vMs / 24);
+    // 切り始めは素早く、高速域では穏やかに
+    let steerRate = 10 - Math.min(5, vMs / 22);
     if (IS_TOUCH && (wheelPtr !== null || wheelAngle !== 0)) {
-      // ハンドルの回転角がそのままアナログ入力になる
-      steerTarget = Math.max(-1, Math.min(1, wheelAngle / WHEEL_LOCK));
-      steerRate = 14;   // ホイール自体が滑らかなので追従は速く
+      // ハンドルの回転角がアナログ入力になる。
+      // エキスポカーブでセンター付近は繊細に、端でフルロック
+      const wv = Math.max(-1, Math.min(1, wheelAngle / WHEEL_LOCK));
+      steerTarget = Math.sign(wv) * Math.pow(Math.abs(wv), 1.35);
+      steerRate = 16;
     }
-    steerIn += (steerTarget - steerIn) * steerRate * dt;
+    // 「戻し」と「切り返し」は切り込みより速い(切る→回す→戻す、の戻す)
+    if (steerTarget === 0 || steerTarget * steerIn < 0) steerRate *= 1.7;
+    steerIn += (steerTarget - steerIn) * Math.min(1, steerRate * dt);
     steerIn = Math.max(-1, Math.min(1, steerIn));
+    if (steerTarget === 0 && Math.abs(steerIn) < 0.02) steerIn = 0;
     // 切り込み側の上限は定常旋回基準(高速では舵をわずかしか使わない)。
     const aGripMax = gripF / (ph.mass * ph.b / L);
     const deltaGrip = aGripMax * L / Math.max(1, vMs * vMs);
@@ -1045,6 +1077,15 @@
       sliding = Math.min(1, Math.max(satF, satR) * 0.8);
       understeer = satF > satR;
       prevSnF = snF;
+      // 低速域(8m/s以下)は運動学モデルへ滑らかにブレンドする。
+      // 発進直後や大減速後のフラつきを抑え、素直な挙動にする
+      if (vMs < 8) {
+        const kb = Math.min(1, (8 - vMs) / 5.5);
+        const f = Math.min(1, 12 * dt) * kb;
+        const yawKin = vMs * Math.tan(delta) / L;
+        yawRate += (yawKin - yawRate) * f;
+        vLat -= vLat * f * 0.6;
+      }
     }
 
     // ---- 道路に対する相対ヨーと横位置 ----
@@ -1188,6 +1229,10 @@
       finishTimer += dt;
       if (finishTimer > 2.4) { running = false; showResult(); updateEngine(0); return; }
     }
+
+    // カメラのヨー・ロールを減衰追従(急な動きでも視界が跳ねない)
+    camYawSm += (heading * 0.42 - camYawSm) * Math.min(1, 9 * dt);
+    camRollSm += ((-aLat * 0.0026 - seg.bank * 0.22) - camRollSm) * Math.min(1, 7 * dt);
 
     if (shake > 0) shake = Math.max(0, shake - 28 * dt);
     if (wallSfxT > 0) wallSfxT -= dt;
@@ -1452,6 +1497,7 @@
   // ================= 3D 描画 =================
   let camX = 0, camY = 0, camZ = 0, camCos = 1, camSin = 0;
   let camXm = 0;   // カメラの横位置(m) — 車を減衰追従する
+  let camYawSm = 0, camRollSm = 0;  // カメラのヨー・ロール(減衰追従で視界の揺れを抑える)
 
   // 任意の3D点をスクリーン座標へ(カメラのヨー回転込み)
   const NEAR_PLANE = 0.4 * M2U;
@@ -1559,13 +1605,13 @@
     camXm += (posX * 0.82 - camXm) * 0.14;
     camX = camXm * M2U;
     camY = roadY + CAMERA_H - Math.sin(baseSeg.bank) * camX;
-    const camYaw = heading * 0.42;
+    const camYaw = camYawSm;
     camCos = Math.cos(camYaw); camSin = Math.sin(camYaw);
 
     // カメラロール(横G+バンクでわずかに傾ける)
-    const roll = -aLat * 0.0026 - baseSeg.bank * 0.22;
+    const roll = camRollSm;
     ctx.save();
-    ctx.translate(W / 2 + (Math.random() - .5) * shake, H / 2 + (Math.random() - .5) * shake);
+    ctx.translate(W / 2 + (Math.random() - .5) * shake * 0.6, H / 2 + (Math.random() - .5) * shake * 0.6);
     ctx.rotate(roll);
     ctx.translate(-W / 2, -H / 2);
 
