@@ -19,6 +19,12 @@
     -webkit-user-select: none; user-select: none;
     -webkit-tap-highlight-color: transparent;
   }
+  #rotor { position: fixed; inset: 0; }
+  #rotor.rot {
+    inset: auto; top: 0; left: 0;
+    transform-origin: top left;
+    transform: rotate(90deg) translate(0, -100%);
+  }
   canvas#game { position: fixed; inset: 0; display: block; touch-action: none; }
   #muteBtn {
     position: fixed;
@@ -119,6 +125,7 @@
 </style>
 </head>
 <body>
+<div id="rotor">
 <canvas id="game"></canvas>
 <button id="muteBtn">🔊</button>
 
@@ -189,6 +196,7 @@
     <button class="sub" id="btn-res-garage">クルマ選択</button>
   </div>
 </div>
+</div><!-- /rotor -->
 
 <script>
 (() => {
@@ -197,7 +205,7 @@
   const ctx = canvas.getContext('2d');
   const IS_TOUCH = matchMedia('(pointer: coarse)').matches || 'ontouchstart' in window;
 
-  let W = 0, H = 0, DPR = 1;
+  let W = 0, H = 0, DPR = 1, ROT = false;
 
   // ================= 定数 =================
   const SEG_LEN = 1100;                 // 約5m/セグメント
@@ -405,10 +413,44 @@
   let stars = [], skylineSeed = [];
   function resize() {
     DPR = Math.min(2, window.devicePixelRatio || 1);
-    W = window.innerWidth; H = window.innerHeight;
+    // タッチ端末が縦持ちのときは全体を90°回転して横画面化
+    ROT = IS_TOUCH && window.innerHeight > window.innerWidth;
+    const rotor = document.getElementById('rotor');
+    if (ROT) {
+      W = window.innerHeight; H = window.innerWidth;
+      rotor.classList.add('rot');
+      rotor.style.width = W + 'px';
+      rotor.style.height = H + 'px';
+    } else {
+      W = window.innerWidth; H = window.innerHeight;
+      rotor.classList.remove('rot');
+      rotor.style.width = '';
+      rotor.style.height = '';
+    }
     canvas.width = Math.round(W * DPR);
     canvas.height = Math.round(H * DPR);
+    canvas.style.width = W + 'px';
+    canvas.style.height = H + 'px';
     ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  }
+  // 端末の物理座標 -> 回転後の論理座標
+  function mapPoint(e) {
+    return ROT
+      ? { x: e.clientY, y: window.innerWidth - e.clientX }
+      : { x: e.clientX, y: e.clientY };
+  }
+  // 可能ならフルスクリーン+横向きロック(Android等)
+  async function tryLandscape() {
+    if (!IS_TOUCH) return;
+    try {
+      if (document.documentElement.requestFullscreen && !document.fullscreenElement) {
+        await document.documentElement.requestFullscreen();
+      }
+      if (screen.orientation && screen.orientation.lock) {
+        await screen.orientation.lock('landscape');
+      }
+    } catch (e) { /* 非対応端末はCSS回転で対応 */ }
+    setTimeout(resize, 350);
   }
   function initSky() {
     stars = [];
@@ -806,12 +848,12 @@
   }
   canvas.addEventListener('pointerdown', e => {
     e.preventDefault();
-    pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    pointers.set(e.pointerId, mapPoint(e));
     updateTouchInput();
   });
   canvas.addEventListener('pointermove', e => {
     if (!pointers.has(e.pointerId)) return;
-    pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    pointers.set(e.pointerId, mapPoint(e));
     updateTouchInput();
   });
   const releasePointer = e => { pointers.delete(e.pointerId); updateTouchInput(); };
@@ -1173,7 +1215,7 @@
     const s = Math.min(W, H);
     const w = s * 0.2;
     const x = W / 2 + steer * s * 0.04;
-    const y = H - s * (IS_TOUCH ? 0.30 : 0.09);
+    const y = H - s * (IS_TOUCH ? 0.14 : 0.09);
     // ヘッドライト光
     const grad = ctx.createRadialGradient(x, y - w * 0.9, 10, x, y - w * 0.9, s * 0.4);
     grad.addColorStop(0, 'rgba(200,220,255,.15)');
@@ -1260,8 +1302,9 @@
     }
 
     // ==== 速度計・タコメーター ====
-    const tx = W - s * 0.16;
-    const ty = H - s * (IS_TOUCH ? 0.52 : 0.17);
+    // タッチ時はボタン列と重ならない位置に
+    const tx = IS_TOUCH ? buttonRects().brake.x - s * 0.16 : W - s * 0.16;
+    const ty = H - s * 0.18;
     const tr = s * 0.105;
     const a0 = Math.PI * 0.75, a1 = Math.PI * 2.25;
     ctx.lineWidth = s * 0.017;
@@ -1446,14 +1489,15 @@
 
   // ================= 画面イベント =================
   el('btn-title').onclick = () => {
+    tryLandscape();
     buildMakerChips(); buildModelList(); buildTuneChips(); buildSwatches(); buildMtChips(); refreshPreview();
     showScreen('garage');
   };
   el('btn-garage-back').onclick = () => showScreen('title');
   el('btn-garage-next').onclick = () => { saveGarage(); buildCourseList(); showScreen('course'); };
   el('btn-course-back').onclick = () => showScreen('garage');
-  el('btn-course-start').onclick = () => { lastBeep = -1; startRace(); };
-  el('btn-retry').onclick = () => { lastBeep = -1; startRace(); };
+  el('btn-course-start').onclick = () => { lastBeep = -1; tryLandscape(); startRace(); };
+  el('btn-retry').onclick = () => { lastBeep = -1; tryLandscape(); startRace(); };
   el('btn-res-course').onclick = () => { buildCourseList(); showScreen('course'); };
   el('btn-res-garage').onclick = () => {
     buildMakerChips(); buildModelList(); buildTuneChips(); buildSwatches(); buildMtChips(); refreshPreview();
