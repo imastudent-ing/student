@@ -833,10 +833,16 @@
       return;
     }
 
-    const left = keys.left || input.left;
-    const right = keys.right || input.right;
+    const left = keys.left;
+    const right = keys.right;
     const brake = keys.down || input.brake;
     const accel = (keys.up || input.accel) && raceState === 'running';
+
+    // ハンドルを離している間はセルフセンタリング
+    if (IS_TOUCH && wheelPtr === null && wheelAngle !== 0) {
+      wheelAngle -= wheelAngle * Math.min(1, 7 * dt);
+      if (Math.abs(wheelAngle) < 0.005) wheelAngle = 0;
+    }
 
     if (shiftTimer > 0) shiftTimer -= dt;
     const seg = findSegment(posZ);
@@ -914,8 +920,14 @@
     aLong = accelLong;
 
     // ================= 横方向: 二輪モデル + タイヤ特性曲線 =================
-    const steerTarget = left ? -1 : right ? 1 : 0;
-    steerIn += (steerTarget - steerIn) * (8.5 - Math.min(4.5, vMs / 24)) * dt;
+    let steerTarget = left ? -1 : right ? 1 : 0;
+    let steerRate = 8.5 - Math.min(4.5, vMs / 24);
+    if (IS_TOUCH && (wheelPtr !== null || wheelAngle !== 0)) {
+      // ハンドルの回転角がそのままアナログ入力になる
+      steerTarget = Math.max(-1, Math.min(1, wheelAngle / WHEEL_LOCK));
+      steerRate = 14;   // ホイール自体が滑らかなので追従は速く
+    }
+    steerIn += (steerTarget - steerIn) * steerRate * dt;
     steerIn = Math.max(-1, Math.min(1, steerIn));
     // 切り込み側の上限は定常旋回基準(高速では舵をわずかしか使わない)。
     const aGripMax = gripF / (ph.mass * ph.b / L);
@@ -1249,19 +1261,27 @@
   });
 
   // ================= 入力 =================
-  const input = { left: false, right: false, brake: false, accel: false, sup: false, sdown: false };
+  const input = { brake: false, accel: false, sup: false, sdown: false };
   let prevSup = false, prevSdown = false;
   const keys = {};
   const pointers = new Map();
 
+  // ---- ステアリングホイール(タッチ) ----
+  // 実車のように指で回して操作する。±135°でフルロック、離すと自動でセンターへ。
+  const WHEEL_LOCK = Math.PI * 0.75;
+  let wheelAngle = 0, wheelPtr = null, wheelLastA = 0;
+
+  function wheelGeom() {
+    const s = Math.min(W, H);
+    const r = Math.min(s * 0.20, 110);
+    return { cx: s * 0.035 + r, cy: H - s * 0.035 - r, r };
+  }
   function buttonRects() {
     const s = Math.min(W, H);
     const pad = s * 0.03;
     const r = Math.min(s * 0.115, 64, (W - pad * 7) / 9);
     const by = H - r * 2 - pad - 4;
     const rects = {
-      left:  { x: pad, y: by, w: r * 2, h: r * 2, label: '◀' },
-      right: { x: pad * 2 + r * 2, y: by, w: r * 2, h: r * 2, label: '▶' },
       accel: { x: W - pad - r * 2.4, y: by - r * 0.4, w: r * 2.4, h: r * 2.4, label: 'ACCEL' },
       brake: { x: W - pad * 2 - r * 4.2, y: by, w: r * 1.8, h: r * 2, label: 'BRAKE' },
     };
@@ -1275,7 +1295,8 @@
     if (!IS_TOUCH) return;
     const rects = buttonRects();
     for (const k of Object.keys(input)) input[k] = false;
-    for (const p of pointers.values()) {
+    for (const [id, p] of pointers) {
+      if (id === wheelPtr) continue;   // ハンドルを握っている指はボタン判定しない
       for (const [name, r] of Object.entries(rects)) {
         if (p.x >= r.x - 6 && p.x <= r.x + r.w + 6 && p.y >= r.y - 6 && p.y <= r.y + r.h + 6) input[name] = true;
       }
@@ -1284,9 +1305,40 @@
     if (input.sdown && !prevSdown) shiftDown();
     prevSup = input.sup; prevSdown = input.sdown;
   }
-  canvas.addEventListener('pointerdown', e => { e.preventDefault(); pointers.set(e.pointerId, mapPoint(e)); updateTouchInput(); });
-  canvas.addEventListener('pointermove', e => { if (!pointers.has(e.pointerId)) return; pointers.set(e.pointerId, mapPoint(e)); updateTouchInput(); });
-  const releasePointer = e => { pointers.delete(e.pointerId); updateTouchInput(); };
+  canvas.addEventListener('pointerdown', e => {
+    e.preventDefault();
+    const p = mapPoint(e);
+    pointers.set(e.pointerId, p);
+    if (IS_TOUCH && wheelPtr === null) {
+      const g = wheelGeom();
+      const d = Math.hypot(p.x - g.cx, p.y - g.cy);
+      if (d < g.r * 1.35) {
+        wheelPtr = e.pointerId;
+        wheelLastA = Math.atan2(p.y - g.cy, p.x - g.cx);
+      }
+    }
+    updateTouchInput();
+  });
+  canvas.addEventListener('pointermove', e => {
+    if (!pointers.has(e.pointerId)) return;
+    const p = mapPoint(e);
+    pointers.set(e.pointerId, p);
+    if (e.pointerId === wheelPtr) {
+      const g = wheelGeom();
+      const a = Math.atan2(p.y - g.cy, p.x - g.cx);
+      let da = a - wheelLastA;
+      if (da > Math.PI) da -= Math.PI * 2;
+      if (da < -Math.PI) da += Math.PI * 2;
+      wheelLastA = a;
+      wheelAngle = Math.max(-WHEEL_LOCK, Math.min(WHEEL_LOCK, wheelAngle + da));
+    }
+    updateTouchInput();
+  });
+  const releasePointer = e => {
+    pointers.delete(e.pointerId);
+    if (e.pointerId === wheelPtr) wheelPtr = null;
+    updateTouchInput();
+  };
   canvas.addEventListener('pointerup', releasePointer);
   canvas.addEventListener('pointercancel', releasePointer);
   canvas.addEventListener('touchstart', e => e.preventDefault(), { passive: false });
@@ -2379,7 +2431,9 @@
     }
 
     // ---- Gメーター ----
-    const gx = pad + s * 0.062, gy = H - pad - s * 0.062, gr = s * 0.055;
+    // タッチ時は左下がステアリングホイールなので、その右隣に置く
+    const gx = IS_TOUCH ? s * 0.035 + Math.min(s * 0.20, 110) * 2 + s * 0.11 : pad + s * 0.062;
+    const gy = H - pad - s * 0.062, gr = s * 0.055;
     ctx.strokeStyle = 'rgba(255,255,255,.16)'; ctx.lineWidth = 1.5;
     ctx.beginPath(); ctx.arc(gx, gy, gr, 0, Math.PI * 2); ctx.stroke();
     ctx.beginPath(); ctx.arc(gx, gy, gr * 0.5, 0, Math.PI * 2); ctx.stroke();
@@ -2400,7 +2454,11 @@
     ctx.textAlign = 'left';
     ctx.font = 'bold ' + s * 0.02 + 'px sans-serif';
     ctx.fillStyle = '#8b93b8';
-    ctx.fillText(car ? car.maker + ' ' + car.model + '  [' + car.dt + ']' : '', pad + s * 0.13, H - pad - s * 0.005);
+    if (IS_TOUCH) {
+      ctx.fillText(car ? car.maker + ' ' + car.model + '  [' + car.dt + ']' : '', pad, pad + s * 0.028);
+    } else {
+      ctx.fillText(car ? car.maker + ' ' + car.model + '  [' + car.dt + ']' : '', pad + s * 0.13, H - pad - s * 0.005);
+    }
     if (sliding > 0.3 || wheelspin > 0.3) {
       ctx.textAlign = 'center';
       ctx.font = 'bold ' + s * 0.024 + 'px sans-serif';
@@ -2439,10 +2497,51 @@
       ctx.fill(); ctx.stroke();
       ctx.fillStyle = 'rgba(255,255,255,.92)';
       ctx.textAlign = 'center';
-      const isArrow = name === 'left' || name === 'right';
-      ctx.font = 'bold ' + (isArrow ? r.w * 0.4 : r.w * 0.16) + 'px sans-serif';
-      ctx.fillText(r.label, r.x + r.w / 2, r.y + r.h / 2 + (isArrow ? r.w * 0.14 : r.w * 0.05));
+      ctx.font = 'bold ' + r.w * 0.16 + 'px sans-serif';
+      ctx.fillText(r.label, r.x + r.w / 2, r.y + r.h / 2 + r.w * 0.05);
     }
+    drawWheel();
+  }
+
+  // ステアリングホイールの描画
+  function drawWheel() {
+    const g = wheelGeom();
+    const held = wheelPtr !== null;
+    ctx.save();
+    ctx.translate(g.cx, g.cy);
+    ctx.rotate(wheelAngle);
+    const rimW = g.r * 0.24;
+    // リム
+    ctx.lineWidth = rimW;
+    ctx.strokeStyle = held ? 'rgba(56,70,120,.80)' : 'rgba(34,42,76,.62)';
+    ctx.beginPath(); ctx.arc(0, 0, g.r - rimW / 2, 0, Math.PI * 2); ctx.stroke();
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = held ? 'rgba(160,200,255,.9)' : 'rgba(255,255,255,.30)';
+    ctx.beginPath(); ctx.arc(0, 0, g.r, 0, Math.PI * 2); ctx.stroke();
+    ctx.beginPath(); ctx.arc(0, 0, g.r - rimW, 0, Math.PI * 2); ctx.stroke();
+    // スポーク(左・右・下)
+    ctx.lineWidth = rimW * 0.55;
+    ctx.strokeStyle = held ? 'rgba(70,84,136,.85)' : 'rgba(44,52,88,.7)';
+    ctx.lineCap = 'round';
+    for (const a of [Math.PI, 0, Math.PI / 2]) {
+      ctx.beginPath();
+      ctx.moveTo(Math.cos(a) * g.r * 0.18, Math.sin(a) * g.r * 0.18);
+      ctx.lineTo(Math.cos(a) * (g.r - rimW), Math.sin(a) * (g.r - rimW));
+      ctx.stroke();
+    }
+    ctx.lineCap = 'butt';
+    // ハブ
+    ctx.fillStyle = held ? 'rgba(56,70,120,.9)' : 'rgba(34,42,76,.8)';
+    ctx.beginPath(); ctx.arc(0, 0, g.r * 0.20, 0, Math.PI * 2); ctx.fill();
+    // センターマーカー(回転が分かる赤ストライプ)
+    ctx.fillStyle = '#ff3d5e';
+    ctx.fillRect(-rimW * 0.18, -g.r, rimW * 0.36, rimW);
+    ctx.restore();
+    // 舵角表示
+    ctx.textAlign = 'center';
+    ctx.font = 'bold ' + g.r * 0.16 + 'px sans-serif';
+    ctx.fillStyle = 'rgba(139,147,184,.9)';
+    ctx.fillText(Math.round(wheelAngle * 57.3) + '°', g.cx, g.cy + g.r + g.r * 0.22);
   }
 
   // ================= ループ =================
@@ -2569,7 +2668,7 @@
     'セクション毎の規定時間を守りながら、<br>' +
     '自分の限界=最速トータルタイムを追い求めるストイックなモード。' +
     (IS_TOUCH
-      ? '<br><br>[操作] ◀▶ハンドル / ACCEL / BRAKE / SHIFT±'
+      ? '<br><br>[操作] 左下のハンドルを指で回して操舵(離すと自動でセンターへ)<br>右手で ACCEL / BRAKE / SHIFT±'
       : '<br><br>[操作] ←→ハンドル / ↑アクセル / ↓ブレーキ / X・Space シフトアップ / Z シフトダウン');
 
   // テスト用フック
@@ -2583,6 +2682,7 @@
     return {
       posX, posZ, kmh: vMs * 3.6, vMs, gear, rpm, redline: ph ? ph.redline : 0,
       heading, raceState, sectionIdx, totalTime, finishZ, sliding, wheelspin, scraping,
+      wheelAngle, steerIn, posXm: posX,
       mu: ph ? ph.mu : 0, mass: ph ? ph.mass : 0, dfK: ph ? ph.dfK : 0,
       halfRoad: HALF_ROAD_M, look,
       nTraffic: traffic.length, nSigns: signs.length, nHaz: hazards.length,
