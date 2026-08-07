@@ -378,7 +378,7 @@
     course: saved.course || 0,
   };
   function saveGarage() {
-    localStorage.setItem('mh-garage', JSON.stringify(sel));
+    try { localStorage.setItem('mh-garage', JSON.stringify(sel)); } catch (e) {}
   }
   function bestKey(courseId) { return 'mh-best-' + courseId; }
   function loadBest(courseId) {
@@ -723,7 +723,7 @@
       document.getElementById('resTotal').textContent = 'TOTAL ' + fmtTime(totalTime);
       const prev = loadBest(course.id);
       if (!prev || totalTime < prev.time) {
-        localStorage.setItem(bestKey(course.id), JSON.stringify({ time: totalTime, car: car.maker + ' ' + car.name }));
+        try { localStorage.setItem(bestKey(course.id), JSON.stringify({ time: totalTime, car: car.maker + ' ' + car.name })); } catch (e) {}
         recordEl.classList.remove('hidden');
         document.getElementById('resBest').textContent = prev ? '前回ベスト ' + fmtTime(prev.time) : '';
       } else {
