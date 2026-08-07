@@ -45,6 +45,7 @@
     border-radius: 8px;
     box-shadow: 0 8px 40px rgba(0,0,0,.5);
     display: block;
+    touch-action: none;
   }
   .side {
     display: flex;
@@ -120,12 +121,19 @@
     background: var(--panel);
     border: 1px solid var(--panel-border);
   }
-  @media (max-width: 560px) {
-    .game-wrap { gap: 10px; }
-    .side { width: 96px; }
-    .panel .value { font-size: 16px; }
-    .touch-controls { display: flex; }
+  @media (max-width: 560px), (pointer: coarse) {
+    .game-wrap { gap: 8px; }
+    .side { width: 86px; }
+    .panel { padding: 8px; }
+    .panel .value { font-size: 15px; }
+    .touch-controls { display: flex; flex-wrap: wrap; justify-content: center; }
     .keys { display: none; }
+    canvas#board {
+      width: min(300px, calc(100vw - 212px));
+      height: auto;
+    }
+    canvas#next { width: 76px; height: 171px; }
+    canvas#hold { width: 76px; height: 57px; }
   }
 </style>
 </head>
@@ -529,6 +537,44 @@
   bindTouch('tDown', () => softDrop());
   bindTouch('tDrop', () => hardDrop());
   bindTouch('tHold', () => hold());
+
+  // --- 盤面スワイプ操作 ---
+  // タップ=回転 / 左右ドラッグ=移動 / 下ドラッグ=ソフトドロップ / 下フリック=ハードドロップ
+  let touchStart = null, touchLastX = 0, touchLastY = 0, touchMoved = false;
+  const cellPx = () => boardCanvas.getBoundingClientRect().width / COLS;
+  boardCanvas.addEventListener('touchstart', (e) => {
+    if (!running || paused || gameOver) return;
+    e.preventDefault();
+    const t = e.touches[0];
+    touchStart = { x: t.clientX, y: t.clientY, time: Date.now() };
+    touchLastX = t.clientX;
+    touchLastY = t.clientY;
+    touchMoved = false;
+  }, { passive: false });
+  boardCanvas.addEventListener('touchmove', (e) => {
+    if (!touchStart) return;
+    e.preventDefault();
+    const t = e.touches[0];
+    const step = cellPx();
+    while (t.clientX - touchLastX > step) { move(1); touchLastX += step; touchMoved = true; }
+    while (touchLastX - t.clientX > step) { move(-1); touchLastX -= step; touchMoved = true; }
+    while (t.clientY - touchLastY > step * 1.4) { softDrop(); touchLastY += step * 1.4; touchMoved = true; }
+    draw();
+  }, { passive: false });
+  boardCanvas.addEventListener('touchend', (e) => {
+    if (!touchStart) return;
+    e.preventDefault();
+    const dt = Date.now() - touchStart.time;
+    const t = e.changedTouches[0];
+    const dy = t.clientY - touchStart.y;
+    if (!touchMoved && dt < 300) {
+      rotate(1); // タップで回転
+    } else if (dy > 90 && dt < 250) {
+      hardDrop(); // 下フリックでハードドロップ
+    }
+    touchStart = null;
+    draw();
+  }, { passive: false });
 
   // 初期描画
   grid = emptyGrid();

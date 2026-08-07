@@ -2,178 +2,190 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#05060f">
 <title>MIDNIGHT HIGHWAY - 湾岸レースゲーム</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  body {
+  html, body {
+    width: 100%; height: 100%;
+    overflow: hidden;
+    overscroll-behavior: none;
     background: #05060f;
-    color: #e8eaf6;
     font-family: "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Yu Gothic", sans-serif;
-    min-height: 100vh;
+    -webkit-user-select: none; user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  canvas#game {
+    position: fixed;
+    inset: 0;
+    display: block;
+    touch-action: none;
+  }
+  #muteBtn {
+    position: fixed;
+    top: max(10px, env(safe-area-inset-top));
+    right: max(10px, env(safe-area-inset-right));
+    z-index: 20;
+    width: 42px; height: 42px;
+    border-radius: 50%;
+    border: 1px solid rgba(255,255,255,.25);
+    background: rgba(20,26,48,.6);
+    color: #fff;
+    font-size: 18px;
+    cursor: pointer;
+  }
+  .overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 10;
+    background: rgba(5,6,15,.78);
+    backdrop-filter: blur(3px);
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 12px;
-    touch-action: manipulation;
-    overflow-x: hidden;
+    justify-content: center;
+    gap: 16px;
+    text-align: center;
+    color: #e8eaf6;
+    padding: 24px;
   }
-  h1 {
-    font-size: 20px;
-    letter-spacing: 6px;
-    margin: 6px 0 12px;
+  .overlay.hidden { display: none; }
+  .overlay .big {
+    font-size: clamp(28px, 8vw, 48px);
+    font-weight: bold;
     font-style: italic;
+    letter-spacing: 4px;
     background: linear-gradient(90deg, #3de8ff, #6c8cff, #ff3d8f);
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
   }
-  .holder { position: relative; }
-  canvas {
-    display: block;
-    border-radius: 10px;
-    border: 2px solid #1e2542;
-    box-shadow: 0 10px 60px rgba(60,120,255,.15);
-    max-width: 100%;
+  .overlay .small {
+    font-size: clamp(12px, 3.4vw, 15px);
+    color: #aab2d0;
+    line-height: 2;
   }
-  .overlay {
-    position: absolute;
-    inset: 0;
-    background: rgba(5,6,15,.8);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 14px;
-    border-radius: 10px;
-    text-align: center;
-    padding: 20px;
+  .overlay .result {
+    font-size: clamp(14px, 4vw, 18px);
+    line-height: 2;
   }
-  .overlay.hidden { display: none; }
-  .overlay .big {
-    font-size: 30px;
-    font-weight: bold;
-    font-style: italic;
-    letter-spacing: 4px;
-    background: linear-gradient(90deg, #3de8ff, #ff3d8f);
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
-  }
-  .overlay .small { font-size: 13px; color: #8b93b8; line-height: 2; }
-  .overlay button {
+  .overlay .result b { color: #f2d048; }
+  .overlay button.main {
     background: linear-gradient(135deg, #3d6bff, #b53dff);
     color: #fff;
     border: none;
     border-radius: 999px;
-    padding: 12px 40px;
-    font-size: 16px;
+    padding: 16px 56px;
+    font-size: 18px;
     font-weight: bold;
-    letter-spacing: 2px;
+    letter-spacing: 3px;
     cursor: pointer;
     font-family: inherit;
+    box-shadow: 0 6px 30px rgba(90,90,255,.4);
   }
-  .overlay button:active { transform: scale(.96); }
-  .touch-controls {
-    display: none;
-    gap: 10px;
-    margin-top: 14px;
-    width: 100%;
-    max-width: 640px;
-    justify-content: space-between;
-  }
-  .touch-controls .pad { display: flex; gap: 10px; }
-  .touch-controls button {
-    width: 64px; height: 64px;
-    font-size: 24px;
-    background: #141a30;
-    color: #e8eaf6;
-    border: 1px solid #2c3354;
-    border-radius: 12px;
-  }
-  @media (pointer: coarse) {
-    .touch-controls { display: flex; }
-  }
+  .overlay button.main:active { transform: scale(.95); }
 </style>
 </head>
 <body>
-<h1>MIDNIGHT HIGHWAY</h1>
-<div class="holder">
-  <canvas id="game" width="640" height="420"></canvas>
-  <div class="overlay" id="overlay">
-    <div class="big" id="ovTitle">MIDNIGHT HIGHWAY</div>
-    <div class="small" id="ovMsg">
-      深夜の湾岸線を駆け抜けろ。<br>
-      ←→ ハンドル / ↑ アクセル / ↓ ブレーキ<br>
-      制限時間内に次のチェックポイントへ。<br>
-      他の車に接触すると大きく減速する。
-    </div>
-    <button id="startBtn">START</button>
-  </div>
-</div>
-<div class="touch-controls">
-  <div class="pad">
-    <button id="tLeft">◀</button>
-    <button id="tRight">▶</button>
-  </div>
-  <div class="pad">
-    <button id="tBrake">🔻</button>
-    <button id="tAccel">🔺</button>
-  </div>
+<canvas id="game"></canvas>
+<button id="muteBtn">🔊</button>
+<div class="overlay" id="overlay">
+  <div class="big" id="ovTitle">MIDNIGHT<br>HIGHWAY</div>
+  <div class="small" id="ovMsg"></div>
+  <div class="result hidden" id="ovResult"></div>
+  <button class="main" id="startBtn">START</button>
 </div>
 
 <script>
 (() => {
+  'use strict';
   const canvas = document.getElementById('game');
   const ctx = canvas.getContext('2d');
-  const W = canvas.width, H = canvas.height;
+  const IS_TOUCH = matchMedia('(pointer: coarse)').matches || 'ontouchstart' in window;
+
+  let W = 0, H = 0, DPR = 1;
 
   // --- 定数 ---
-  const SEG_LEN = 200;            // 1セグメントの奥行き
-  const ROAD_W = 2200;            // 道路の半幅
+  const SEG_LEN = 200;
+  const ROAD_W = 2200;
   const LANES = 3;
   const CAMERA_H = 1000;
-  const CAMERA_DEPTH = 0.84;      // 視野の深さ
-  const DRAW_DIST = 90;           // 描画セグメント数
-  const MAX_SPEED = 340;          // km/h 表示上の最高速
-  const SPEED_SCALE = 62;         // km/h -> 内部速度の係数
-  const CHECKPOINT_DIST = 430000; // チェックポイント間隔(内部単位)
-  const CHECKPOINT_TIME = 45;     // 秒
+  const CAMERA_DEPTH = 0.84;
+  const DRAW_DIST = 100;
+  const MAX_SPEED = 340;          // km/h
+  const NITRO_SPEED = 399;
+  const SPEED_SCALE = 62;         // km/h -> 内部単位/秒
+  const U2M = 1 / (SPEED_SCALE / 3.6); // 内部単位 -> メートル
+  const CHECKPOINT_DIST = 430000;
+  const CHECKPOINT_TIME = 45;
+  const TUNNEL_H = 2600;
+  const GEARS = [0, 55, 105, 160, 220, 285, 400]; // ギア速度域
+
+  const RIVAL_NAMES = ['BLACKBIRD', 'DEVIL Z', 'REAPER', 'GHOST-R', 'MIDNIGHT KING'];
 
   // --- 状態 ---
-  let segments = [];
-  let trackLength = 0;
+  let segments = [], trackLength = 0;
   let traffic = [];
-  let playerX = 0;          // -1 ~ 1 (道路中心からのオフセット)
-  let position = 0;         // コース上の位置
-  let speed = 0;            // km/h
-  let steer = 0;
-  let timeLeft = 0;
-  let distanceTotal = 0;
-  let checkpointAt = 0;
-  let stage = 1;
+  let rival = null;
+  let playerX = 0, position = 0, speed = 0, steer = 0;
+  let timeLeft = 0, distanceTotal = 0, checkpointAt = 0, stage = 1;
+  let nitroGauge = 100, nitroActive = false;
+  let combo = 0, comboTimer = 0, bonusScore = 0;
+  let gear = 1, rpm = 0;
+  let crashTimer = 0, shake = 0;
   let running = false, gameOver = false;
   let keys = {};
   let lastTime = 0;
-  let shake = 0;
-  let flashMsg = null, flashTimer = 0;
-  let best = Number(localStorage.getItem('midnight-best-km') || 0);
+  let flashes = [];
+  let bestScore = Number(localStorage.getItem('midnight-best-score') || 0);
+  let bestKm = Number(localStorage.getItem('midnight-best-km') || 0);
+  let muted = false;
 
-  // --- コース生成 ---
-  function addRoad(count, curve, hill) {
+  // ============ リサイズ ============
+  let stars = [], skylineSeed = [];
+  function resize() {
+    DPR = Math.min(2, window.devicePixelRatio || 1);
+    W = window.innerWidth;
+    H = window.innerHeight;
+    canvas.width = Math.round(W * DPR);
+    canvas.height = Math.round(H * DPR);
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  }
+  function initSky() {
+    stars = [];
+    for (let i = 0; i < 70; i++) {
+      stars.push({ x: Math.random(), y: Math.random() * 0.42, a: 0.2 + Math.random() * 0.6 });
+    }
+    skylineSeed = [];
+    let total = 0;
+    while (total < 3200) {
+      const w = 16 + Math.random() * 34;
+      skylineSeed.push({ w, h: 0.05 + Math.random() * 0.16, lights: Math.random() });
+      total += w + 4;
+    }
+  }
+  window.addEventListener('resize', resize);
+  window.addEventListener('orientationchange', () => setTimeout(resize, 200));
+  resize();
+  initSky();
+
+  // ============ コース ============
+  function addRoad(count, curve, hill, opts = {}) {
     const startY = segments.length ? segments[segments.length - 1].p2y : 0;
     for (let i = 0; i < count; i++) {
       const t = i / count;
-      // イーズイン/アウトでカーブと坂を滑らかに
-      const ease = t < .5 ? 2*t*t : 1 - Math.pow(-2*t+2, 2)/2;
+      const ease = t < .5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
       segments.push({
         curve: curve * ease,
         p1y: startY + hill * (i / count) * SEG_LEN,
         p2y: startY + hill * ((i + 1) / count) * SEG_LEN,
+        tunnel: !!opts.tunnel,
       });
     }
   }
-
   function buildTrack() {
     segments = [];
     addRoad(60, 0, 0);
@@ -181,36 +193,21 @@
     addRoad(40, 0, 6);
     addRoad(70, -3.5, 0);
     addRoad(50, 0, -6);
-    addRoad(50, 1.5, 4);
+    addRoad(60, 0, 0, { tunnel: true });
+    addRoad(50, 1.5, 0, { tunnel: true });
+    addRoad(40, 0, 0, { tunnel: true });
     addRoad(80, 4, 0);
     addRoad(40, 0, 0);
     addRoad(60, -2, -4);
     addRoad(70, -4.5, 0);
     addRoad(50, 0, 8);
     addRoad(60, 3, -8);
+    addRoad(50, 0, 0, { tunnel: true });
+    addRoad(30, -2, 0, { tunnel: true });
     addRoad(80, 0, 0);
     addRoad(60, -1.5, 0);
-    // セグメントに色分けとインデックスを付与
-    segments.forEach((s, i) => {
-      s.index = i;
-      s.z = i * SEG_LEN;
-    });
+    segments.forEach((s, i) => { s.index = i; s.z = i * SEG_LEN; });
     trackLength = segments.length * SEG_LEN;
-  }
-
-  // --- 交通車両 ---
-  const CAR_COLORS = ['#c0c8d8', '#f2d048', '#5ee08a', '#ff8f4d', '#8f9dc0', '#d05ee0'];
-  function spawnTraffic(count) {
-    traffic = [];
-    for (let i = 0; i < count; i++) {
-      traffic.push({
-        z: Math.random() * trackLength,
-        lane: (Math.floor(Math.random() * LANES) + 0.5) / LANES * 2 - 1, // -1~1
-        speed: 80 + Math.random() * 90, // km/h
-        color: CAR_COLORS[Math.floor(Math.random() * CAR_COLORS.length)],
-        w: 0.34, // 当たり判定幅(playerX単位)
-      });
-    }
   }
 
   function findSegment(z) {
@@ -220,20 +217,257 @@
     return segments[i];
   }
 
-  // --- 更新 ---
+  // ============ 交通・ライバル ============
+  const CAR_COLORS = ['#c0c8d8', '#f2d048', '#5ee08a', '#ff8f4d', '#8f9dc0', '#d05ee0', '#e8e8e8'];
+  function makeCar(z) {
+    return {
+      z: z !== undefined ? z : Math.random() * trackLength,
+      lane: (Math.floor(Math.random() * LANES) + 0.5) / LANES * 2 - 1,
+      speed: 70 + Math.random() * 100,
+      color: CAR_COLORS[Math.floor(Math.random() * CAR_COLORS.length)],
+      w: 0.34,
+      behind: false,
+    };
+  }
+  function spawnTraffic(count) {
+    traffic = [];
+    for (let i = 0; i < count; i++) traffic.push(makeCar());
+  }
+  function spawnRival() {
+    const base = Math.min(352, 296 + stage * 8);
+    rival = {
+      total: distanceTotal + 9000,
+      lane: (Math.floor(Math.random() * LANES) + 0.5) / LANES * 2 - 1,
+      base,
+      curSpeed: 200,
+      name: RIVAL_NAMES[(stage - 1) % RIVAL_NAMES.length],
+      w: 0.34,
+      behind: false,
+    };
+  }
+
+  // ============ サウンド ============
+  let AC = null, engOsc, engGain, nitroGain, noiseBuf;
+  function initAudio() {
+    if (AC) { AC.resume && AC.resume(); return; }
+    try {
+      AC = new (window.AudioContext || window.webkitAudioContext)();
+      engOsc = AC.createOscillator();
+      engOsc.type = 'sawtooth';
+      const engFilter = AC.createBiquadFilter();
+      engFilter.type = 'lowpass';
+      engFilter.frequency.value = 750;
+      engGain = AC.createGain();
+      engGain.gain.value = 0;
+      engOsc.connect(engFilter); engFilter.connect(engGain); engGain.connect(AC.destination);
+      engOsc.start();
+
+      noiseBuf = AC.createBuffer(1, AC.sampleRate, AC.sampleRate);
+      const d = noiseBuf.getChannelData(0);
+      for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+      const src = AC.createBufferSource();
+      src.buffer = noiseBuf; src.loop = true;
+      const nf = AC.createBiquadFilter();
+      nf.type = 'bandpass'; nf.frequency.value = 900;
+      nitroGain = AC.createGain();
+      nitroGain.gain.value = 0;
+      src.connect(nf); nf.connect(nitroGain); nitroGain.connect(AC.destination);
+      src.start();
+    } catch (e) { AC = null; }
+  }
+  function updateEngine(throttle) {
+    if (!AC || !engGain) return;
+    if (muted || !running) {
+      engGain.gain.value = 0;
+      nitroGain.gain.value = 0;
+      return;
+    }
+    engOsc.frequency.value = 46 + rpm * 130 + gear * 10;
+    engGain.gain.value = 0.028 + throttle * 0.04 + (speed / MAX_SPEED) * 0.018;
+    nitroGain.gain.value = (nitroActive ? 0.1 : 0) + Math.max(0, (speed - 220) / 2200);
+  }
+  function blip(freq, dur, type, vol, slide) {
+    if (!AC || muted) return;
+    const o = AC.createOscillator(), g = AC.createGain();
+    o.type = type || 'square';
+    o.frequency.setValueAtTime(freq, AC.currentTime);
+    if (slide) o.frequency.linearRampToValueAtTime(freq + slide, AC.currentTime + dur);
+    g.gain.setValueAtTime(vol || 0.12, AC.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, AC.currentTime + dur);
+    o.connect(g); g.connect(AC.destination);
+    o.start(); o.stop(AC.currentTime + dur);
+  }
+  function sfxCrash() {
+    if (!AC || muted) return;
+    const src = AC.createBufferSource();
+    src.buffer = noiseBuf;
+    const f = AC.createBiquadFilter();
+    f.type = 'lowpass'; f.frequency.value = 500;
+    const g = AC.createGain();
+    g.gain.setValueAtTime(0.35, AC.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, AC.currentTime + 0.5);
+    src.connect(f); f.connect(g); g.connect(AC.destination);
+    src.start(); src.stop(AC.currentTime + 0.5);
+  }
+  const sfxNearMiss = () => blip(1500, 0.12, 'sine', 0.1, 800);
+  const sfxCheckpoint = () => { blip(880, 0.12, 'square', 0.1); setTimeout(() => blip(1320, 0.2, 'square', 0.1), 120); };
+  const sfxWin = () => { blip(660, 0.1, 'square', 0.12); setTimeout(() => blip(880, 0.1, 'square', 0.12), 100); setTimeout(() => blip(1100, 0.25, 'square', 0.12), 200); };
+
+  document.getElementById('muteBtn').addEventListener('click', (e) => {
+    muted = !muted;
+    e.target.textContent = muted ? '🔇' : '🔊';
+    e.target.blur();
+  });
+
+  // ============ 入力 ============
+  const input = { left: false, right: false, brake: false, nitro: false };
+  const pointers = new Map();
+
+  function buttonRects() {
+    const s = Math.min(W, H);
+    const pad = s * 0.035;
+    // 4ボタン+余白が横幅に収まるサイズ
+    const r = Math.min(s * 0.13, 72, (W - pad * 6) / 8);
+    const by = H - r * 2 - pad - 4;
+    return {
+      left:  { x: pad, y: by, w: r * 2, h: r * 2, label: '◀' },
+      right: { x: pad * 2 + r * 2, y: by, w: r * 2, h: r * 2, label: '▶' },
+      brake: { x: W - pad - r * 2, y: by, w: r * 2, h: r * 2, label: 'BRAKE' },
+      nitro: { x: W - pad * 2 - r * 4, y: by, w: r * 2, h: r * 2, label: 'NITRO' },
+    };
+  }
+  function updateTouchInput() {
+    if (!IS_TOUCH) return;
+    const rects = buttonRects();
+    for (const k of ['left', 'right', 'brake', 'nitro']) input[k] = false;
+    for (const p of pointers.values()) {
+      for (const [name, r] of Object.entries(rects)) {
+        if (p.x >= r.x - 8 && p.x <= r.x + r.w + 8 && p.y >= r.y - 8 && p.y <= r.y + r.h + 8) {
+          input[name] = true;
+        }
+      }
+    }
+  }
+  canvas.addEventListener('pointerdown', e => {
+    e.preventDefault();
+    pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    updateTouchInput();
+  });
+  canvas.addEventListener('pointermove', e => {
+    if (!pointers.has(e.pointerId)) return;
+    pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    updateTouchInput();
+  });
+  const releasePointer = e => {
+    pointers.delete(e.pointerId);
+    updateTouchInput();
+  };
+  canvas.addEventListener('pointerup', releasePointer);
+  canvas.addEventListener('pointercancel', releasePointer);
+  canvas.addEventListener('touchstart', e => e.preventDefault(), { passive: false });
+
+  const keyMap = {
+    ArrowLeft: 'left', ArrowRight: 'right', ArrowUp: 'up', ArrowDown: 'down',
+    KeyA: 'left', KeyD: 'right', KeyW: 'up', KeyS: 'down',
+    ShiftLeft: 'nitro', ShiftRight: 'nitro', Space: 'nitro',
+  };
+  document.addEventListener('keydown', e => {
+    if (!running && (e.code === 'Space' || e.code === 'Enter')) {
+      e.preventDefault();
+      startGame();
+      return;
+    }
+    if (keyMap[e.code]) { keys[keyMap[e.code]] = true; e.preventDefault(); }
+  });
+  document.addEventListener('keyup', e => {
+    if (keyMap[e.code]) keys[keyMap[e.code]] = false;
+  });
+
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) lastTime = performance.now();
+  });
+
+  // ============ 更新 ============
+  function wrapRel(z) {
+    let rel = z - position;
+    if (rel < -trackLength / 2) rel += trackLength;
+    if (rel > trackLength / 2) rel -= trackLength;
+    return rel;
+  }
+
+  function flash(text, color, size) {
+    flashes.push({ text, color, size: size || 1, t: 1.5 });
+    if (flashes.length > 3) flashes.shift();
+  }
+
+  function nearMiss() {
+    combo++;
+    comboTimer = 3;
+    const pts = 100 * combo;
+    bonusScore += pts;
+    nitroGauge = Math.min(100, nitroGauge + 12);
+    flash('NICE! +' + pts + (combo > 1 ? '  x' + combo : ''), '#3de8ff', 0.7);
+    sfxNearMiss();
+  }
+
+  function hitCar(otherSpeed) {
+    if (crashTimer > 0) return;
+    speed = Math.min(speed, otherSpeed * 0.5);
+    crashTimer = 1;
+    shake = 12;
+    combo = 0;
+    flash('CRASH!', '#ff3d5e', 1.2);
+    sfxCrash();
+  }
+
+  function carInteraction(car, carSpeed) {
+    const rel = wrapRel(car.z);
+    if (rel > -SEG_LEN * 0.5 && rel < SEG_LEN * 2 && speed > carSpeed) {
+      if (Math.abs(car.lane - playerX) < car.w + 0.26) {
+        hitCar(carSpeed);
+        return;
+      }
+    }
+    // ニアミス判定: 追い抜いた瞬間、横が近ければボーナス
+    if (!car.behind && rel < 0 && rel > -SEG_LEN * 3) {
+      car.behind = true;
+      const laneDiff = Math.abs(car.lane - playerX);
+      if (laneDiff < 0.62 && speed - carSpeed > 50 && crashTimer <= 0) nearMiss();
+    }
+    if (rel > SEG_LEN * 2) car.behind = false;
+  }
+
   function update(dt) {
     const seg = findSegment(position);
 
-    // 入力
-    const accel = keys.up || keys.tAccel;
-    const brake = keys.down || keys.tBrake;
-    const left = keys.left || keys.tLeft;
-    const right = keys.right || keys.tRight;
+    const left = keys.left || input.left;
+    const right = keys.right || input.right;
+    const brake = keys.down || input.brake;
+    const accelKey = keys.up;
+    const wantNitro = keys.nitro || input.nitro;
 
-    if (accel) speed += (MAX_SPEED - speed) * 0.42 * dt;
-    else if (brake) speed -= 220 * dt;
-    else speed -= 35 * dt;
-    speed = Math.max(0, Math.min(MAX_SPEED, speed));
+    // タッチ端末は自動アクセル
+    const throttle = brake ? 0 : (IS_TOUCH ? 1 : (accelKey ? 1 : 0));
+    nitroActive = wantNitro && nitroGauge > 0 && throttle > 0 && speed > 30;
+
+    const topSpeed = nitroActive ? NITRO_SPEED : MAX_SPEED;
+    if (throttle > 0) {
+      speed += (topSpeed - speed) * (nitroActive ? 0.75 : 0.42) * dt;
+    } else if (brake) {
+      speed -= 230 * dt;
+    } else {
+      speed -= 35 * dt;
+    }
+    speed = Math.max(0, Math.min(topSpeed, speed));
+
+    if (nitroActive) nitroGauge = Math.max(0, nitroGauge - 34 * dt);
+    else nitroGauge = Math.min(100, nitroGauge + 7 * dt);
+
+    // ギアとRPM
+    gear = 1;
+    for (let g = 1; g < GEARS.length - 1; g++) if (speed >= GEARS[g]) gear = g + 1;
+    const lo = GEARS[gear - 1], hi = GEARS[gear];
+    rpm = Math.min(1, Math.max(0.12, (speed - lo) / (hi - lo)));
 
     const speedRatio = speed / MAX_SPEED;
 
@@ -241,13 +475,11 @@
     const steerTarget = left ? -1 : right ? 1 : 0;
     steer += (steerTarget - steer) * 8 * dt;
     playerX += steer * 1.9 * dt * (0.35 + speedRatio);
-    // カーブによる遠心力
     playerX -= seg.curve * 0.032 * speedRatio * speedRatio * dt * 10;
 
-    // 路肩
     if (Math.abs(playerX) > 1.05) {
       playerX = Math.sign(playerX) * 1.05;
-      if (speed > 90) { speed -= 260 * dt; shake = 4; }
+      if (speed > 90) { speed -= 260 * dt; shake = Math.max(shake, 4); }
     }
 
     // 前進
@@ -256,47 +488,64 @@
     distanceTotal += move;
     while (position >= trackLength) position -= trackLength;
 
-    // 交通の更新と衝突
+    // 交通
     for (const car of traffic) {
       car.z += car.speed * SPEED_SCALE * dt;
       while (car.z >= trackLength) car.z -= trackLength;
-      // 相対距離(ループ考慮)
-      let rel = car.z - position;
-      if (rel < -trackLength / 2) rel += trackLength;
-      if (rel > trackLength / 2) rel -= trackLength;
-      if (rel > -SEG_LEN * 0.5 && rel < SEG_LEN * 2 && speed > car.speed) {
-        if (Math.abs(car.lane - playerX) < car.w + 0.28) {
-          // 衝突: 大減速
-          speed = Math.min(speed, car.speed * 0.55);
-          shake = 10;
-          flash('CRASH!', '#ff3d5e');
-        }
-      }
+      carInteraction(car, car.speed);
+    }
+
+    // ライバル
+    if (rival) {
+      const gap = rival.total - distanceTotal;
+      let target = rival.base;
+      if (gap > 22000) target = Math.max(110, speed * 0.9);            // 離れすぎたら待つ
+      else if (gap < -40000) target = Math.min(372, rival.base * 1.12); // 追い上げ
+      rival.curSpeed += (target - rival.curSpeed) * 0.6 * dt;
+      rival.total += rival.curSpeed * SPEED_SCALE * dt;
+      rival.z = ((rival.total % trackLength) + trackLength) % trackLength;
+      carInteraction(rival, rival.curSpeed);
     }
 
     // チェックポイント
     timeLeft -= dt;
     if (distanceTotal >= checkpointAt) {
       checkpointAt += CHECKPOINT_DIST;
+      let bonus = CHECKPOINT_TIME;
+      if (rival) {
+        if (distanceTotal > rival.total) {
+          bonus += 8;
+          bonusScore += 5000 * stage;
+          flash(rival.name + ' 撃破! +5000', '#f2d048', 1);
+          sfxWin();
+        } else {
+          flash(rival.name + ' に先行された…', '#8b93b8', 0.8);
+        }
+      }
       stage++;
-      timeLeft = Math.min(timeLeft + CHECKPOINT_TIME, 99);
-      flash('CHECKPOINT +' + CHECKPOINT_TIME + 's', '#3de8ff');
+      timeLeft = Math.min(timeLeft + bonus, 99);
+      nitroGauge = Math.min(100, nitroGauge + 40);
+      flash('CHECKPOINT +' + bonus + 's', '#3de8ff', 1);
+      sfxCheckpoint();
+      spawnRival();
+      while (traffic.length < Math.min(26, 12 + stage * 2)) traffic.push(makeCar());
     }
-    if (timeLeft <= 0) {
-      timeLeft = 0;
-      endGame();
-    }
+    if (timeLeft <= 0) { timeLeft = 0; endGame(); }
 
+    if (comboTimer > 0) { comboTimer -= dt; if (comboTimer <= 0) combo = 0; }
+    if (crashTimer > 0) crashTimer -= dt;
     if (shake > 0) shake = Math.max(0, shake - 30 * dt);
-    if (flashTimer > 0) flashTimer -= dt;
+    for (const f of flashes) f.t -= dt;
+    flashes = flashes.filter(f => f.t > 0);
+
+    updateEngine(throttle);
   }
 
-  function flash(msg, color) {
-    flashMsg = { text: msg, color };
-    flashTimer = 1.4;
+  function totalScore() {
+    return Math.floor(distanceTotal * U2M / 10) + bonusScore;
   }
 
-  // --- 描画 ---
+  // ============ 描画 ============
   function project(worldX, worldY, worldZ, camX, camY, camZ) {
     const dz = worldZ - camZ;
     const scale = CAMERA_DEPTH / (dz <= 0 ? 0.0001 : dz);
@@ -307,19 +556,63 @@
       scale,
     };
   }
+  function poly(x1, y1, x2, y2, x3, y3, x4, y4) {
+    ctx.beginPath();
+    ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.lineTo(x3, y3); ctx.lineTo(x4, y4);
+    ctx.closePath(); ctx.fill();
+  }
 
-  function render() {
-    // 夜空
+  function drawSky(inTunnel) {
     const sky = ctx.createLinearGradient(0, 0, 0, H * 0.55);
     sky.addColorStop(0, '#03040c');
-    sky.addColorStop(1, '#131b3d');
+    sky.addColorStop(1, '#141d42');
     ctx.fillStyle = sky;
     ctx.fillRect(0, 0, W, H);
+    if (inTunnel) return;
+    // 星
+    ctx.fillStyle = '#dfe6ff';
+    for (const st of stars) {
+      ctx.globalAlpha = st.a;
+      ctx.fillRect(st.x * W, st.y * H, 2, 2);
+    }
+    ctx.globalAlpha = 1;
+    // 月
+    ctx.fillStyle = 'rgba(230,235,255,.9)';
+    ctx.beginPath(); ctx.arc(W * 0.82, H * 0.12, Math.min(W, H) * 0.03, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#03040c';
+    ctx.beginPath(); ctx.arc(W * 0.82 + Math.min(W, H) * 0.014, H * 0.12 - 4, Math.min(W, H) * 0.027, 0, Math.PI * 2); ctx.fill();
+    // ビル群
+    const horizon = H * 0.5;
+    let bx = -30 - (position * 0.002 % 64);
+    for (const b of skylineSeed) {
+      const bh = b.h * H;
+      ctx.fillStyle = '#0a0e20';
+      ctx.fillRect(bx, horizon - bh, b.w, bh);
+      if (b.lights > 0.3) {
+        ctx.fillStyle = 'rgba(255,214,120,.45)';
+        for (let wy = 6; wy < bh - 4; wy += 11) {
+          for (let wx = 3; wx < b.w - 3; wx += 8) {
+            if ((wx * 7 + Math.floor(wy) * 13 + Math.floor(b.lights * 100)) % 3 === 0) {
+              ctx.fillRect(bx + wx, horizon - bh + wy, 2.5, 3.5);
+            }
+          }
+        }
+      }
+      bx += b.w + 4;
+      if (bx > W) break;
+    }
+    // 地平線の街明かり
+    const glow = ctx.createLinearGradient(0, horizon - 30, 0, horizon);
+    glow.addColorStop(0, 'rgba(90,110,255,0)');
+    glow.addColorStop(1, 'rgba(120,140,255,.14)');
+    ctx.fillStyle = glow;
+    ctx.fillRect(0, horizon - 30, W, 30);
+  }
 
-    // 遠景: ビル群のシルエットとネオン
-    drawSkyline();
-
+  function render() {
     const baseSeg = findSegment(position);
+    drawSky(baseSeg.tunnel);
+
     const basePct = (position % SEG_LEN) / SEG_LEN;
     const camX = playerX * ROAD_W;
     const camY = CAMERA_H + baseSeg.p1y + (baseSeg.p2y - baseSeg.p1y) * basePct;
@@ -327,12 +620,10 @@
     let maxY = H;
     let x = 0, dx = -baseSeg.curve * basePct;
 
-    const shakeX = (Math.random() - .5) * shake;
-    const shakeY = (Math.random() - .5) * shake;
     ctx.save();
-    ctx.translate(shakeX, shakeY);
+    ctx.translate((Math.random() - .5) * shake, (Math.random() - .5) * shake);
 
-    const rows = []; // 後で交通車両を描くため保存
+    const rows = [];
 
     for (let n = 0; n < DRAW_DIST; n++) {
       const i = (baseSeg.index + n) % segments.length;
@@ -345,255 +636,375 @@
       dx += seg.curve;
       const p2 = project(x, seg.p2y, segZ + SEG_LEN, camX, camY, camZ);
 
-      rows.push({ seg, p1, p2, segZ });
+      rows.push({ seg, p1, p2 });
 
-      if (segZ - camZ < 1) continue;   // カメラより手前は描かない
+      if (segZ - camZ < 1) continue;
       if (p2.y >= maxY) continue;
 
       const dark = Math.floor(i / 3) % 2 === 0;
       // 路面
-      ctx.fillStyle = dark ? '#14161f' : '#171a24';
+      ctx.fillStyle = seg.tunnel ? (dark ? '#101219' : '#13151d') : (dark ? '#14161f' : '#171a24');
       poly(p1.x - p1.w, p1.y, p1.x + p1.w, p1.y, p2.x + p2.w, p2.y, p2.x - p2.w, p2.y);
       // 路肩ライン
       const rw1 = p1.w * 0.04, rw2 = p2.w * 0.04;
       ctx.fillStyle = dark ? '#e8eaf6' : '#8b93b8';
       poly(p1.x - p1.w, p1.y, p1.x - p1.w + rw1, p1.y, p2.x - p2.w + rw2, p2.y, p2.x - p2.w, p2.y);
       poly(p1.x + p1.w - rw1, p1.y, p1.x + p1.w, p1.y, p2.x + p2.w, p2.y, p2.x + p2.w - rw2, p2.y);
-      // 車線境界(破線)
+      // 車線(破線)
       if (dark) {
         ctx.fillStyle = '#aab2d0';
         for (let l = 1; l < LANES; l++) {
           const lx1 = p1.x - p1.w + (p1.w * 2) * (l / LANES);
           const lx2 = p2.x - p2.w + (p2.w * 2) * (l / LANES);
-          const lw1 = p1.w * 0.012, lw2 = p2.w * 0.012;
+          const lw1 = Math.max(1, p1.w * 0.012), lw2 = Math.max(1, p2.w * 0.012);
           poly(lx1 - lw1, p1.y, lx1 + lw1, p1.y, lx2 + lw2, p2.y, lx2 - lw2, p2.y);
         }
       }
-      // ガードレールの支柱ライト(ネオン風)
-      if (i % 6 === 0) {
-        const s = Math.min(170, p1.scale * 1400 * H / 2);
-        ctx.fillStyle = '#ffb84d';
-        ctx.fillRect(p1.x - p1.w * 1.12, p1.y - s, Math.max(1, s * 0.06), s);
-        ctx.fillStyle = '#3de8ff';
-        ctx.fillRect(p1.x + p1.w * 1.12, p1.y - s, Math.max(1, s * 0.06), s);
+
+      if (seg.tunnel) {
+        // トンネル: 壁と天井
+        const c1 = p1.y - p1.scale * TUNNEL_H * H / 2;
+        const c2 = p2.y - p2.scale * TUNNEL_H * H / 2;
+        ctx.fillStyle = dark ? '#191d2b' : '#1c2131';
+        poly(p1.x - p1.w * 1.06, p1.y, p1.x - p1.w * 1.06, c1, p2.x - p2.w * 1.06, c2, p2.x - p2.w * 1.06, p2.y);
+        poly(p1.x + p1.w * 1.06, p1.y, p1.x + p1.w * 1.06, c1, p2.x + p2.w * 1.06, c2, p2.x + p2.w * 1.06, p2.y);
+        ctx.fillStyle = '#0c0e17';
+        poly(p1.x - p1.w * 1.06, c1, p1.x + p1.w * 1.06, c1, p2.x + p2.w * 1.06, c2, p2.x - p2.w * 1.06, c2);
+        // 天井灯
+        if (i % 4 === 0 && p1.w < W * 2) {
+          ctx.fillStyle = '#ffd98a';
+          const lw = Math.max(2, p1.w * 0.06);
+          ctx.fillRect(p1.x - lw / 2, c1, lw, Math.max(2, p1.w * 0.015));
+        }
+      } else {
+        // ガードレール支柱ライト
+        if (i % 6 === 0) {
+          const s = Math.min(170, p1.scale * 1400 * H / 2);
+          ctx.fillStyle = '#ffb84d';
+          ctx.fillRect(p1.x - p1.w * 1.12, p1.y - s, Math.max(1, s * 0.06), s);
+          ctx.fillStyle = '#3de8ff';
+          ctx.fillRect(p1.x + p1.w * 1.12, p1.y - s, Math.max(1, s * 0.06), s);
+        }
+        // 標識ゲート(至近距離では巨大化するため描画しない)
+        if (i % 120 === 0 && p1.w < W * 1.2) {
+          const gh = p1.scale * 2100 * H / 2;
+          const top = p1.y - gh;
+          const bw = Math.max(2, p1.w * 0.03);
+          ctx.fillStyle = '#3a445f';
+          ctx.fillRect(p1.x - p1.w * 1.08, top, bw, gh);
+          ctx.fillRect(p1.x + p1.w * 1.08 - bw, top, bw, gh);
+          ctx.fillRect(p1.x - p1.w * 1.08, top, p1.w * 2.16, Math.max(2, p1.w * 0.05));
+          ctx.fillStyle = '#1c7a4a';
+          ctx.fillRect(p1.x - p1.w * 0.4, top + p1.w * 0.02, p1.w * 0.8, p1.w * 0.2);
+          ctx.strokeStyle = '#cfe8dc';
+          ctx.lineWidth = Math.max(1, p1.w * 0.008);
+          ctx.strokeRect(p1.x - p1.w * 0.4, top + p1.w * 0.02, p1.w * 0.8, p1.w * 0.2);
+        }
       }
       maxY = p2.y;
     }
 
-    // 交通車両(奥から手前へ)
+    // 車両スプライト(奥→手前)
     const drawList = [];
-    for (const car of traffic) {
-      const carIdx = Math.floor(car.z / SEG_LEN) % segments.length;
-      const n = (carIdx - baseSeg.index + segments.length) % segments.length;
+    const pushSprite = (z, lane, obj, isRival) => {
+      const idx = Math.floor(z / SEG_LEN) % segments.length;
+      const n = (idx - baseSeg.index + segments.length) % segments.length;
       if (n >= 1 && n < DRAW_DIST) {
-        drawList.push({ n, t: (car.z % SEG_LEN) / SEG_LEN, car });
+        drawList.push({ n, t: (z % SEG_LEN) / SEG_LEN, lane, obj, isRival });
       }
-    }
+    };
+    for (const car of traffic) pushSprite(car.z, car.lane, car, false);
+    if (rival) pushSprite(rival.z, rival.lane, rival, true);
     drawList.sort((a, b) => b.n - a.n);
-    for (const { n, t, car } of drawList) {
+    for (const { n, t, lane, obj, isRival } of drawList) {
       const { p1, p2 } = rows[n];
       const hw = p1.w + (p2.w - p1.w) * t;
-      const px = p1.x + (p2.x - p1.x) * t + hw * car.lane;
+      const px = p1.x + (p2.x - p1.x) * t + hw * lane;
       const py = p1.y + (p2.y - p1.y) * t;
-      if (py < H * 0.5 - 10 || py > H + 60) continue;
-      drawCar(px, py, hw * 0.18, car.color, true);
+      if (py < H * 0.5 - 10 || py > H + hw * 0.4) continue;
+      if (isRival) drawRivalCar(px, py, hw * 0.18, obj.name);
+      else drawCar(px, py, hw * 0.18, obj.color);
     }
 
-    // 自車
     drawPlayerCar();
-
     ctx.restore();
 
+    drawSpeedLines();
     drawHud();
-  }
-
-  function poly(x1, y1, x2, y2, x3, y3, x4, y4) {
-    ctx.beginPath();
-    ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.lineTo(x3, y3); ctx.lineTo(x4, y4);
-    ctx.closePath(); ctx.fill();
-  }
-
-  let skylineSeed = [];
-  function initSkyline() {
-    skylineSeed = [];
-    for (let i = 0; i < 40; i++) {
-      skylineSeed.push({
-        w: 14 + Math.random() * 30,
-        h: 20 + Math.random() * 70,
-        lights: Math.random(),
-      });
+    if (IS_TOUCH) drawTouchButtons();
+    if (crashTimer > 0.5) {
+      ctx.fillStyle = 'rgba(255,40,70,' + ((crashTimer - 0.5) * 0.35) + ')';
+      ctx.fillRect(0, 0, W, H);
     }
   }
 
-  function drawSkyline() {
-    const horizon = H * 0.5;
-    let bx = -20 - (position * 0.002 % 60);
-    ctx.fillStyle = '#0a0e20';
-    for (const b of skylineSeed) {
-      ctx.fillRect(bx, horizon - b.h, b.w, b.h);
-      bx += b.w + 4;
-      if (bx > W) break;
-    }
-    // 窓明かり
-    bx = -20 - (position * 0.002 % 60);
-    for (const b of skylineSeed) {
-      if (b.lights > 0.3) {
-        ctx.fillStyle = 'rgba(255,214,120,.5)';
-        for (let wy = 8; wy < b.h - 4; wy += 10) {
-          for (let wx = 3; wx < b.w - 3; wx += 8) {
-            if ((wx * 7 + wy * 13 + Math.floor(b.lights * 100)) % 3 === 0) {
-              ctx.fillRect(bx + wx, horizon - b.h + wy, 3, 4);
-            }
-          }
-        }
-      }
-      bx += b.w + 4;
-      if (bx > W) break;
-    }
-    // 月
-    ctx.fillStyle = 'rgba(230,235,255,.9)';
-    ctx.beginPath();
-    ctx.arc(W * 0.82, H * 0.14, 16, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = '#03040c';
-    ctx.beginPath();
-    ctx.arc(W * 0.82 + 7, H * 0.14 - 4, 14, 0, Math.PI * 2);
-    ctx.fill();
-  }
-
-  function drawCar(x, y, size, color, taillight) {
+  function drawCar(x, y, size, color) {
     const w = size * 2.0, h = size * 1.1;
     if (w < 2) return;
-    // ボディ
     ctx.fillStyle = color;
     ctx.beginPath();
-    ctx.moveTo(x - w/2, y);
-    ctx.lineTo(x - w/2 + w*0.1, y - h*0.55);
-    ctx.lineTo(x - w/2 + w*0.28, y - h);
-    ctx.lineTo(x + w/2 - w*0.28, y - h);
-    ctx.lineTo(x + w/2 - w*0.1, y - h*0.55);
-    ctx.lineTo(x + w/2, y);
+    ctx.moveTo(x - w / 2, y);
+    ctx.lineTo(x - w / 2 + w * 0.1, y - h * 0.55);
+    ctx.lineTo(x - w / 2 + w * 0.28, y - h);
+    ctx.lineTo(x + w / 2 - w * 0.28, y - h);
+    ctx.lineTo(x + w / 2 - w * 0.1, y - h * 0.55);
+    ctx.lineTo(x + w / 2, y);
     ctx.closePath();
     ctx.fill();
-    // ウィンドウ
     ctx.fillStyle = 'rgba(10,14,30,.85)';
-    ctx.fillRect(x - w*0.24, y - h*0.95, w*0.48, h*0.35);
-    // テールランプ
-    if (taillight) {
-      ctx.fillStyle = '#ff2d4d';
-      ctx.fillRect(x - w*0.42, y - h*0.42, w*0.2, h*0.14);
-      ctx.fillRect(x + w*0.22, y - h*0.42, w*0.2, h*0.14);
-      ctx.fillStyle = 'rgba(255,45,77,.25)';
-      ctx.fillRect(x - w*0.5, y - h*0.5, w, h*0.3);
-    }
-    // タイヤ
+    ctx.fillRect(x - w * 0.24, y - h * 0.95, w * 0.48, h * 0.35);
+    ctx.fillStyle = '#ff2d4d';
+    ctx.fillRect(x - w * 0.42, y - h * 0.42, w * 0.2, h * 0.14);
+    ctx.fillRect(x + w * 0.22, y - h * 0.42, w * 0.2, h * 0.14);
     ctx.fillStyle = '#000';
-    ctx.fillRect(x - w*0.46, y - h*0.12, w*0.14, h*0.16);
-    ctx.fillRect(x + w*0.32, y - h*0.12, w*0.14, h*0.16);
+    ctx.fillRect(x - w * 0.46, y - h * 0.12, w * 0.14, h * 0.16);
+    ctx.fillRect(x + w * 0.32, y - h * 0.12, w * 0.14, h * 0.16);
+  }
+
+  function drawRivalCar(x, y, size, name) {
+    const w = size * 2.1, h = size * 1.1;
+    if (w < 2) return;
+    // アンダーグロー
+    ctx.fillStyle = 'rgba(61,140,255,.35)';
+    ctx.fillRect(x - w * 0.55, y - h * 0.06, w * 1.1, h * 0.12);
+    ctx.fillStyle = '#12141c';
+    ctx.beginPath();
+    ctx.moveTo(x - w / 2, y);
+    ctx.lineTo(x - w / 2 + w * 0.08, y - h * 0.55);
+    ctx.lineTo(x - w / 2 + w * 0.26, y - h);
+    ctx.lineTo(x + w / 2 - w * 0.26, y - h);
+    ctx.lineTo(x + w / 2 - w * 0.08, y - h * 0.55);
+    ctx.lineTo(x + w / 2, y);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = '#3d8cff';
+    ctx.lineWidth = Math.max(1, w * 0.015);
+    ctx.stroke();
+    ctx.fillStyle = 'rgba(20,30,60,.9)';
+    ctx.fillRect(x - w * 0.22, y - h * 0.95, w * 0.44, h * 0.34);
+    ctx.fillStyle = '#ff2d4d';
+    ctx.fillRect(x - w * 0.4, y - h * 0.42, w * 0.2, h * 0.13);
+    ctx.fillRect(x + w * 0.2, y - h * 0.42, w * 0.2, h * 0.13);
+    ctx.fillStyle = '#000';
+    ctx.fillRect(x - w * 0.46, y - h * 0.12, w * 0.14, h * 0.16);
+    ctx.fillRect(x + w * 0.32, y - h * 0.12, w * 0.14, h * 0.16);
+    if (w > 26) {
+      ctx.textAlign = 'center';
+      ctx.font = 'bold ' + Math.max(10, w * 0.14) + 'px sans-serif';
+      ctx.fillStyle = '#ff3d5e';
+      ctx.fillText('▼ ' + name, x, y - h - Math.max(6, w * 0.08));
+    }
   }
 
   function drawPlayerCar() {
-    const x = W / 2 + steer * 24;
-    const y = H - 26;
-    const size = 34;
+    const s = Math.min(W, H);
+    const size = s * 0.085;
+    const x = W / 2 + steer * s * 0.04;
+    const y = H - s * (IS_TOUCH ? 0.30 : 0.09);
     const w = size * 2.4, h = size * 1.25;
-    // ヘッドライトの光
-    const grad = ctx.createRadialGradient(x, y - h*2, 10, x, y - h*2, 220);
-    grad.addColorStop(0, 'rgba(200,220,255,.18)');
+    // ヘッドライト光
+    const grad = ctx.createRadialGradient(x, y - h * 2, 10, x, y - h * 2, s * 0.4);
+    grad.addColorStop(0, 'rgba(200,220,255,.16)');
     grad.addColorStop(1, 'rgba(200,220,255,0)');
     ctx.fillStyle = grad;
-    ctx.fillRect(x - 240, y - h*2 - 240, 480, 260);
-    // ボディ(青のスポーツカー)
+    ctx.fillRect(x - s * 0.45, y - h * 2 - s * 0.45, s * 0.9, s * 0.5);
+    // ニトロ炎
+    if (nitroActive) {
+      ctx.fillStyle = 'rgba(80,180,255,.85)';
+      const fl = h * (0.5 + Math.random() * 0.5);
+      ctx.beginPath();
+      ctx.moveTo(x - w * 0.28, y);
+      ctx.lineTo(x - w * 0.18, y + fl);
+      ctx.lineTo(x - w * 0.08, y);
+      ctx.closePath(); ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(x + w * 0.08, y);
+      ctx.lineTo(x + w * 0.18, y + fl);
+      ctx.lineTo(x + w * 0.28, y);
+      ctx.closePath(); ctx.fill();
+    }
     ctx.save();
     ctx.translate(x, y);
     ctx.rotate(steer * 0.06);
     ctx.fillStyle = '#2456d8';
     ctx.beginPath();
-    ctx.moveTo(-w/2, 0);
-    ctx.lineTo(-w/2 + w*0.08, -h*0.5);
-    ctx.lineTo(-w/2 + w*0.3, -h);
-    ctx.lineTo(w/2 - w*0.3, -h);
-    ctx.lineTo(w/2 - w*0.08, -h*0.5);
-    ctx.lineTo(w/2, 0);
+    ctx.moveTo(-w / 2, 0);
+    ctx.lineTo(-w / 2 + w * 0.08, -h * 0.5);
+    ctx.lineTo(-w / 2 + w * 0.3, -h);
+    ctx.lineTo(w / 2 - w * 0.3, -h);
+    ctx.lineTo(w / 2 - w * 0.08, -h * 0.5);
+    ctx.lineTo(w / 2, 0);
     ctx.closePath();
     ctx.fill();
-    // リアウィング
     ctx.fillStyle = '#16327e';
-    ctx.fillRect(-w*0.42, -h*1.06, w*0.84, h*0.1);
-    ctx.fillRect(-w*0.4, -h*0.98, w*0.06, h*0.12);
-    ctx.fillRect(w*0.34, -h*0.98, w*0.06, h*0.12);
-    // ウィンドウ
+    ctx.fillRect(-w * 0.42, -h * 1.06, w * 0.84, h * 0.1);
+    ctx.fillRect(-w * 0.4, -h * 0.98, w * 0.06, h * 0.12);
+    ctx.fillRect(w * 0.34, -h * 0.98, w * 0.06, h * 0.12);
     ctx.fillStyle = 'rgba(10,14,30,.9)';
-    ctx.fillRect(-w*0.26, -h*0.92, w*0.52, h*0.34);
-    // テールランプ
-    ctx.fillStyle = '#ff2d4d';
-    ctx.fillRect(-w*0.44, -h*0.4, w*0.24, h*0.12);
-    ctx.fillRect(w*0.2, -h*0.4, w*0.24, h*0.12);
-    // タイヤ
+    ctx.fillRect(-w * 0.26, -h * 0.92, w * 0.52, h * 0.34);
+    const braking = keys.down || input.brake;
+    ctx.fillStyle = braking ? '#ff5570' : '#ff2d4d';
+    ctx.fillRect(-w * 0.44, -h * 0.4, w * 0.24, h * (braking ? 0.16 : 0.12));
+    ctx.fillRect(w * 0.2, -h * 0.4, w * 0.24, h * (braking ? 0.16 : 0.12));
     ctx.fillStyle = '#000';
-    ctx.fillRect(-w*0.5, -h*0.14, w*0.16, h*0.2);
-    ctx.fillRect(w*0.34, -h*0.14, w*0.16, h*0.2);
+    ctx.fillRect(-w * 0.5, -h * 0.14, w * 0.16, h * 0.2);
+    ctx.fillRect(w * 0.34, -h * 0.14, w * 0.16, h * 0.2);
     ctx.restore();
   }
 
-  function drawHud() {
-    // スピードメーター
-    ctx.textAlign = 'right';
-    ctx.fillStyle = '#fff';
-    ctx.font = 'italic bold 44px "Arial Black", sans-serif';
-    ctx.fillText(Math.floor(speed), W - 66, H - 24);
-    ctx.font = 'bold 14px sans-serif';
-    ctx.fillStyle = '#3de8ff';
-    ctx.fillText('km/h', W - 20, H - 24);
-
-    // タイム
-    ctx.textAlign = 'center';
-    ctx.font = 'bold 30px "Arial Black", sans-serif';
-    ctx.fillStyle = timeLeft < 10 ? '#ff3d5e' : '#f2d048';
-    ctx.fillText(Math.ceil(timeLeft), W / 2, 42);
-    ctx.font = 'bold 11px sans-serif';
-    ctx.fillStyle = '#8b93b8';
-    ctx.fillText('TIME', W / 2, 56);
-
-    // 距離とステージ
-    ctx.textAlign = 'left';
-    ctx.font = 'bold 15px sans-serif';
-    ctx.fillStyle = '#e8eaf6';
-    ctx.fillText('STAGE ' + stage, 18, 30);
-    ctx.fillStyle = '#8b93b8';
-    ctx.font = '13px sans-serif';
-    ctx.fillText((distanceTotal / SPEED_SCALE / 3600).toFixed(1) + ' km', 18, 50);
-
-    // フラッシュメッセージ
-    if (flashTimer > 0 && flashMsg) {
-      ctx.textAlign = 'center';
-      ctx.globalAlpha = Math.min(1, flashTimer);
-      ctx.font = 'italic bold 30px "Arial Black", sans-serif';
-      ctx.fillStyle = flashMsg.color;
-      ctx.fillText(flashMsg.text, W / 2, H * 0.4);
-      ctx.globalAlpha = 1;
+  function drawSpeedLines() {
+    const intensity = nitroActive ? 1 : Math.max(0, (speed - 250) / (MAX_SPEED - 250));
+    if (intensity <= 0) return;
+    ctx.strokeStyle = 'rgba(180,210,255,' + (0.14 * intensity) + ')';
+    ctx.lineWidth = 2;
+    const cx = W / 2, cy = H * 0.42;
+    for (let i = 0; i < 14; i++) {
+      const a = (i / 14) * Math.PI * 2 + (position * 0.0003 % (Math.PI * 2));
+      const r1 = Math.min(W, H) * (0.42 + 0.1 * Math.sin(i * 7 + position * 0.001));
+      const r2 = r1 + Math.min(W, H) * 0.22 * intensity;
+      ctx.beginPath();
+      ctx.moveTo(cx + Math.cos(a) * r1, cy + Math.sin(a) * r1);
+      ctx.lineTo(cx + Math.cos(a) * r2, cy + Math.sin(a) * r2);
+      ctx.stroke();
     }
   }
 
-  // --- ループ ---
+  function drawHud() {
+    const s = Math.min(W, H);
+    const pad = s * 0.035;
+
+    // 左上: ステージ・距離・スコア
+    ctx.textAlign = 'left';
+    ctx.fillStyle = '#e8eaf6';
+    ctx.font = 'bold ' + s * 0.038 + 'px sans-serif';
+    ctx.fillText('STAGE ' + stage, pad, pad + s * 0.038);
+    ctx.fillStyle = '#8b93b8';
+    ctx.font = s * 0.03 + 'px sans-serif';
+    ctx.fillText((distanceTotal / SPEED_SCALE / 3600).toFixed(1) + ' km', pad, pad + s * 0.078);
+    ctx.fillStyle = '#f2d048';
+    ctx.font = 'bold ' + s * 0.032 + 'px sans-serif';
+    ctx.fillText('SCORE ' + totalScore().toLocaleString(), pad, pad + s * 0.12);
+    if (combo > 1) {
+      ctx.fillStyle = '#3de8ff';
+      ctx.fillText('COMBO x' + combo, pad, pad + s * 0.16);
+    }
+
+    // 上中央: タイム
+    ctx.textAlign = 'center';
+    ctx.font = 'bold ' + s * 0.085 + 'px "Arial Black", sans-serif';
+    ctx.fillStyle = timeLeft < 10 ? '#ff3d5e' : '#f2d048';
+    ctx.fillText(Math.ceil(timeLeft), W / 2, pad + s * 0.075);
+    ctx.font = 'bold ' + s * 0.022 + 'px sans-serif';
+    ctx.fillStyle = '#8b93b8';
+    ctx.fillText('TIME', W / 2, pad + s * 0.1);
+
+    // ライバル距離
+    if (rival) {
+      const gapM = (rival.total - distanceTotal) * U2M;
+      ctx.font = 'bold ' + s * 0.028 + 'px sans-serif';
+      ctx.fillStyle = gapM > 0 ? '#ff6c7a' : '#5ee08a';
+      const label = gapM > 0
+        ? rival.name + ' +' + Math.round(gapM) + 'm 先行'
+        : rival.name + ' に ' + Math.round(-gapM) + 'm リード';
+      ctx.fillText(label, W / 2, pad + s * 0.14);
+    }
+
+    // 右下: タコメーター+スピード
+    const tx = W - s * 0.17;
+    const ty = H - s * (IS_TOUCH ? 0.42 : 0.17);
+    const tr = s * 0.11;
+    const a0 = Math.PI * 0.75, a1 = Math.PI * 2.25;
+    ctx.lineWidth = s * 0.018;
+    ctx.strokeStyle = 'rgba(255,255,255,.12)';
+    ctx.beginPath(); ctx.arc(tx, ty, tr, a0, a1); ctx.stroke();
+    const rpmA = a0 + (a1 - a0) * rpm;
+    ctx.strokeStyle = rpm > 0.86 ? '#ff3d5e' : '#3de8ff';
+    ctx.beginPath(); ctx.arc(tx, ty, tr, a0, rpmA); ctx.stroke();
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#fff';
+    ctx.font = 'italic bold ' + s * 0.062 + 'px "Arial Black", sans-serif';
+    ctx.fillText(Math.floor(speed), tx, ty + s * 0.016);
+    ctx.font = 'bold ' + s * 0.02 + 'px sans-serif';
+    ctx.fillStyle = '#8b93b8';
+    ctx.fillText('km/h', tx, ty + s * 0.045);
+    ctx.fillStyle = '#f2d048';
+    ctx.font = 'italic bold ' + s * 0.03 + 'px sans-serif';
+    ctx.fillText(gear + '速', tx, ty - s * 0.042);
+
+    // ニトロゲージ(タッチ端末はNITROボタン内に%表示があるため省略)
+    if (IS_TOUCH) return drawFlashes(s);
+    const nw = tr * 2.2, nh = s * 0.016;
+    const nx = tx - nw / 2, ny = ty + tr + s * 0.03;
+    ctx.fillStyle = 'rgba(255,255,255,.12)';
+    ctx.fillRect(nx, ny, nw, nh);
+    ctx.fillStyle = nitroActive ? '#7fd0ff' : '#3d8cff';
+    ctx.fillRect(nx, ny, nw * nitroGauge / 100, nh);
+    ctx.textAlign = 'center';
+    ctx.font = 'bold ' + s * 0.018 + 'px sans-serif';
+    ctx.fillStyle = '#8b93b8';
+    ctx.fillText('NITRO', tx, ny + nh + s * 0.024);
+
+    drawFlashes(s);
+  }
+
+  function drawFlashes(s) {
+    let fy = H * 0.34;
+    ctx.textAlign = 'center';
+    for (const f of flashes) {
+      ctx.globalAlpha = Math.min(1, f.t);
+      ctx.font = 'italic bold ' + s * 0.055 * f.size + 'px "Arial Black", sans-serif';
+      ctx.fillStyle = f.color;
+      ctx.fillText(f.text, W / 2, fy);
+      fy += s * 0.06 * f.size;
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  function drawTouchButtons() {
+    const rects = buttonRects();
+    for (const [name, r] of Object.entries(rects)) {
+      const active = input[name];
+      ctx.fillStyle = active ? 'rgba(120,160,255,.4)' : 'rgba(30,38,70,.42)';
+      ctx.strokeStyle = active ? 'rgba(160,200,255,.9)' : 'rgba(255,255,255,.28)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(r.x + r.w / 2, r.y + r.h / 2, r.w / 2, 0, Math.PI * 2);
+      ctx.fill(); ctx.stroke();
+      ctx.fillStyle = 'rgba(255,255,255,.9)';
+      ctx.textAlign = 'center';
+      const isArrow = name === 'left' || name === 'right';
+      ctx.font = 'bold ' + (isArrow ? r.w * 0.42 : r.w * 0.2) + 'px sans-serif';
+      ctx.fillText(r.label, r.x + r.w / 2, r.y + r.h / 2 + (isArrow ? r.w * 0.15 : r.w * 0.07));
+      if (name === 'nitro') {
+        ctx.font = 'bold ' + r.w * 0.13 + 'px sans-serif';
+        ctx.fillStyle = 'rgba(140,200,255,.8)';
+        ctx.fillText(Math.floor(nitroGauge) + '%', r.x + r.w / 2, r.y + r.h / 2 + r.w * 0.26);
+      }
+    }
+  }
+
+  // ============ ゲームループ ============
   function loop(time) {
     if (!running) return;
-    const dt = Math.min(0.05, (time - lastTime) / 1000);
+    const dt = Math.max(0, Math.min(0.05, (time - lastTime) / 1000));
     lastTime = time;
     update(dt);
     render();
     if (running) requestAnimationFrame(loop);
   }
 
-  function start() {
+  function startGame() {
+    initAudio();
     buildTrack();
-    initSkyline();
+    initSky();
     spawnTraffic(14);
     playerX = 0; position = 0; speed = 0; steer = 0;
     distanceTotal = 0; checkpointAt = CHECKPOINT_DIST;
     stage = 1; timeLeft = CHECKPOINT_TIME;
+    nitroGauge = 100; combo = 0; comboTimer = 0; bonusScore = 0;
+    crashTimer = 0; shake = 0; flashes = [];
+    spawnRival();
     running = true; gameOver = false;
-    flashTimer = 0;
     document.getElementById('overlay').classList.add('hidden');
     lastTime = performance.now();
     requestAnimationFrame(loop);
@@ -602,50 +1013,34 @@
   function endGame() {
     running = false;
     gameOver = true;
+    updateEngine(0);
     const km = distanceTotal / SPEED_SCALE / 3600;
-    if (km > best) {
-      best = km;
-      localStorage.setItem('midnight-best-km', best);
-    }
-    document.getElementById('ovTitle').textContent = 'TIME UP';
-    document.getElementById('ovMsg').innerHTML =
-      '走行距離: ' + km.toFixed(1) + ' km / STAGE ' + stage +
-      '<br>ベスト: ' + best.toFixed(1) + ' km';
+    const sc = totalScore();
+    let newRecord = false;
+    if (sc > bestScore) { bestScore = sc; localStorage.setItem('midnight-best-score', bestScore); newRecord = true; }
+    if (km > bestKm) { bestKm = km; localStorage.setItem('midnight-best-km', bestKm); }
+    document.getElementById('ovTitle').innerHTML = 'TIME UP';
+    document.getElementById('ovMsg').textContent = newRecord ? '★ NEW RECORD! ★' : '';
+    const res = document.getElementById('ovResult');
+    res.classList.remove('hidden');
+    res.innerHTML =
+      'SCORE <b>' + sc.toLocaleString() + '</b><br>' +
+      '走行距離 <b>' + km.toFixed(1) + ' km</b> / STAGE <b>' + stage + '</b><br>' +
+      'ベストスコア ' + bestScore.toLocaleString();
     document.getElementById('startBtn').textContent = 'RETRY';
     document.getElementById('overlay').classList.remove('hidden');
   }
 
-  document.getElementById('startBtn').addEventListener('click', start);
+  document.getElementById('startBtn').addEventListener('click', startGame);
 
-  // --- 入力 ---
-  const keyMap = {
-    ArrowLeft: 'left', ArrowRight: 'right', ArrowUp: 'up', ArrowDown: 'down',
-    KeyA: 'left', KeyD: 'right', KeyW: 'up', KeyS: 'down',
-  };
-  document.addEventListener('keydown', e => {
-    if (keyMap[e.code]) { keys[keyMap[e.code]] = true; e.preventDefault(); }
-    if (!running && (e.code === 'Space' || e.code === 'Enter')) start();
-  });
-  document.addEventListener('keyup', e => {
-    if (keyMap[e.code]) keys[keyMap[e.code]] = false;
-  });
+  // タイトル画面
+  document.getElementById('ovMsg').innerHTML = IS_TOUCH
+    ? '深夜の湾岸線を駆け抜けろ。<br>アクセルは自動。◀▶でハンドル操作、<br>NITROで加速、BRAKEで減速。<br>すり抜け(ニアミス)でニトロ回復&コンボ加点。<br>ライバルより先にチェックポイントを通過せよ。'
+    : '深夜の湾岸線を駆け抜けろ。<br>←→ ハンドル / ↑ アクセル / ↓ ブレーキ<br>Shift または Space でニトロ。<br>すり抜け(ニアミス)でニトロ回復&コンボ加点。<br>ライバルより先にチェックポイントを通過せよ。';
 
-  // タッチボタン
-  for (const [id, key] of [['tLeft','tLeft'],['tRight','tRight'],['tAccel','tAccel'],['tBrake','tBrake']]) {
-    const el = document.getElementById(id);
-    const on = e => { e.preventDefault(); keys[key] = true; };
-    const off = e => { e.preventDefault(); keys[key] = false; };
-    el.addEventListener('touchstart', on, { passive: false });
-    el.addEventListener('touchend', off);
-    el.addEventListener('touchcancel', off);
-    el.addEventListener('mousedown', on);
-    el.addEventListener('mouseup', off);
-    el.addEventListener('mouseleave', off);
-  }
-
-  // 初期画面の背景を軽く描画
+  // 背景プレビュー描画
   buildTrack();
-  initSkyline();
+  spawnTraffic(10);
   render();
 })();
 </script>
