@@ -149,6 +149,8 @@
     <div class="carlist" id="modelList"></div>
     <h2 class="sec">TUNE</h2>
     <div class="selrow" id="tuneChips"></div>
+    <h2 class="sec">SETTING <span style="color:#5c6488;letter-spacing:1px;">POWER ⇔ HANDLING</span></h2>
+    <div class="selrow" id="balChips"></div>
     <h2 class="sec">COLOR / MISSION / ASSIST</h2>
     <div style="display:flex;align-items:center;gap:18px;flex-wrap:wrap;">
       <div class="swatches" id="swatches"></div>
@@ -377,9 +379,10 @@
   // 滑りを収めればグリップが戻る(実タイヤと同じ挙動)。
   function tireCurve(sn) {
     const s = Math.abs(sn);
+    // ピーク後の落ち込みは浅め(湾岸流: 滑らせたまま旋回を維持できる)
     const f = s <= 1
       ? Math.sin(Math.PI / 2 * s)
-      : 1 - 0.28 * (1 - Math.exp(-(s - 1) * 0.9));
+      : 1 - 0.16 * (1 - Math.exp(-(s - 1) * 0.8));
     return sn < 0 ? -f : f;
   }
   // 荷重依存の摩擦係数(荷重が増えるほど単位荷重あたりのグリップは落ちる)
@@ -470,8 +473,17 @@
     maker: saved.maker || 0, model: saved.model || 0, tune: saved.tune || 0,
     color: saved.color ?? 3, mt: saved.mt !== undefined ? saved.mt : true,
     assist: saved.assist !== undefined ? saved.assist : true,
+    bal: saved.bal ?? 2,
     course: saved.course || 0,
   };
+  // POWER ⇔ HANDLING セッティング(馬力と曲がりやすさを交換する)
+  const BALANCE = [
+    { l: 'P.MAX',   ps: 1.10, top: 8,  grip: -0.045, hd: -0.030 },
+    { l: 'パワー',   ps: 1.05, top: 4,  grip: -0.020, hd: -0.015 },
+    { l: 'バランス', ps: 1.00, top: 0,  grip: 0,      hd: 0 },
+    { l: 'ハンドリ', ps: 0.95, top: -4, grip: 0.025,  hd: 0.020 },
+    { l: 'H.MAX',   ps: 0.90, top: -8, grip: 0.050,  hd: 0.040 },
+  ];
   function saveGarage() { try { localStorage.setItem('mh-garage', JSON.stringify(sel)); } catch (e) {} }
   function bestKey(id) { return 'mh-best-' + id; }
   function loadBest(id) { try { return JSON.parse(localStorage.getItem(bestKey(id))); } catch (e) { return null; } }
@@ -480,12 +492,14 @@
     const mk = MAKERS[sel.maker];
     const md = mk.models[Math.min(sel.model, mk.models.length - 1)];
     const tn = TUNES[sel.tune];
+    const bal = BALANCE[sel.bal] || BALANCE[2];
     const c = {
       maker: mk.name, model: md.n, tune: tn.label,
-      ps: Math.round(md.ps * tn.psMul),
-      top: md.top + tn.spdAdd,
-      ac: md.ac, hd: md.hd, type: md.type, dt: md.dt,
-      tuneGrip: tn.gripAdd, tuneDf: tn.dfAdd,
+      ps: Math.round(md.ps * tn.psMul * bal.ps),
+      top: md.top + tn.spdAdd + bal.top,
+      ac: md.ac, hd: Math.max(0.1, Math.min(0.95, md.hd + bal.hd)),
+      type: md.type, dt: md.dt,
+      tuneGrip: tn.gripAdd + bal.grip, tuneDf: tn.dfAdd,
       color: BODY_COLORS[sel.color].c,
       name: md.n + ' ' + tn.label,
     };
@@ -667,6 +681,7 @@
   let understeer = false;
   let steerIn = 0;           // ステア入力 -1..1
   let alignSt = 0;           // セルフアライニング舵角(ローパス状態)
+  let prevAccel = false, liftTimer = 0;   // スロットルコントロール(リフトオフ)用
   let prevSnF = 0;           // 前フレームの前輪正規化スリップ
   // 車体姿勢(サスペンションのばね・ダンパ)
   let bodyPitch = 0, bodyPitchV = 0, bodyRoll = 0, bodyRollV = 0, bodyHeave = 0, bodyHeaveV = 0;
@@ -791,6 +806,7 @@
     initSky();
     posZ = 0; posX = 0; camXm = 0; vMs = 0; heading = 0; steerIn = 0;
     yawRate = 0; vLat = 0; slipAngle = 0; understeer = false; alignSt = 0; prevSnF = 0;
+    prevAccel = false; liftTimer = 0;
     bodyPitch = 0; bodyPitchV = 0; bodyRoll = 0; bodyRollV = 0; bodyHeave = 0; bodyHeaveV = 0; prevGrade = 0;
     resetTraffic();
     gear = 1; rpm = ph.idle; shiftTimer = 0;
@@ -840,6 +856,12 @@
     const brake = keys.down || input.brake;
     const accel = (keys.up || input.accel) && raceState === 'running';
 
+    // スロットルコントロール: アクセルを抜いた瞬間からリアが軽くなる時間帯
+    if (prevAccel && !accel && vMs > 15) liftTimer = 0.60;
+    if (accel) liftTimer = 0;
+    else if (liftTimer > 0) liftTimer -= dt;
+    prevAccel = accel;
+
     // wheelPtr の指が消えていたら解放(イベント取りこぼしの保険)
     if (wheelPtr !== null && !pointers.has(wheelPtr)) wheelPtr = null;
     // ハンドルを離している間はセルフセンタリング
@@ -885,8 +907,17 @@
     const dFzF = transferLat * ph.rollDist;
     const dFzR = transferLat * (1 - ph.rollDist);
     // 左右移動を織り込んだ軸グリップ(荷重依存でグリップは目減りする)
-    const gripF = axleGrip(ph.mu, Fzf, dFzF, ph.FzRef);
-    const gripR = axleGrip(ph.mu, Fzr, dFzR, ph.FzRef);
+    let gripF = axleGrip(ph.mu, Fzf, dFzF, ph.FzRef);
+    let gripR = axleGrip(ph.mu, Fzr, dFzR, ph.FzRef);
+    // ==== 湾岸流スロットルコントロール ====
+    // 全開: リアが安定し、フロントはやや押し出し気味(アンダー傾向)。
+    // アクセルを抜いた直後: リアが軽くなり、舵の方向へ車体が回り込む。
+    // 「全開 → 抜く → 切る → 回る → 戻して全開」が最速の操作になる。
+    if (raceState === 'running' && vMs > 15 && !brake) {
+      if (accel && liftTimer <= 0) { gripF *= 0.93; gripR *= 1.05; }
+      else if (liftTimer > 0)      { gripR *= 0.80; }
+      else if (!accel)             { gripR *= 0.93; }
+    }
 
     // ================= 前後方向 =================
     const fDrag = 0.5 * RHO * ph.CdA * vMs * vMs;
@@ -986,6 +1017,10 @@
       const yawDot = (ph.a * Fyf - ph.b * Fyr) / ph.Iz - yawRate * yawDamp;
       vLat += vLatDot * dt;
       yawRate += yawDot * dt;
+      // リフトオフ中は舵の方向へ車体が積極的に回り込む(湾岸流)
+      if (liftTimer > 0 && !brake && Math.abs(steerIn) > 0.05) {
+        yawRate += steerIn * 1.0 * Math.min(1, vMs / 45) * (liftTimer / 0.6) * dt;
+      }
       vLat = Math.max(-30, Math.min(30, vLat));
       yawRate = Math.max(-2.4, Math.min(2.4, yawRate));
       aLat = (Fyf + Fyr + fBank) / ph.mass;
@@ -1000,11 +1035,20 @@
     heading += (yawRate - yawRoad) * dt;
     heading = Math.max(-0.85, Math.min(0.85, heading));
     if (sel.assist) {
-      // スタビリティアシスト: 車体を道なりに緩やかに復元する
-      heading -= heading * 0.55 * dt;
-      vLat -= vLat * 0.35 * dt;
+      // スタビリティアシスト: 車体を道なりに復元する。
+      // 全開に戻した時は強く収束する(湾岸流: 戻して踏めばピタッと決まる)
+      const onPower = accel && liftTimer <= 0;
+      heading -= heading * (onPower ? 2.1 : 0.55) * dt;
+      vLat -= vLat * (onPower ? 1.1 : 0.35) * dt;
+      if (onPower) yawRate -= yawRate * 1.0 * dt;
     }
     slipAngle = vMs > 2.5 ? Math.atan2(vLat, vMs) : 0;
+    // 横滑りのタイヤスクラブ: 適度なドリフトはほぼ無償だが、
+    // 角度を付けすぎると横向きに走るぶん速度を失う(切りっぱなしは損)
+    const bodySlip = Math.abs(slipAngle);
+    if (bodySlip > 0.10 && vMs > 8) {
+      vMs -= vMs * (bodySlip - 0.10) * 0.45 * dt;
+    }
     posX += (vMs * Math.sin(heading) + vLat * Math.cos(heading)) * dt;
 
     // ---- 交通車両 ----
@@ -1088,7 +1132,7 @@
     bodyHeave = Math.max(-0.10, Math.min(0.10, bodyHeave));
 
     // ---- タイヤスモーク ----
-    if ((sliding > 0.25 || wheelspin > 0.3) && vMs > 12 && Math.random() < 0.6) {
+    if ((sliding > 0.25 || wheelspin > 0.3 || Math.abs(slipAngle) > 0.13) && vMs > 12 && Math.random() < 0.6) {
       smoke.push({ x: (Math.random() - .5) * 1.4, t: 0.75, spark: false });
     }
     for (const s of smoke) s.t -= dt;
@@ -2636,13 +2680,18 @@
     } else {
       ctx.fillText(car ? car.maker + ' ' + car.model + '  [' + car.dt + ']' : '', pad + s * 0.13, H - pad - s * 0.005);
     }
-    if (sliding > 0.3 || wheelspin > 0.3) {
+    const driftDeg = Math.abs(slipAngle) * 57.3;
+    if (driftDeg > 7) {
+      // ドリフト角の表示(湾岸流: 滑らせて曲がるのは正しい走り)
+      ctx.textAlign = 'center';
+      ctx.font = 'italic bold ' + s * 0.028 + 'px "Arial Black", sans-serif';
+      ctx.fillStyle = driftDeg > 22 ? '#ff3d5e' : '#3de8ff';
+      ctx.fillText('DRIFT ' + driftDeg.toFixed(0) + '°', W / 2, pad + s * 0.185);
+    } else if (wheelspin > 0.3 || sliding > 0.3) {
       ctx.textAlign = 'center';
       ctx.font = 'bold ' + s * 0.024 + 'px sans-serif';
       ctx.fillStyle = 'rgba(255,61,94,' + (0.5 + 0.5 * Math.sin(performance.now() / 90)) + ')';
-      const msg = wheelspin > 0.3 ? 'WHEEL SPIN'
-                : (understeer ? 'UNDER STEER' : 'OVER STEER');
-      ctx.fillText(msg, W / 2, pad + s * 0.185);
+      ctx.fillText(wheelspin > 0.3 ? 'WHEEL SPIN' : (understeer ? 'UNDER STEER' : 'OVER STEER'), W / 2, pad + s * 0.185);
     }
 
     let fy = H * 0.30;
@@ -2783,6 +2832,17 @@
       box.appendChild(b);
     });
   }
+  function buildBalChips() {
+    const box = el('balChips'); box.innerHTML = '';
+    BALANCE.forEach((o, i) => {
+      const b = document.createElement('button');
+      b.className = 'chip' + (sel.bal === i ? ' on' : '');
+      b.textContent = o.l;
+      b.title = '馬力と曲がりやすさを交換する。直線主体はパワー寄り、C1などはハンドリング寄り';
+      b.onclick = () => { sel.bal = i; buildBalChips(); refreshPreview(); };
+      box.appendChild(b);
+    });
+  }
   function buildAssistChips() {
     const box = el('assistChips'); box.innerHTML = '';
     [{ l: 'アシストON', v: true }, { l: 'アシストOFF', v: false }].forEach(o => {
@@ -2836,7 +2896,7 @@
     });
   }
   function openGarage() {
-    buildMakerChips(); buildModelList(); buildTuneChips(); buildSwatches(); buildMtChips(); buildAssistChips(); refreshPreview();
+    buildMakerChips(); buildModelList(); buildTuneChips(); buildBalChips(); buildSwatches(); buildMtChips(); buildAssistChips(); refreshPreview();
     showScreen('garage');
   }
   el('btn-title').onclick = () => { tryLandscape(); openGarage(); };
