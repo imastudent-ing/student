@@ -149,10 +149,11 @@
     <div class="carlist" id="modelList"></div>
     <h2 class="sec">TUNE</h2>
     <div class="selrow" id="tuneChips"></div>
-    <h2 class="sec">COLOR / MISSION</h2>
+    <h2 class="sec">COLOR / MISSION / ASSIST</h2>
     <div style="display:flex;align-items:center;gap:18px;flex-wrap:wrap;">
       <div class="swatches" id="swatches"></div>
       <div class="selrow" id="mtChips"></div>
+      <div class="selrow" id="assistChips"></div>
     </div>
     <canvas id="preview" width="300" height="150"></canvas>
     <div id="statBox"></div>
@@ -468,6 +469,7 @@
   const sel = {
     maker: saved.maker || 0, model: saved.model || 0, tune: saved.tune || 0,
     color: saved.color ?? 3, mt: saved.mt !== undefined ? saved.mt : true,
+    assist: saved.assist !== undefined ? saved.assist : true,
     course: saved.course || 0,
   };
   function saveGarage() { try { localStorage.setItem('mh-garage', JSON.stringify(sel)); } catch (e) {} }
@@ -947,8 +949,15 @@
     // 急に効かせると反動で逆振りする(タンクスラッパー)ため、ローパスで穏やかに
     const alignTarget = stateSlip * 0.55 * sat;
     alignSt += (alignTarget - alignSt) * Math.min(1, 9 * dt);
-    const delta = Math.max(-ph.steerMax, Math.min(ph.steerMax,
+    let delta = Math.max(-ph.steerMax, Math.min(ph.steerMax,
       alignSt + steerIn * deltaSteady));                // 前輪実舵角(rad)
+    if (sel.assist) {
+      // アシスト: 前輪スリップがピークを超えない範囲に舵角を丸める。
+      // 切りすぎてもアンダーで刺さらず、常に最大グリップ付近で曲がる
+      const lo = Math.max(-ph.steerMax, stateSlip - ph.slipPeak * 0.98);
+      const hi = Math.min(ph.steerMax, stateSlip + ph.slipPeak * 0.98);
+      if (lo <= hi) delta = Math.max(lo, Math.min(hi, delta));
+    }
 
     // 各軸が前後力で消費している摩擦(摩擦楕円)
     const fxFront = fDrive * (1 - ph.rearDrive) - fBrakeF;
@@ -990,6 +999,11 @@
     const yawRoad = isFinite(seg.radius) ? (vMs / seg.radius) * curveSign : 0;
     heading += (yawRate - yawRoad) * dt;
     heading = Math.max(-0.85, Math.min(0.85, heading));
+    if (sel.assist) {
+      // スタビリティアシスト: 車体を道なりに緩やかに復元する
+      heading -= heading * 0.55 * dt;
+      vLat -= vLat * 0.35 * dt;
+    }
     slipAngle = vMs > 2.5 ? Math.atan2(vLat, vMs) : 0;
     posX += (vMs * Math.sin(heading) + vLat * Math.cos(heading)) * dt;
 
@@ -1270,8 +1284,8 @@
 
   // ---- ステアリングホイール(タッチ) ----
   // 実車のように指で回して操作する。±135°でフルロック、離すと自動でセンターへ。
-  const WHEEL_LOCK = Math.PI * 0.61;   // ±110°でフルロック(親指の小さな円弧で回しきれる)
-  let wheelAngle = 0, wheelPtr = null, wheelLastA = 0;
+  const WHEEL_LOCK = Math.PI * 0.61;   // ±110°でフルロック
+  let wheelAngle = 0, wheelPtr = null, wheelGrabX = 0, wheelGrabA = 0;
 
   function wheelGeom() {
     const s = Math.min(W, H);
@@ -1316,14 +1330,12 @@
     try { canvas.setPointerCapture(e.pointerId); } catch (err) {}
     const p = mapPoint(e);
     pointers.set(e.pointerId, p);
-    // wheelPtr が消えた指を指したままなら奪い直す(up の取りこぼし対策)
-    if (IS_TOUCH && (wheelPtr === null || !pointers.has(wheelPtr))) {
-      const g = wheelGeom();
-      const d = Math.hypot(p.x - g.cx, p.y - g.cy);
-      if (d < g.r * 1.45) {
-        wheelPtr = e.pointerId;
-        wheelLastA = Math.atan2(p.y - g.cy, p.x - g.cx);
-      }
+    // 画面左半分のどこでもハンドルを掴める。既に握っている指があっても
+    // 新しい指を優先する(イベント取りこぼしで固まっても、触り直せば直る)
+    if (IS_TOUCH && p.x < W * 0.52 && p.y > H * 0.22) {
+      wheelPtr = e.pointerId;
+      wheelGrabX = p.x;
+      wheelGrabA = wheelAngle;
     }
     updateTouchInput();
   });
@@ -1332,17 +1344,11 @@
     const p = mapPoint(e);
     pointers.set(e.pointerId, p);
     if (e.pointerId === wheelPtr) {
+      // 左右のドラッグ量 = リムを回す量(半径1.4個ぶんでフルロック)。
+      // 角度追跡より単純で、跳ね・詰まりが起きない
       const g = wheelGeom();
-      const a = Math.atan2(p.y - g.cy, p.x - g.cx);
-      const d = Math.hypot(p.x - g.cx, p.y - g.cy);
-      let da = a - wheelLastA;
-      if (da > Math.PI) da -= Math.PI * 2;
-      if (da < -Math.PI) da += Math.PI * 2;
-      wheelLastA = a;
-      // ハブ付近は角度が跳ねるため回転させない(デッドゾーン)
-      if (d > g.r * 0.30) {
-        wheelAngle = Math.max(-WHEEL_LOCK, Math.min(WHEEL_LOCK, wheelAngle + da));
-      }
+      wheelAngle = Math.max(-WHEEL_LOCK, Math.min(WHEEL_LOCK,
+        wheelGrabA + (p.x - wheelGrabX) / (g.r * 1.4) * WHEEL_LOCK));
     }
     updateTouchInput();
   });
@@ -1354,6 +1360,10 @@
   canvas.addEventListener('pointerup', releasePointer);
   canvas.addEventListener('pointercancel', releasePointer);
   canvas.addEventListener('lostpointercapture', releasePointer);
+  // canvas外で指が離れた場合の保険と、フォーカス喪失時の全解放
+  window.addEventListener('pointerup', releasePointer);
+  window.addEventListener('pointercancel', releasePointer);
+  window.addEventListener('blur', () => { pointers.clear(); wheelPtr = null; updateTouchInput(); });
   canvas.addEventListener('touchstart', e => e.preventDefault(), { passive: false });
 
   const keyMap = {
@@ -2620,6 +2630,17 @@
       box.appendChild(b);
     });
   }
+  function buildAssistChips() {
+    const box = el('assistChips'); box.innerHTML = '';
+    [{ l: 'アシストON', v: true }, { l: 'アシストOFF', v: false }].forEach(o => {
+      const b = document.createElement('button');
+      b.className = 'chip' + (sel.assist === o.v ? ' on' : '');
+      b.textContent = o.l;
+      b.title = 'ON: 安定化+舵の丸め込みで簡単に走れる / OFF: 素の物理';
+      b.onclick = () => { sel.assist = o.v; buildAssistChips(); };
+      box.appendChild(b);
+    });
+  }
   function refreshPreview() {
     const c = currentCar(), p = c.ph;
     const pv = el('preview'), pctx = pv.getContext('2d');
@@ -2662,7 +2683,7 @@
     });
   }
   function openGarage() {
-    buildMakerChips(); buildModelList(); buildTuneChips(); buildSwatches(); buildMtChips(); refreshPreview();
+    buildMakerChips(); buildModelList(); buildTuneChips(); buildSwatches(); buildMtChips(); buildAssistChips(); refreshPreview();
     showScreen('garage');
   }
   el('btn-title').onclick = () => { tryLandscape(); openGarage(); };
@@ -2682,7 +2703,7 @@
     'セクション毎の規定時間を守りながら、<br>' +
     '自分の限界=最速トータルタイムを追い求めるストイックなモード。' +
     (IS_TOUCH
-      ? '<br><br>[操作] 左下のハンドルを指で回して操舵(離すと自動でセンターへ)<br>右手で ACCEL / BRAKE / SHIFT±'
+      ? '<br><br>[操作] 画面左半分を左右にドラッグするとハンドルが回る<br>(離すと自動でセンターへ)。右手で ACCEL / BRAKE / SHIFT±'
       : '<br><br>[操作] ←→ハンドル / ↑アクセル / ↓ブレーキ / X・Space シフトアップ / Z シフトダウン');
 
   // テスト用フック
