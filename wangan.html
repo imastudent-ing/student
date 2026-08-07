@@ -838,6 +838,8 @@
     const brake = keys.down || input.brake;
     const accel = (keys.up || input.accel) && raceState === 'running';
 
+    // wheelPtr の指が消えていたら解放(イベント取りこぼしの保険)
+    if (wheelPtr !== null && !pointers.has(wheelPtr)) wheelPtr = null;
     // ハンドルを離している間はセルフセンタリング
     if (IS_TOUCH && wheelPtr === null && wheelAngle !== 0) {
       wheelAngle -= wheelAngle * Math.min(1, 7 * dt);
@@ -1268,26 +1270,29 @@
 
   // ---- ステアリングホイール(タッチ) ----
   // 実車のように指で回して操作する。±135°でフルロック、離すと自動でセンターへ。
-  const WHEEL_LOCK = Math.PI * 0.75;
+  const WHEEL_LOCK = Math.PI * 0.61;   // ±110°でフルロック(親指の小さな円弧で回しきれる)
   let wheelAngle = 0, wheelPtr = null, wheelLastA = 0;
 
   function wheelGeom() {
     const s = Math.min(W, H);
-    const r = Math.min(s * 0.20, 110);
-    return { cx: s * 0.035 + r, cy: H - s * 0.035 - r, r };
+    const r = Math.min(s * 0.21, 120);
+    // 画面の縁から十分離す。縁ぎりぎりに置くと、実機ではOSのエッジ
+    // ジェスチャー(通知センター・ホームバー・戻る)にタッチを奪われる。
+    return { cx: s * 0.09 + r, cy: H - s * 0.075 - r, r };
   }
   function buttonRects() {
     const s = Math.min(W, H);
     const pad = s * 0.03;
+    const mR = s * 0.06;                 // 右端もエッジジェスチャー帯を避ける
     const r = Math.min(s * 0.115, 64, (W - pad * 7) / 9);
-    const by = H - r * 2 - pad - 4;
+    const by = H - r * 2 - s * 0.05 - 4;
     const rects = {
-      accel: { x: W - pad - r * 2.4, y: by - r * 0.4, w: r * 2.4, h: r * 2.4, label: 'ACCEL' },
-      brake: { x: W - pad * 2 - r * 4.2, y: by, w: r * 1.8, h: r * 2, label: 'BRAKE' },
+      accel: { x: W - mR - r * 2.4, y: by - r * 0.4, w: r * 2.4, h: r * 2.4, label: 'ACCEL' },
+      brake: { x: W - mR - pad - r * 4.2, y: by, w: r * 1.8, h: r * 2, label: 'BRAKE' },
     };
     if (sel.mt) {
-      rects.sup   = { x: W - pad - r * 1.9, y: by - r * 2.4, w: r * 1.9, h: r * 1.6, label: 'SHIFT +' };
-      rects.sdown = { x: W - pad * 2 - r * 3.9, y: by - r * 2.4, w: r * 1.9, h: r * 1.6, label: 'SHIFT −' };
+      rects.sup   = { x: W - mR - r * 1.9, y: by - r * 2.4, w: r * 1.9, h: r * 1.6, label: 'SHIFT +' };
+      rects.sdown = { x: W - mR - pad - r * 3.9, y: by - r * 2.4, w: r * 1.9, h: r * 1.6, label: 'SHIFT −' };
     }
     return rects;
   }
@@ -1307,12 +1312,15 @@
   }
   canvas.addEventListener('pointerdown', e => {
     e.preventDefault();
+    // キャプチャしておくと指が要素外へ滑っても up/cancel が確実に届く
+    try { canvas.setPointerCapture(e.pointerId); } catch (err) {}
     const p = mapPoint(e);
     pointers.set(e.pointerId, p);
-    if (IS_TOUCH && wheelPtr === null) {
+    // wheelPtr が消えた指を指したままなら奪い直す(up の取りこぼし対策)
+    if (IS_TOUCH && (wheelPtr === null || !pointers.has(wheelPtr))) {
       const g = wheelGeom();
       const d = Math.hypot(p.x - g.cx, p.y - g.cy);
-      if (d < g.r * 1.35) {
+      if (d < g.r * 1.45) {
         wheelPtr = e.pointerId;
         wheelLastA = Math.atan2(p.y - g.cy, p.x - g.cx);
       }
@@ -1326,11 +1334,15 @@
     if (e.pointerId === wheelPtr) {
       const g = wheelGeom();
       const a = Math.atan2(p.y - g.cy, p.x - g.cx);
+      const d = Math.hypot(p.x - g.cx, p.y - g.cy);
       let da = a - wheelLastA;
       if (da > Math.PI) da -= Math.PI * 2;
       if (da < -Math.PI) da += Math.PI * 2;
       wheelLastA = a;
-      wheelAngle = Math.max(-WHEEL_LOCK, Math.min(WHEEL_LOCK, wheelAngle + da));
+      // ハブ付近は角度が跳ねるため回転させない(デッドゾーン)
+      if (d > g.r * 0.30) {
+        wheelAngle = Math.max(-WHEEL_LOCK, Math.min(WHEEL_LOCK, wheelAngle + da));
+      }
     }
     updateTouchInput();
   });
@@ -1341,6 +1353,7 @@
   };
   canvas.addEventListener('pointerup', releasePointer);
   canvas.addEventListener('pointercancel', releasePointer);
+  canvas.addEventListener('lostpointercapture', releasePointer);
   canvas.addEventListener('touchstart', e => e.preventDefault(), { passive: false });
 
   const keyMap = {
@@ -2432,7 +2445,8 @@
 
     // ---- Gメーター ----
     // タッチ時は左下がステアリングホイールなので、その右隣に置く
-    const gx = IS_TOUCH ? s * 0.035 + Math.min(s * 0.20, 110) * 2 + s * 0.11 : pad + s * 0.062;
+    const wg = IS_TOUCH ? wheelGeom() : null;
+    const gx = wg ? wg.cx + wg.r + s * 0.11 : pad + s * 0.062;
     const gy = H - pad - s * 0.062, gr = s * 0.055;
     ctx.strokeStyle = 'rgba(255,255,255,.16)'; ctx.lineWidth = 1.5;
     ctx.beginPath(); ctx.arc(gx, gy, gr, 0, Math.PI * 2); ctx.stroke();
