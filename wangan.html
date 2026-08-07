@@ -151,11 +151,10 @@
     <div class="selrow" id="tuneChips"></div>
     <h2 class="sec">SETTING <span style="color:#5c6488;letter-spacing:1px;">POWER ⇔ HANDLING</span></h2>
     <div class="selrow" id="balChips"></div>
-    <h2 class="sec">COLOR / MISSION / ASSIST</h2>
+    <h2 class="sec">COLOR / MISSION</h2>
     <div style="display:flex;align-items:center;gap:18px;flex-wrap:wrap;">
       <div class="swatches" id="swatches"></div>
       <div class="selrow" id="mtChips"></div>
-      <div class="selrow" id="assistChips"></div>
     </div>
     <canvas id="preview" width="300" height="150"></canvas>
     <div id="statBox"></div>
@@ -515,7 +514,6 @@
   const sel = {
     maker: saved.maker || 0, model: saved.model || 0, tune: saved.tune || 0,
     color: saved.color ?? 3, mt: saved.mt !== undefined ? saved.mt : true,
-    assist: saved.assist !== undefined ? saved.assist : true,
     bal: saved.bal ?? 2,
     course: saved.course || 0,
   };
@@ -725,7 +723,7 @@
   let understeer = false;
   let steerIn = 0;           // ステア入力 -1..1
   let alignSt = 0;           // セルフアライニング舵角(ローパス状態)
-  let prevAccel = false, liftTimer = 0;   // スロットルコントロール(リフトオフ)用
+  let prevThrottle = 0, liftTimer = 0;   // スロットルコントロール(リフトオフ)用
   let prevSnF = 0;           // 前フレームの前輪正規化スリップ
   // 車体姿勢(サスペンションのばね・ダンパ)
   let bodyPitch = 0, bodyPitchV = 0, bodyRoll = 0, bodyRollV = 0, bodyHeave = 0, bodyHeaveV = 0;
@@ -850,7 +848,7 @@
     initSky();
     posZ = 0; posX = 0; camXm = 0; vMs = 0; heading = 0; steerIn = 0;
     yawRate = 0; vLat = 0; slipAngle = 0; understeer = false; alignSt = 0; prevSnF = 0;
-    prevAccel = false; liftTimer = 0; camYawSm = 0; camRollSm = 0;
+    prevThrottle = 0; liftTimer = 0; camYawSm = 0; camRollSm = 0;
     bodyPitch = 0; bodyPitchV = 0; bodyRoll = 0; bodyRollV = 0; bodyHeave = 0; bodyHeaveV = 0; prevGrade = 0;
     resetTraffic();
     gear = 1; rpm = ph.idle; shiftTimer = 0;
@@ -898,16 +896,24 @@
     const left = keys.left;
     const right = keys.right;
     const brake = keys.down || input.brake;
-    const accel = (keys.up || input.accel) && raceState === 'running';
+    // アクセルは開度(0〜1)。キーボードは全開/全閉、タッチはペダルの
+    // スライド量がそのまま開度になる(ハーフスロットルでドリフト維持)
+    let throttle = 0;
+    if (raceState === 'running') {
+      if (keys.up) throttle = 1;
+      else if (accPtr !== null) throttle = touchThrottle;
+    }
+    const accel = throttle > 0.04;
 
     // スロットルコントロール: アクセルを抜いた瞬間からリアが軽くなる時間帯
-    if (prevAccel && !accel && vMs > 15) liftTimer = 0.60;
-    if (accel) liftTimer = 0;
+    if (prevThrottle > 0.45 && throttle < 0.10 && vMs > 15) liftTimer = 0.60;
+    if (throttle > 0.30) liftTimer = 0;
     else if (liftTimer > 0) liftTimer -= dt;
-    prevAccel = accel;
+    prevThrottle = throttle;
 
-    // wheelPtr の指が消えていたら解放(イベント取りこぼしの保険)
+    // wheelPtr / accPtr の指が消えていたら解放(イベント取りこぼしの保険)
     if (wheelPtr !== null && !pointers.has(wheelPtr)) wheelPtr = null;
+    if (accPtr !== null && !pointers.has(accPtr)) { accPtr = null; touchThrottle = 0; }
     // ハンドルを離している間はセルフセンタリング
     if (IS_TOUCH && wheelPtr === null && wheelAngle !== 0) {
       wheelAngle -= wheelAngle * Math.min(1, 7 * dt);
@@ -956,11 +962,12 @@
     // ==== 湾岸流スロットルコントロール ====
     // 全開: リアが安定し、フロントはやや押し出し気味(アンダー傾向)。
     // アクセルを抜いた直後: リアが軽くなり、舵の方向へ車体が回り込む。
-    // 「全開 → 抜く → 切る → 回る → 戻して全開」が最速の操作になる。
+    // ハーフスロットル(実機の黄色コーナーの走り方): 前後とも素のグリップで
+    // 中立。開度でドリフト角を維持するための帯域。
     if (raceState === 'running' && vMs > 15 && !brake) {
-      if (accel && liftTimer <= 0) { gripF *= 0.93; gripR *= 1.05; }
-      else if (liftTimer > 0)      { gripR *= 0.80; }
-      else if (!accel)             { gripR *= 0.93; }
+      if (throttle > 0.85 && liftTimer <= 0) { gripF *= 0.93; gripR *= 1.05; }
+      else if (liftTimer > 0)                { gripR *= 0.80; }
+      else if (!accel)                       { gripR *= 0.93; }
     }
 
     // ================= 前後方向 =================
@@ -972,7 +979,7 @@
     if (accel && shiftTimer <= 0 && !revLimit) {
       // 発進時はクラッチミートで回転を保つ
       const effRpm = (gear === 1 && rpm < ph.redline * 0.45) ? ph.redline * 0.45 : rpm;
-      const T = engineTorque(effRpm, ph);
+      const T = engineTorque(effRpm, ph) * throttle;
       fDrive = T * GEARS[gear - 1] * ph.finalDrive * DRIVE_EFF / ph.wheelR;
       // 駆動輪のトラクション上限。超えた分はホイールスピンになり、
       // 滑っている間は摩擦が落ちるので実際に前に進まなくなる
@@ -989,7 +996,8 @@
       fBrakeR = Math.min((1 - ph.brakeBias) * ph.mass * 13, gripR * 0.97);
     }
     const fBrake = fBrakeF + fBrakeR;
-    const fEngBrake = (!accel && vMs > 1) ? 55 + rpm * 0.045 : 0;
+    // エンジンブレーキは開度に応じて連続的に消える(半開なら半分以下)
+    const fEngBrake = vMs > 1 ? (55 + rpm * 0.045) * Math.max(0, 1 - throttle * 2.4) : 0;
 
     let accelLong = (fDrive - fDrag - fRoll - fBrake - fEngBrake) / ph.mass;
     accelLong -= G * grade;
@@ -1030,15 +1038,8 @@
     // 急に効かせると反動で逆振りする(タンクスラッパー)ため、ローパスで穏やかに
     const alignTarget = stateSlip * 0.55 * sat;
     alignSt += (alignTarget - alignSt) * Math.min(1, 9 * dt);
-    let delta = Math.max(-ph.steerMax, Math.min(ph.steerMax,
+    const delta = Math.max(-ph.steerMax, Math.min(ph.steerMax,
       alignSt + steerIn * deltaSteady));                // 前輪実舵角(rad)
-    if (sel.assist) {
-      // アシスト: 前輪スリップがピークを超えない範囲に舵角を丸める。
-      // 切りすぎてもアンダーで刺さらず、常に最大グリップ付近で曲がる
-      const lo = Math.max(-ph.steerMax, stateSlip - ph.slipPeak * 0.98);
-      const hi = Math.min(ph.steerMax, stateSlip + ph.slipPeak * 0.98);
-      if (lo <= hi) delta = Math.max(lo, Math.min(hi, delta));
-    }
 
     // 各軸が前後力で消費している摩擦(摩擦楕円)
     const fxFront = fDrive * (1 - ph.rearDrive) - fBrakeF;
@@ -1074,6 +1075,10 @@
       vLat = Math.max(-30, Math.min(30, vLat));
       yawRate = Math.max(-2.4, Math.min(2.4, yawRate));
       aLat = (Fyf + Fyr + fBank) / ph.mass;
+      // 舵の誘導抗力: 前輪横力の進行方向逆成分ぶん速度を失う。
+      // 実機の「ハンドルを切ると大きく減速する(切りっぱなし・気合いハンドルは損)」を再現。
+      // 1.35倍のアーケード補正で、舵角＝速度低下をはっきり体感させる
+      vMs = Math.max(0, vMs - Math.abs(Fyf * Math.sin(delta)) / ph.mass * 1.35 * dt);
       sliding = Math.min(1, Math.max(satF, satR) * 0.8);
       understeer = satF > satR;
       prevSnF = snF;
@@ -1093,14 +1098,6 @@
     const yawRoad = isFinite(seg.radius) ? (vMs / seg.radius) * curveSign : 0;
     heading += (yawRate - yawRoad) * dt;
     heading = Math.max(-0.85, Math.min(0.85, heading));
-    if (sel.assist) {
-      // スタビリティアシスト: 車体を道なりに復元する。
-      // 全開に戻した時は強く収束する(湾岸流: 戻して踏めばピタッと決まる)
-      const onPower = accel && liftTimer <= 0;
-      heading -= heading * (onPower ? 2.1 : 0.55) * dt;
-      vLat -= vLat * (onPower ? 1.1 : 0.35) * dt;
-      if (onPower) yawRate -= yawRate * 1.0 * dt;
-    }
     slipAngle = vMs > 2.5 ? Math.atan2(vLat, vMs) : 0;
     // 横滑りのタイヤスクラブ: 適度なドリフトはほぼ無償だが、
     // 角度を付けすぎると横向きに走るぶん速度を失う(切りっぱなしは損)
@@ -1238,7 +1235,7 @@
     if (wallSfxT > 0) wallSfxT -= dt;
     for (const f of flashes) f.t -= dt;
     flashes = flashes.filter(f => f.t > 0);
-    updateEngine(accel ? 1 : 0);
+    updateEngine(throttle);
   }
 
   // ================= リザルト =================
@@ -1394,6 +1391,11 @@
   const WHEEL_LOCK = Math.PI * 0.61;   // ±110°でフルロック
   let wheelAngle = 0, wheelPtr = null, wheelGrabX = 0, wheelGrabA = 0;
 
+  // ---- アクセルペダル(タッチ・開度式) ----
+  // 押した瞬間は全開。押したまま下へスライドすると開度が下がり、
+  // 上へ戻すと再び全開になる(ハーフスロットルでドリフト維持ができる)
+  let accPtr = null, accGrabY = 0, touchThrottle = 0;
+
   function wheelGeom() {
     const s = Math.min(W, H);
     const r = Math.min(s * 0.21, 120);
@@ -1408,11 +1410,12 @@
     const r = Math.min(s * 0.115, 64, (W - pad * 7) / 9);
     const by = H - r * 2 - s * 0.05 - 4;
     const rects = {
-      accel: { x: W - mR - r * 2.4, y: by - r * 0.4, w: r * 2.4, h: r * 2.4, label: 'ACCEL' },
+      // アクセルは縦長ペダル。スライド量=開度なので背を高くする
+      accel: { x: W - mR - r * 2.1, y: by - r * 1.3, w: r * 2.1, h: r * 3.3, label: 'ACCEL' },
       brake: { x: W - mR - pad - r * 4.2, y: by, w: r * 1.8, h: r * 2, label: 'BRAKE' },
     };
     if (sel.mt) {
-      rects.sup   = { x: W - mR - r * 1.9, y: by - r * 2.4, w: r * 1.9, h: r * 1.6, label: 'SHIFT +' };
+      rects.sup   = { x: W - mR - r * 2.1, y: by - r * 3.0, w: r * 2.1, h: r * 1.5, label: 'SHIFT +' };
       rects.sdown = { x: W - mR - pad - r * 3.9, y: by - r * 2.4, w: r * 1.9, h: r * 1.6, label: 'SHIFT −' };
     }
     return rects;
@@ -1422,11 +1425,13 @@
     const rects = buttonRects();
     for (const k of Object.keys(input)) input[k] = false;
     for (const [id, p] of pointers) {
-      if (id === wheelPtr) continue;   // ハンドルを握っている指はボタン判定しない
+      if (id === wheelPtr || id === accPtr) continue;   // ハンドル/ペダル専任の指はボタン判定しない
       for (const [name, r] of Object.entries(rects)) {
+        if (name === 'accel') continue;                 // アクセルは pointerdown で専任化する
         if (p.x >= r.x - 6 && p.x <= r.x + r.w + 6 && p.y >= r.y - 6 && p.y <= r.y + r.h + 6) input[name] = true;
       }
     }
+    input.accel = accPtr !== null;
     if (input.sup && !prevSup) shiftUp();
     if (input.sdown && !prevSdown) shiftDown();
     prevSup = input.sup; prevSdown = input.sdown;
@@ -1443,6 +1448,14 @@
       wheelPtr = e.pointerId;
       wheelGrabX = p.x;
       wheelGrabA = wheelAngle;
+    } else if (IS_TOUCH) {
+      // アクセルペダル: 触れた指を専任にする(新しい指が常に優先)
+      const r = buttonRects().accel;
+      if (p.x >= r.x - 6 && p.x <= r.x + r.w + 6 && p.y >= r.y - 6 && p.y <= r.y + r.h + 6) {
+        accPtr = e.pointerId;
+        accGrabY = p.y;
+        touchThrottle = 1;   // 押した瞬間は全開
+      }
     }
     updateTouchInput();
   });
@@ -1456,12 +1469,18 @@
       const g = wheelGeom();
       wheelAngle = Math.max(-WHEEL_LOCK, Math.min(WHEEL_LOCK,
         wheelGrabA + (p.x - wheelGrabX) / (g.r * 1.4) * WHEEL_LOCK));
+    } else if (e.pointerId === accPtr) {
+      // 押した位置から下へスライドした量で開度を絞る(ペダルの踏み加減)。
+      // 上に戻せば全開。始点基準なのでどこを押しても操作感が同じ
+      const travel = buttonRects().accel.h * 0.85;
+      touchThrottle = Math.max(0, Math.min(1, 1 - (p.y - accGrabY) / travel));
     }
     updateTouchInput();
   });
   const releasePointer = e => {
     pointers.delete(e.pointerId);
     if (e.pointerId === wheelPtr) wheelPtr = null;
+    if (e.pointerId === accPtr) { accPtr = null; touchThrottle = 0; }
     updateTouchInput();
   };
   canvas.addEventListener('pointerup', releasePointer);
@@ -1470,7 +1489,7 @@
   // canvas外で指が離れた場合の保険と、フォーカス喪失時の全解放
   window.addEventListener('pointerup', releasePointer);
   window.addEventListener('pointercancel', releasePointer);
-  window.addEventListener('blur', () => { pointers.clear(); wheelPtr = null; updateTouchInput(); });
+  window.addEventListener('blur', () => { pointers.clear(); wheelPtr = null; accPtr = null; touchThrottle = 0; updateTouchInput(); });
   canvas.addEventListener('touchstart', e => e.preventDefault(), { passive: false });
 
   const keyMap = {
@@ -2673,6 +2692,30 @@
     }
   }
 
+  // ================= コーナリングガイド =================
+  // 実機の画面中央上部のガイドを再現: 次のコーナーの向き・距離を事前表示し、
+  // 黄=アクセルOFF推奨 / 赤=ブレーキ必須 を現在速度から判定して色分けする
+  function cornerGuide() {
+    const bi = findSegment(posZ).index;
+    const N = Math.min(segments.length - bi - 1, 84);   // 約420m先まで
+    let i = 0;
+    for (; i < N; i++) {
+      const s = segments[bi + i];
+      if (isFinite(s.radius) && s.radius < 850) break;
+    }
+    if (i >= N) return null;
+    const dir = Math.sign(segments[bi + i].curve);
+    let minR = segments[bi + i].radius, gap = 0;
+    for (let j = i; j < N; j++) {
+      const s = segments[bi + j];
+      if (isFinite(s.radius) && s.radius < 850 && Math.sign(s.curve) === dir) {
+        gap = 0;
+        if (s.radius < minR) minR = s.radius;
+      } else if (++gap > 6) break;
+    }
+    return { distM: i * SEG_LEN / M2U, minR, dir };
+  }
+
   // ================= HUD =================
   function drawHud() {
     const s = Math.min(W, H);
@@ -2712,6 +2755,45 @@
       ctx.fillStyle = '#3de8ff'; ctx.fillRect(bx, by, bw * Math.min(1, posZ / finishZ), bh);
       ctx.fillStyle = '#fff';
       for (const se of sectionEnds) ctx.fillRect(bx + bw * se.z / finishZ - 1, by - 2, 2, bh + 4);
+
+      // ---- コーナリングガイド ----
+      if (raceState === 'running') {
+        const cg = cornerGuide();
+        if (cg && cg.distM < 400) {
+          // 現在速度で曲がり切れるかで色を決める(車の性能に自動追従)
+          const gAcc = ph.mu * (G + ph.dfK * vMs * vMs / ph.mass);
+          const vSafe = Math.sqrt(gAcc * 0.95 * cg.minR);
+          const over = vMs - vSafe;
+          const sev = over <= 1 ? 0 : over < 8 ? 1 : 2;
+          if (!(sev === 0 && cg.minR > 500)) {
+            const gy = pad + s * 0.175;
+            const size = s * 0.026;
+            const nCh = cg.minR < 160 ? 3 : cg.minR < 320 ? 2 : 1;   // きついほど矢印が増える
+            let col = sev === 2 ? '#ff3d5e' : sev === 1 ? '#ffd048' : 'rgba(255,255,255,.55)';
+            let alpha = 1;
+            if (sev === 2 && cg.distM < 170) alpha = 0.55 + 0.45 * Math.sin(performance.now() / 70);
+            ctx.globalAlpha = alpha;
+            ctx.strokeStyle = col;
+            ctx.lineWidth = size * 0.36;
+            ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+            for (let k = 0; k < nCh; k++) {
+              const cx = W / 2 + cg.dir * (s * 0.052 + k * size * 0.95);
+              ctx.beginPath();
+              ctx.moveTo(cx - cg.dir * size * 0.42, gy - size * 0.8);
+              ctx.lineTo(cx + cg.dir * size * 0.42, gy);
+              ctx.lineTo(cx - cg.dir * size * 0.42, gy + size * 0.8);
+              ctx.stroke();
+            }
+            ctx.textAlign = cg.dir > 0 ? 'right' : 'left';
+            ctx.font = 'bold ' + s * 0.024 + 'px sans-serif';
+            ctx.fillStyle = col;
+            const label = sev === 2 ? 'ブレーキ!' : sev === 1 ? 'アクセルOFF' : '';
+            const tx2 = W / 2 - cg.dir * s * 0.05;
+            ctx.fillText(Math.max(0, Math.round(cg.distM / 10) * 10) + 'm' + (label ? ' ' + label : ''), tx2, gy + s * 0.009);
+            ctx.globalAlpha = 1;
+          }
+        }
+      }
     }
 
     // ---- タコメーター ----
@@ -2806,12 +2888,12 @@
       ctx.textAlign = 'center';
       ctx.font = 'italic bold ' + s * 0.028 + 'px "Arial Black", sans-serif';
       ctx.fillStyle = driftDeg > 22 ? '#ff3d5e' : '#3de8ff';
-      ctx.fillText('DRIFT ' + driftDeg.toFixed(0) + '°', W / 2, pad + s * 0.185);
+      ctx.fillText('DRIFT ' + driftDeg.toFixed(0) + '°', W / 2, pad + s * 0.235);
     } else if (wheelspin > 0.3 || sliding > 0.3) {
       ctx.textAlign = 'center';
       ctx.font = 'bold ' + s * 0.024 + 'px sans-serif';
       ctx.fillStyle = 'rgba(255,61,94,' + (0.5 + 0.5 * Math.sin(performance.now() / 90)) + ')';
-      ctx.fillText(wheelspin > 0.3 ? 'WHEEL SPIN' : (understeer ? 'UNDER STEER' : 'OVER STEER'), W / 2, pad + s * 0.185);
+      ctx.fillText(wheelspin > 0.3 ? 'WHEEL SPIN' : (understeer ? 'UNDER STEER' : 'OVER STEER'), W / 2, pad + s * 0.235);
     }
 
     let fy = H * 0.30;
@@ -2830,6 +2912,35 @@
     const rects = buttonRects();
     for (const [name, r] of Object.entries(rects)) {
       const active = input[name];
+      if (name === 'accel') {
+        // 開度式ペダル: 下から開度ぶんだけゲージが満ちる
+        const th = active ? touchThrottle : 0;
+        ctx.fillStyle = 'rgba(30,38,70,.42)';
+        ctx.strokeStyle = active ? 'rgba(160,200,255,.9)' : 'rgba(255,255,255,.26)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        if (ctx.roundRect) ctx.roundRect(r.x, r.y, r.w, r.h, 14); else ctx.rect(r.x, r.y, r.w, r.h);
+        ctx.fill();
+        if (th > 0.01) {
+          ctx.save();
+          ctx.clip();
+          const gh = r.h * th;
+          ctx.fillStyle = th > 0.85 ? 'rgba(120,200,140,.55)' : 'rgba(242,208,72,.45)';
+          ctx.fillRect(r.x, r.y + r.h - gh, r.w, gh);
+          ctx.restore();
+          ctx.beginPath();
+          if (ctx.roundRect) ctx.roundRect(r.x, r.y, r.w, r.h, 14); else ctx.rect(r.x, r.y, r.w, r.h);
+        }
+        ctx.stroke();
+        ctx.fillStyle = 'rgba(255,255,255,.92)';
+        ctx.textAlign = 'center';
+        ctx.font = 'bold ' + r.w * 0.16 + 'px sans-serif';
+        ctx.fillText(r.label, r.x + r.w / 2, r.y + r.h * 0.5);
+        ctx.font = 'bold ' + r.w * 0.13 + 'px sans-serif';
+        ctx.fillStyle = active ? '#e8eaf6' : 'rgba(255,255,255,.5)';
+        ctx.fillText(active ? Math.round(th * 100) + '%' : '▼スライドで調整', r.x + r.w / 2, r.y + r.h * 0.66);
+        continue;
+      }
       const isShift = name === 'sup' || name === 'sdown';
       ctx.fillStyle = active ? 'rgba(120,160,255,.42)' : 'rgba(30,38,70,.42)';
       ctx.strokeStyle = active ? 'rgba(160,200,255,.9)' : 'rgba(255,255,255,.26)';
@@ -2963,17 +3074,6 @@
       box.appendChild(b);
     });
   }
-  function buildAssistChips() {
-    const box = el('assistChips'); box.innerHTML = '';
-    [{ l: 'アシストON', v: true }, { l: 'アシストOFF', v: false }].forEach(o => {
-      const b = document.createElement('button');
-      b.className = 'chip' + (sel.assist === o.v ? ' on' : '');
-      b.textContent = o.l;
-      b.title = 'ON: 安定化+舵の丸め込みで簡単に走れる / OFF: 素の物理';
-      b.onclick = () => { sel.assist = o.v; buildAssistChips(); };
-      box.appendChild(b);
-    });
-  }
   function refreshPreview() {
     const c = currentCar(), p = c.ph;
     const pv = el('preview'), pctx = pv.getContext('2d');
@@ -3016,7 +3116,7 @@
     });
   }
   function openGarage() {
-    buildMakerChips(); buildModelList(); buildTuneChips(); buildBalChips(); buildSwatches(); buildMtChips(); buildAssistChips(); refreshPreview();
+    buildMakerChips(); buildModelList(); buildTuneChips(); buildBalChips(); buildSwatches(); buildMtChips(); refreshPreview();
     showScreen('garage');
   }
   el('btn-title').onclick = () => { tryLandscape(); openGarage(); };
@@ -3036,7 +3136,7 @@
     'セクション毎の規定時間を守りながら、<br>' +
     '自分の限界=最速トータルタイムを追い求めるストイックなモード。' +
     (IS_TOUCH
-      ? '<br><br>[操作] 画面左半分を左右にドラッグするとハンドルが回る<br>(離すと自動でセンターへ)。右手で ACCEL / BRAKE / SHIFT±'
+      ? '<br><br>[操作] 画面左半分を左右にドラッグするとハンドルが回る<br>(離すと自動でセンターへ)。ACCELは押すと全開、<br>押したまま下へスライドで開度を絞れる(ドリフト維持に)。'
       : '<br><br>[操作] ←→ハンドル / ↑アクセル / ↓ブレーキ / X・Space シフトアップ / Z シフトダウン');
 
   // テスト用フック
@@ -3049,6 +3149,7 @@
     }
     return {
       posX, posZ, kmh: vMs * 3.6, vMs, gear, rpm, redline: ph ? ph.redline : 0,
+      throttle: prevThrottle,
       heading, raceState, sectionIdx, totalTime, finishZ, sliding, wheelspin, scraping,
       wheelAngle, steerIn, posXm: posX,
       mu: ph ? ph.mu : 0, mass: ph ? ph.mass : 0, dfK: ph ? ph.dfK : 0,
