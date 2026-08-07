@@ -1432,6 +1432,14 @@
     sky.addColorStop(1, '#1a2350');
     ctx.fillStyle = sky;
     ctx.fillRect(0, 0, W, hz + H * 0.02);
+    // 街明かりのグロー(地平線に滲む都市の光)
+    for (const [gx2, colG] of [[W * 0.20, '255,150,80'], [W * 0.78, '90,170,255']]) {
+      const cg = ctx.createRadialGradient(gx2, hz, 0, gx2, hz, W * 0.34);
+      cg.addColorStop(0, 'rgba(' + colG + ',0.10)');
+      cg.addColorStop(1, 'rgba(' + colG + ',0)');
+      ctx.fillStyle = cg;
+      ctx.fillRect(gx2 - W * 0.34, hz - W * 0.34, W * 0.68, W * 0.34);
+    }
     ctx.fillStyle = '#070912';
     ctx.fillRect(0, hz + H * 0.02, W, H - hz);
     // 地表(高架の下の街)へなだらかに落とす
@@ -1483,6 +1491,7 @@
     // 走行ラインに沿った中心線を積算
     let cx = 0, dx = -baseSeg.curve * basePct;
     const rows = [];
+    const fxL = [];   // 光源(濡れた路面の反射・光だまり用)
     for (let n = 0; n < DRAW_DIST; n++) {
       const i = baseSeg.index + n;
       if (i >= segments.length) break;
@@ -1535,8 +1544,12 @@
             const lamp = p3(px - sgn * 0.9 * M2U, pTop, r.z1);
             glow(lamp, 6 * M2U, theme.pole, (1 - fog) * 0.5, 130);
             dot(lamp, 0.3 * M2U, theme.pole, 1 - fog, 12);
+            const lbase = p3(px - sgn * 0.9 * M2U, s.p1y, r.z1);
+            if (lamp && lbase) fxL.push({ x: lamp.x, y0: lbase.y, sc: lamp.sc, col: theme.pole, a: 1 - fog });
           }
         }
+        // ネオン看板
+        if (r.i % 90 === 30 && r.n > 5) drawBillboard(r, s, fog);
         // 吊り橋の主塔とケーブル
         if (s.tower) {
           for (const sgn of [-1, 1]) {
@@ -1584,6 +1597,17 @@
       // 舗装の明暗差は控えめに(手前のセグメントは画面を大きく覆うため縞が目立つ)
       const base = dark ? [31, 34, 44] : [34, 38, 49];
       quad(L1, R1, R2, L2, shade(base[0], base[1], base[2], fog, s.tunnel ? 0.72 : 1));
+      // 轍(車線内のタイヤ痕)。路面に走行の痕跡があると質感が出る
+      if (near && r.n < 55 && !s.finish) {
+        const wearCol = shade(base[0] - 5, base[1] - 5, base[2] - 6, fog, s.tunnel ? 0.72 : 1);
+        for (let l = 0; l < LANES; l++) {
+          const tc = (l + 0.5) / LANES;
+          for (const o of [-0.052, 0.052]) {
+            quad(lerpP(L1, R1, tc + o - 0.016), lerpP(L1, R1, tc + o + 0.016),
+                 lerpP(L2, R2, tc + o + 0.016), lerpP(L2, R2, tc + o - 0.016), wearCol);
+          }
+        }
+      }
 
       // ---- 白線 ----
       const edge = 0.045;
@@ -1634,13 +1658,15 @@
 
       if (s.tunnel) {
         // ---- トンネル(3Dボックス) ----
+        // 照明の間隔に合わせて壁の明るさを揺らすと、光の帯が流れて見える
+        const wl = Math.floor(r.i / 4) % 2 ? 7 : 0;
         const ch = 6.2 * M2U;
         const cL1 = p3(r.x1 - ROAD_HW * 1.06, s.p1y + ch, r.z1);
         const cL2 = p3(r.x2 - ROAD_HW * 1.06, s.p2y + ch, r.z2);
         const cR1 = p3(r.x1 + ROAD_HW * 1.06, s.p1y + ch, r.z1);
         const cR2 = p3(r.x2 + ROAD_HW * 1.06, s.p2y + ch, r.z2);
-        quad(gL1, cL1, cL2, gL2, shade(30, 34, 48, fog));
-        quad(gR1, cR1, cR2, gR2, shade(24, 28, 40, fog));
+        quad(gL1, cL1, cL2, gL2, shade(30 + wl, 34 + wl, 48 + wl, fog));
+        quad(gR1, cR1, cR2, gR2, shade(24 + wl, 28 + wl, 40 + wl, fog));
         quad(cL1, cR1, cR2, cL2, shade(14, 16, 24, fog));
         if (r.i % 4 === 0 && r.n > 2) {
           const lz = r.z1;
@@ -1651,6 +1677,8 @@
           ctx.globalAlpha = 1 - fog;
           quad(a, b, c3, d3, theme.tunnelLight);
           ctx.globalAlpha = 1;
+          const tbase = p3(r.x1, s.p1y, lz);
+          if (a && tbase) fxL.push({ x: (a.x + b.x) / 2, y0: tbase.y, sc: a.sc, col: theme.tunnelLight, a: (1 - fog) * 0.8 });
         }
       } else if ((s.checkpoint || s.finish) && r.n > 1) {
         drawGate(r, s, fog);
@@ -1658,6 +1686,43 @@
       // 工事規制のパイロンと道路標識
       if (s.cone) drawCones(r, s, fog);
       if (signAt[r.i] && !s.tunnel && r.n > 2) drawSign(r, s, signAt[r.i], fog);
+    }
+
+    // ---- 濡れた路面の反射と光だまり ----
+    for (const f of fxL) {
+      const len = Math.min(H * 0.22, f.sc * 12 * M2U * PROJ_K);
+      const wdt = Math.max(1.5, Math.min(14, f.sc * 0.5 * M2U * PROJ_K));
+      if (len < 3) continue;
+      const g1 = ctx.createLinearGradient(0, f.y0, 0, f.y0 + len);
+      g1.addColorStop(0, colA(f.col, 0.12 * f.a));
+      g1.addColorStop(1, colA(f.col, 0));
+      ctx.fillStyle = g1;
+      ctx.fillRect(f.x - wdt / 2, f.y0, wdt, len);
+      const pr = Math.max(4, Math.min(70, f.sc * 5 * M2U * PROJ_K));
+      const g2 = ctx.createRadialGradient(f.x, f.y0, 0, f.x, f.y0, pr);
+      g2.addColorStop(0, colA(f.col, 0.10 * f.a));
+      g2.addColorStop(1, colA(f.col, 0));
+      ctx.fillStyle = g2;
+      ctx.beginPath(); ctx.ellipse(f.x, f.y0, pr, pr * 0.30, 0, 0, Math.PI * 2); ctx.fill();
+    }
+
+    // ---- ヘッドライトの路面照射 ----
+    if (car && raceState !== 'idle') {
+      const hb = findSegment(posZ);
+      const hp2 = (posZ % SEG_LEN) / SEG_LEN;
+      const hy = hb.p1y + (hb.p2y - hb.p1y) * hp2;
+      const cxr = carRoadX + posX * M2U;
+      const P = (d, o) => p3(cxr + (o + Math.sin(heading) * d) * M2U, hy, posZ + d * M2U);
+      const n1 = P(6, -1.0), n2 = P(6, 1.0), f1 = P(42, -3.6), f2 = P(42, 3.6);
+      if (n1 && n2 && f1 && f2) {
+        const gc = ctx.createLinearGradient(0, n1.y, 0, f1.y);
+        gc.addColorStop(0, 'rgba(190,215,255,0.055)');
+        gc.addColorStop(1, 'rgba(190,215,255,0)');
+        ctx.fillStyle = gc;
+        ctx.beginPath();
+        ctx.moveTo(n1.x, n1.y); ctx.lineTo(n2.x, n2.y); ctx.lineTo(f2.x, f2.y); ctx.lineTo(f1.x, f1.y);
+        ctx.closePath(); ctx.fill();
+      }
     }
 
     // ---- 夜霧(距離感) ----
@@ -1681,6 +1746,13 @@
     vg.addColorStop(1, 'rgba(3,4,10,.55)');
     ctx.fillStyle = vg;
     ctx.fillRect(0, H * 0.78, W, H * 0.22);
+    // 周辺減光(視線を中央へ集める)
+    const cv = ctx.createRadialGradient(W / 2, H * 0.42, Math.min(W, H) * 0.45,
+                                        W / 2, H * 0.42, Math.max(W, H) * 0.78);
+    cv.addColorStop(0, 'rgba(2,3,10,0)');
+    cv.addColorStop(1, 'rgba(2,3,10,.40)');
+    ctx.fillStyle = cv;
+    ctx.fillRect(0, 0, W, H);
 
     drawSpeedLines();
     drawHud();
@@ -1699,6 +1771,45 @@
   function lerpP(a, b, t) {
     if (!a || !b) return null;
     return { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t, sc: a.sc };
+  }
+  function colA(c, a) {
+    const p = parseCol(c);
+    return 'rgba(' + p[0] + ',' + p[1] + ',' + p[2] + ',' + Math.max(0, Math.min(1, a)).toFixed(3) + ')';
+  }
+
+  // ネオン看板
+  const BB_TEXT = ['湾岸', 'MIDNIGHT', 'NEON GT', '首都高速', 'TUNE UP', 'RX MOTORS', 'ドリフト天国', 'OIL 24h'];
+  const BB_COL = ['#ff3d8f', '#3de8ff', '#f2d048', '#5ee08a'];
+  function drawBillboard(r, s, fog) {
+    const sgn = hash(r.i * 7) > 0.5 ? 1 : -1;
+    const idx = Math.floor(hash(r.i * 13) * BB_TEXT.length);
+    const col = BB_COL[idx % BB_COL.length];
+    const bx = r.x1 + sgn * (ROAD_HW + 5.5 * M2U);
+    const y0 = s.p1y + 4.2 * M2U, bw2 = 3.6 * M2U, bh2 = 1.7 * M2U;
+    const a = p3(bx - bw2, y0 - bh2, r.z1), b = p3(bx + bw2, y0 - bh2, r.z1);
+    const c = p3(bx + bw2, y0 + bh2, r.z1), d = p3(bx - bw2, y0 + bh2, r.z1);
+    if (!a || !c) return;
+    // 支柱
+    quad(p3(bx - 0.15 * M2U, s.p1y, r.z1), p3(bx + 0.15 * M2U, s.p1y, r.z1),
+         p3(bx + 0.15 * M2U, y0 - bh2, r.z1), p3(bx - 0.15 * M2U, y0 - bh2, r.z1),
+         shade(40, 46, 66, fog));
+    // パネルとネオン縁
+    quad(a, b, c, d, shade(12, 14, 24, fog));
+    ctx.globalAlpha = (1 - fog) * (0.75 + 0.25 * Math.sin(performance.now() / 300 + r.i));
+    ctx.strokeStyle = col;
+    ctx.lineWidth = Math.max(1, Math.min(5, a.sc * 0.16 * M2U * PROJ_K));
+    ctx.beginPath();
+    ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.lineTo(c.x, c.y); ctx.lineTo(d.x, d.y);
+    ctx.closePath(); ctx.stroke();
+    // ネオン文字(近い時だけ)
+    const hpx = Math.abs(c.y - b.y);
+    if (hpx > 10) {
+      ctx.fillStyle = col;
+      ctx.font = 'bold ' + hpx * 0.42 + 'px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(BB_TEXT[idx], (a.x + c.x) / 2, (a.y + c.y) / 2 + hpx * 0.15);
+    }
+    ctx.globalAlpha = 1;
   }
   function shade(r, g, b, fog, mul) {
     const m = mul === undefined ? 1 : mul;
@@ -1739,6 +1850,18 @@
         }
       }
       ctx.globalAlpha = 1;
+    }
+    // 高層ビルには屋上アンテナと航空障害灯
+    if (bh > 42 * M2U && fog < 0.8) {
+      const antTop = by + bh + 6 * M2U;
+      const t1 = p3(bx, by + bh, z0), t2 = p3(bx, antTop, z0);
+      if (t1 && t2) {
+        ctx.strokeStyle = shade(60, 66, 90, fog);
+        ctx.lineWidth = Math.max(0.7, t1.sc * 0.15 * M2U * PROJ_K);
+        ctx.beginPath(); ctx.moveTo(t1.x, t1.y); ctx.lineTo(t2.x, t2.y); ctx.stroke();
+        const blink = Math.floor(performance.now() / 650 + hash(seed) * 10) % 2 === 0;
+        dot(t2, 0.5 * M2U, '#ff4a4a', (blink ? 0.95 : 0.22) * (1 - fog), 5);
+      }
     }
   }
 
@@ -2011,6 +2134,8 @@
         case 'body': case 'roof':
           col = mixColor(color, '#ffffff', 0.06 + lam * 0.30);
           col = mixColor(col, '#0a0f22', 0.30 - lam * 0.26);
+          // 月光のスペキュラ(上向きの面に冷たい艶)
+          if (lam > 0.72) col = mixColor(col, '#cfe0ff', (lam - 0.72) * 0.85);
           break;
         case 'glass': col = mixColor('#0c1226', '#7fa8e0', 0.10 + lam * 0.34); break;
         case 'wing':  col = mixColor('#15161c', '#ffffff', lam * 0.30); break;
@@ -2032,6 +2157,12 @@
       ctx.lineTo(px[v[3]], py[v[3]]);
       ctx.closePath();
       ctx.fill();
+      // パネルライン(面の境界をわずかに沈めて立体感を出す)
+      if (f.r === 'body' || f.r === 'roof' || f.r === 'glass' || f.r === 'bumper') {
+        ctx.strokeStyle = 'rgba(5,7,14,.30)';
+        ctx.lineWidth = 0.8;
+        ctx.stroke();
+      }
       // ブレーキランプのハロー
       if (f.r === 'lamp' && brake) {
         ctx.globalAlpha = 0.30;
@@ -2196,6 +2327,19 @@
       const wx = cxT + it.t.x * M2U;
       const wy = yT - Math.sin(s.bank) * it.t.x * M2U;
       const mesh = ensureMesh(it.t.type, false);
+      // テールランプの路面反射(車より先に描く)
+      const ctr = p3(wx, wy, it.t.z);
+      if (ctr) {
+        const len = Math.min(H * 0.16, ctr.sc * 6 * M2U * PROJ_K);
+        const wd = Math.max(2, Math.min(40, ctr.sc * it.t.w * M2U * PROJ_K * 0.7));
+        if (len > 3) {
+          const gt = ctx.createLinearGradient(0, ctr.y, 0, ctr.y + len);
+          gt.addColorStop(0, 'rgba(255,45,80,' + (it.t.brake > 0 ? 0.22 : 0.10) + ')');
+          gt.addColorStop(1, 'rgba(255,45,80,0)');
+          ctx.fillStyle = gt;
+          ctx.fillRect(ctr.x - wd / 2, ctr.y, wd, len);
+        }
+      }
       drawCar3D(mesh, wx, wy, it.t.z, 0, 0, s.bank * 0.5, it.t.color,
                 { brake: it.t.brake > 0, steer: 0 });
     }
@@ -2296,6 +2440,15 @@
       ctx.globalAlpha = 0.30;
       quad(corner(-hwid, -hl), corner(hwid, -hl), corner(hwid, hl), corner(-hwid, hl), '#03040a');
       ctx.globalAlpha = 1;
+      // フルチューン車はアンダーネオン
+      if (sel.tune === 2) {
+        const pr = Math.max(10, shC.sc * 2.6 * M2U * PROJ_K);
+        const ug = ctx.createRadialGradient(shC.x, shC.y, 0, shC.x, shC.y, pr);
+        ug.addColorStop(0, 'rgba(110,90,255,.22)');
+        ug.addColorStop(1, 'rgba(110,90,255,0)');
+        ctx.fillStyle = ug;
+        ctx.beginPath(); ctx.ellipse(shC.x, shC.y, pr, pr * 0.30, 0, 0, Math.PI * 2); ctx.fill();
+      }
     }
 
     // 3Dの車体本体(ヨー・ピッチ・ロール込み)
