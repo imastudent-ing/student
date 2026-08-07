@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>MIDNIGHT HIGHWAY - 湾岸レースゲーム</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #05060f;
+    color: #e8eaf6;
+    font-family: "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Yu Gothic", sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 12px;
+    touch-action: manipulation;
+    overflow-x: hidden;
+  }
+  h1 {
+    font-size: 20px;
+    letter-spacing: 6px;
+    margin: 6px 0 12px;
+    font-style: italic;
+    background: linear-gradient(90deg, #3de8ff, #6c8cff, #ff3d8f);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .holder { position: relative; }
+  canvas {
+    display: block;
+    border-radius: 10px;
+    border: 2px solid #1e2542;
+    box-shadow: 0 10px 60px rgba(60,120,255,.15);
+    max-width: 100%;
+  }
+  .overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(5,6,15,.8);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    border-radius: 10px;
+    text-align: center;
+    padding: 20px;
+  }
+  .overlay.hidden { display: none; }
+  .overlay .big {
+    font-size: 30px;
+    font-weight: bold;
+    font-style: italic;
+    letter-spacing: 4px;
+    background: linear-gradient(90deg, #3de8ff, #ff3d8f);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .overlay .small { font-size: 13px; color: #8b93b8; line-height: 2; }
+  .overlay button {
+    background: linear-gradient(135deg, #3d6bff, #b53dff);
+    color: #fff;
+    border: none;
+    border-radius: 999px;
+    padding: 12px 40px;
+    font-size: 16px;
+    font-weight: bold;
+    letter-spacing: 2px;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .overlay button:active { transform: scale(.96); }
+  .touch-controls {
+    display: none;
+    gap: 10px;
+    margin-top: 14px;
+    width: 100%;
+    max-width: 640px;
+    justify-content: space-between;
+  }
+  .touch-controls .pad { display: flex; gap: 10px; }
+  .touch-controls button {
+    width: 64px; height: 64px;
+    font-size: 24px;
+    background: #141a30;
+    color: #e8eaf6;
+    border: 1px solid #2c3354;
+    border-radius: 12px;
+  }
+  @media (pointer: coarse) {
+    .touch-controls { display: flex; }
+  }
+</style>
+</head>
+<body>
+<h1>MIDNIGHT HIGHWAY</h1>
+<div class="holder">
+  <canvas id="game" width="640" height="420"></canvas>
+  <div class="overlay" id="overlay">
+    <div class="big" id="ovTitle">MIDNIGHT HIGHWAY</div>
+    <div class="small" id="ovMsg">
+      深夜の湾岸線を駆け抜けろ。<br>
+      ←→ ハンドル / ↑ アクセル / ↓ ブレーキ<br>
+      制限時間内に次のチェックポイントへ。<br>
+      他の車に接触すると大きく減速する。
+    </div>
+    <button id="startBtn">START</button>
+  </div>
+</div>
+<div class="touch-controls">
+  <div class="pad">
+    <button id="tLeft">◀</button>
+    <button id="tRight">▶</button>
+  </div>
+  <div class="pad">
+    <button id="tBrake">🔻</button>
+    <button id="tAccel">🔺</button>
+  </div>
+</div>
+
+<script>
+(() => {
+  const canvas = document.getElementById('game');
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+
+  // --- 定数 ---
+  const SEG_LEN = 200;            // 1セグメントの奥行き
+  const ROAD_W = 2200;            // 道路の半幅
+  const LANES = 3;
+  const CAMERA_H = 1000;
+  const CAMERA_DEPTH = 0.84;      // 視野の深さ
+  const DRAW_DIST = 90;           // 描画セグメント数
+  const MAX_SPEED = 340;          // km/h 表示上の最高速
+  const SPEED_SCALE = 62;         // km/h -> 内部速度の係数
+  const CHECKPOINT_DIST = 430000; // チェックポイント間隔(内部単位)
+  const CHECKPOINT_TIME = 45;     // 秒
+
+  // --- 状態 ---
+  let segments = [];
+  let trackLength = 0;
+  let traffic = [];
+  let playerX = 0;          // -1 ~ 1 (道路中心からのオフセット)
+  let position = 0;         // コース上の位置
+  let speed = 0;            // km/h
+  let steer = 0;
+  let timeLeft = 0;
+  let distanceTotal = 0;
+  let checkpointAt = 0;
+  let stage = 1;
+  let running = false, gameOver = false;
+  let keys = {};
+  let lastTime = 0;
+  let shake = 0;
+  let flashMsg = null, flashTimer = 0;
+  let best = Number(localStorage.getItem('midnight-best-km') || 0);
+
+  // --- コース生成 ---
+  function addRoad(count, curve, hill) {
+    const startY = segments.length ? segments[segments.length - 1].p2y : 0;
+    for (let i = 0; i < count; i++) {
+      const t = i / count;
+      // イーズイン/アウトでカーブと坂を滑らかに
+      const ease = t < .5 ? 2*t*t : 1 - Math.pow(-2*t+2, 2)/2;
+      segments.push({
+        curve: curve * ease,
+        p1y: startY + hill * (i / count) * SEG_LEN,
+        p2y: startY + hill * ((i + 1) / count) * SEG_LEN,
+      });
+    }
+  }
+
+  function buildTrack() {
+    segments = [];
+    addRoad(60, 0, 0);
+    addRoad(60, 2.5, 0);
+    addRoad(40, 0, 6);
+    addRoad(70, -3.5, 0);
+    addRoad(50, 0, -6);
+    addRoad(50, 1.5, 4);
+    addRoad(80, 4, 0);
+    addRoad(40, 0, 0);
+    addRoad(60, -2, -4);
+    addRoad(70, -4.5, 0);
+    addRoad(50, 0, 8);
+    addRoad(60, 3, -8);
+    addRoad(80, 0, 0);
+    addRoad(60, -1.5, 0);
+    // セグメントに色分けとインデックスを付与
+    segments.forEach((s, i) => {
+      s.index = i;
+      s.z = i * SEG_LEN;
+    });
+    trackLength = segments.length * SEG_LEN;
+  }
+
+  // --- 交通車両 ---
+  const CAR_COLORS = ['#c0c8d8', '#f2d048', '#5ee08a', '#ff8f4d', '#8f9dc0', '#d05ee0'];
+  function spawnTraffic(count) {
+    traffic = [];
+    for (let i = 0; i < count; i++) {
+      traffic.push({
+        z: Math.random() * trackLength,
+        lane: (Math.floor(Math.random() * LANES) + 0.5) / LANES * 2 - 1, // -1~1
+        speed: 80 + Math.random() * 90, // km/h
+        color: CAR_COLORS[Math.floor(Math.random() * CAR_COLORS.length)],
+        w: 0.34, // 当たり判定幅(playerX単位)
+      });
+    }
+  }
+
+  function findSegment(z) {
+    if (!isFinite(z)) z = 0;
+    const n = segments.length;
+    const i = ((Math.floor(z / SEG_LEN) % n) + n) % n;
+    return segments[i];
+  }
+
+  // --- 更新 ---
+  function update(dt) {
+    const seg = findSegment(position);
+
+    // 入力
+    const accel = keys.up || keys.tAccel;
+    const brake = keys.down || keys.tBrake;
+    const left = keys.left || keys.tLeft;
+    const right = keys.right || keys.tRight;
+
+    if (accel) speed += (MAX_SPEED - speed) * 0.42 * dt;
+    else if (brake) speed -= 220 * dt;
+    else speed -= 35 * dt;
+    speed = Math.max(0, Math.min(MAX_SPEED, speed));
+
+    const speedRatio = speed / MAX_SPEED;
+
+    // ハンドル
+    const steerTarget = left ? -1 : right ? 1 : 0;
+    steer += (steerTarget - steer) * 8 * dt;
+    playerX += steer * 1.9 * dt * (0.35 + speedRatio);
+    // カーブによる遠心力
+    playerX -= seg.curve * 0.032 * speedRatio * speedRatio * dt * 10;
+
+    // 路肩
+    if (Math.abs(playerX) > 1.05) {
+      playerX = Math.sign(playerX) * 1.05;
+      if (speed > 90) { speed -= 260 * dt; shake = 4; }
+    }
+
+    // 前進
+    const move = speed * SPEED_SCALE * dt;
+    position += move;
+    distanceTotal += move;
+    while (position >= trackLength) position -= trackLength;
+
+    // 交通の更新と衝突
+    for (const car of traffic) {
+      car.z += car.speed * SPEED_SCALE * dt;
+      while (car.z >= trackLength) car.z -= trackLength;
+      // 相対距離(ループ考慮)
+      let rel = car.z - position;
+      if (rel < -trackLength / 2) rel += trackLength;
+      if (rel > trackLength / 2) rel -= trackLength;
+      if (rel > -SEG_LEN * 0.5 && rel < SEG_LEN * 2 && speed > car.speed) {
+        if (Math.abs(car.lane - playerX) < car.w + 0.28) {
+          // 衝突: 大減速
+          speed = Math.min(speed, car.speed * 0.55);
+          shake = 10;
+          flash('CRASH!', '#ff3d5e');
+        }
+      }
+    }
+
+    // チェックポイント
+    timeLeft -= dt;
+    if (distanceTotal >= checkpointAt) {
+      checkpointAt += CHECKPOINT_DIST;
+      stage++;
+      timeLeft = Math.min(timeLeft + CHECKPOINT_TIME, 99);
+      flash('CHECKPOINT +' + CHECKPOINT_TIME + 's', '#3de8ff');
+    }
+    if (timeLeft <= 0) {
+      timeLeft = 0;
+      endGame();
+    }
+
+    if (shake > 0) shake = Math.max(0, shake - 30 * dt);
+    if (flashTimer > 0) flashTimer -= dt;
+  }
+
+  function flash(msg, color) {
+    flashMsg = { text: msg, color };
+    flashTimer = 1.4;
+  }
+
+  // --- 描画 ---
+  function project(worldX, worldY, worldZ, camX, camY, camZ) {
+    const dz = worldZ - camZ;
+    const scale = CAMERA_DEPTH / (dz <= 0 ? 0.0001 : dz);
+    return {
+      x: W / 2 + scale * (worldX - camX) * W / 2,
+      y: H / 2 - scale * (worldY - camY) * H / 2,
+      w: scale * ROAD_W * W / 2,
+      scale,
+    };
+  }
+
+  function render() {
+    // 夜空
+    const sky = ctx.createLinearGradient(0, 0, 0, H * 0.55);
+    sky.addColorStop(0, '#03040c');
+    sky.addColorStop(1, '#131b3d');
+    ctx.fillStyle = sky;
+    ctx.fillRect(0, 0, W, H);
+
+    // 遠景: ビル群のシルエットとネオン
+    drawSkyline();
+
+    const baseSeg = findSegment(position);
+    const basePct = (position % SEG_LEN) / SEG_LEN;
+    const camX = playerX * ROAD_W;
+    const camY = CAMERA_H + baseSeg.p1y + (baseSeg.p2y - baseSeg.p1y) * basePct;
+    const camZ = position;
+    let maxY = H;
+    let x = 0, dx = -baseSeg.curve * basePct;
+
+    const shakeX = (Math.random() - .5) * shake;
+    const shakeY = (Math.random() - .5) * shake;
+    ctx.save();
+    ctx.translate(shakeX, shakeY);
+
+    const rows = []; // 後で交通車両を描くため保存
+
+    for (let n = 0; n < DRAW_DIST; n++) {
+      const i = (baseSeg.index + n) % segments.length;
+      const seg = segments[i];
+      const looped = i < baseSeg.index;
+      const segZ = seg.z + (looped ? trackLength : 0);
+
+      const p1 = project(x, seg.p1y, segZ, camX, camY, camZ);
+      x += dx;
+      dx += seg.curve;
+      const p2 = project(x, seg.p2y, segZ + SEG_LEN, camX, camY, camZ);
+
+      rows.push({ seg, p1, p2, segZ });
+
+      if (segZ - camZ < 1) continue;   // カメラより手前は描かない
+      if (p2.y >= maxY) continue;
+
+      const dark = Math.floor(i / 3) % 2 === 0;
+      // 路面
+      ctx.fillStyle = dark ? '#14161f' : '#171a24';
+      poly(p1.x - p1.w, p1.y, p1.x + p1.w, p1.y, p2.x + p2.w, p2.y, p2.x - p2.w, p2.y);
+      // 路肩ライン
+      const rw1 = p1.w * 0.04, rw2 = p2.w * 0.04;
+      ctx.fillStyle = dark ? '#e8eaf6' : '#8b93b8';
+      poly(p1.x - p1.w, p1.y, p1.x - p1.w + rw1, p1.y, p2.x - p2.w + rw2, p2.y, p2.x - p2.w, p2.y);
+      poly(p1.x + p1.w - rw1, p1.y, p1.x + p1.w, p1.y, p2.x + p2.w, p2.y, p2.x + p2.w - rw2, p2.y);
+      // 車線境界(破線)
+      if (dark) {
+        ctx.fillStyle = '#aab2d0';
+        for (let l = 1; l < LANES; l++) {
+          const lx1 = p1.x - p1.w + (p1.w * 2) * (l / LANES);
+          const lx2 = p2.x - p2.w + (p2.w * 2) * (l / LANES);
+          const lw1 = p1.w * 0.012, lw2 = p2.w * 0.012;
+          poly(lx1 - lw1, p1.y, lx1 + lw1, p1.y, lx2 + lw2, p2.y, lx2 - lw2, p2.y);
+        }
+      }
+      // ガードレールの支柱ライト(ネオン風)
+      if (i % 6 === 0) {
+        const s = Math.min(170, p1.scale * 1400 * H / 2);
+        ctx.fillStyle = '#ffb84d';
+        ctx.fillRect(p1.x - p1.w * 1.12, p1.y - s, Math.max(1, s * 0.06), s);
+        ctx.fillStyle = '#3de8ff';
+        ctx.fillRect(p1.x + p1.w * 1.12, p1.y - s, Math.max(1, s * 0.06), s);
+      }
+      maxY = p2.y;
+    }
+
+    // 交通車両(奥から手前へ)
+    const drawList = [];
+    for (const car of traffic) {
+      const carIdx = Math.floor(car.z / SEG_LEN) % segments.length;
+      const n = (carIdx - baseSeg.index + segments.length) % segments.length;
+      if (n >= 1 && n < DRAW_DIST) {
+        drawList.push({ n, t: (car.z % SEG_LEN) / SEG_LEN, car });
+      }
+    }
+    drawList.sort((a, b) => b.n - a.n);
+    for (const { n, t, car } of drawList) {
+      const { p1, p2 } = rows[n];
+      const hw = p1.w + (p2.w - p1.w) * t;
+      const px = p1.x + (p2.x - p1.x) * t + hw * car.lane;
+      const py = p1.y + (p2.y - p1.y) * t;
+      if (py < H * 0.5 - 10 || py > H + 60) continue;
+      drawCar(px, py, hw * 0.18, car.color, true);
+    }
+
+    // 自車
+    drawPlayerCar();
+
+    ctx.restore();
+
+    drawHud();
+  }
+
+  function poly(x1, y1, x2, y2, x3, y3, x4, y4) {
+    ctx.beginPath();
+    ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.lineTo(x3, y3); ctx.lineTo(x4, y4);
+    ctx.closePath(); ctx.fill();
+  }
+
+  let skylineSeed = [];
+  function initSkyline() {
+    skylineSeed = [];
+    for (let i = 0; i < 40; i++) {
+      skylineSeed.push({
+        w: 14 + Math.random() * 30,
+        h: 20 + Math.random() * 70,
+        lights: Math.random(),
+      });
+    }
+  }
+
+  function drawSkyline() {
+    const horizon = H * 0.5;
+    let bx = -20 - (position * 0.002 % 60);
+    ctx.fillStyle = '#0a0e20';
+    for (const b of skylineSeed) {
+      ctx.fillRect(bx, horizon - b.h, b.w, b.h);
+      bx += b.w + 4;
+      if (bx > W) break;
+    }
+    // 窓明かり
+    bx = -20 - (position * 0.002 % 60);
+    for (const b of skylineSeed) {
+      if (b.lights > 0.3) {
+        ctx.fillStyle = 'rgba(255,214,120,.5)';
+        for (let wy = 8; wy < b.h - 4; wy += 10) {
+          for (let wx = 3; wx < b.w - 3; wx += 8) {
+            if ((wx * 7 + wy * 13 + Math.floor(b.lights * 100)) % 3 === 0) {
+              ctx.fillRect(bx + wx, horizon - b.h + wy, 3, 4);
+            }
+          }
+        }
+      }
+      bx += b.w + 4;
+      if (bx > W) break;
+    }
+    // 月
+    ctx.fillStyle = 'rgba(230,235,255,.9)';
+    ctx.beginPath();
+    ctx.arc(W * 0.82, H * 0.14, 16, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#03040c';
+    ctx.beginPath();
+    ctx.arc(W * 0.82 + 7, H * 0.14 - 4, 14, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  function drawCar(x, y, size, color, taillight) {
+    const w = size * 2.0, h = size * 1.1;
+    if (w < 2) return;
+    // ボディ
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(x - w/2, y);
+    ctx.lineTo(x - w/2 + w*0.1, y - h*0.55);
+    ctx.lineTo(x - w/2 + w*0.28, y - h);
+    ctx.lineTo(x + w/2 - w*0.28, y - h);
+    ctx.lineTo(x + w/2 - w*0.1, y - h*0.55);
+    ctx.lineTo(x + w/2, y);
+    ctx.closePath();
+    ctx.fill();
+    // ウィンドウ
+    ctx.fillStyle = 'rgba(10,14,30,.85)';
+    ctx.fillRect(x - w*0.24, y - h*0.95, w*0.48, h*0.35);
+    // テールランプ
+    if (taillight) {
+      ctx.fillStyle = '#ff2d4d';
+      ctx.fillRect(x - w*0.42, y - h*0.42, w*0.2, h*0.14);
+      ctx.fillRect(x + w*0.22, y - h*0.42, w*0.2, h*0.14);
+      ctx.fillStyle = 'rgba(255,45,77,.25)';
+      ctx.fillRect(x - w*0.5, y - h*0.5, w, h*0.3);
+    }
+    // タイヤ
+    ctx.fillStyle = '#000';
+    ctx.fillRect(x - w*0.46, y - h*0.12, w*0.14, h*0.16);
+    ctx.fillRect(x + w*0.32, y - h*0.12, w*0.14, h*0.16);
+  }
+
+  function drawPlayerCar() {
+    const x = W / 2 + steer * 24;
+    const y = H - 26;
+    const size = 34;
+    const w = size * 2.4, h = size * 1.25;
+    // ヘッドライトの光
+    const grad = ctx.createRadialGradient(x, y - h*2, 10, x, y - h*2, 220);
+    grad.addColorStop(0, 'rgba(200,220,255,.18)');
+    grad.addColorStop(1, 'rgba(200,220,255,0)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(x - 240, y - h*2 - 240, 480, 260);
+    // ボディ(青のスポーツカー)
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(steer * 0.06);
+    ctx.fillStyle = '#2456d8';
+    ctx.beginPath();
+    ctx.moveTo(-w/2, 0);
+    ctx.lineTo(-w/2 + w*0.08, -h*0.5);
+    ctx.lineTo(-w/2 + w*0.3, -h);
+    ctx.lineTo(w/2 - w*0.3, -h);
+    ctx.lineTo(w/2 - w*0.08, -h*0.5);
+    ctx.lineTo(w/2, 0);
+    ctx.closePath();
+    ctx.fill();
+    // リアウィング
+    ctx.fillStyle = '#16327e';
+    ctx.fillRect(-w*0.42, -h*1.06, w*0.84, h*0.1);
+    ctx.fillRect(-w*0.4, -h*0.98, w*0.06, h*0.12);
+    ctx.fillRect(w*0.34, -h*0.98, w*0.06, h*0.12);
+    // ウィンドウ
+    ctx.fillStyle = 'rgba(10,14,30,.9)';
+    ctx.fillRect(-w*0.26, -h*0.92, w*0.52, h*0.34);
+    // テールランプ
+    ctx.fillStyle = '#ff2d4d';
+    ctx.fillRect(-w*0.44, -h*0.4, w*0.24, h*0.12);
+    ctx.fillRect(w*0.2, -h*0.4, w*0.24, h*0.12);
+    // タイヤ
+    ctx.fillStyle = '#000';
+    ctx.fillRect(-w*0.5, -h*0.14, w*0.16, h*0.2);
+    ctx.fillRect(w*0.34, -h*0.14, w*0.16, h*0.2);
+    ctx.restore();
+  }
+
+  function drawHud() {
+    // スピードメーター
+    ctx.textAlign = 'right';
+    ctx.fillStyle = '#fff';
+    ctx.font = 'italic bold 44px "Arial Black", sans-serif';
+    ctx.fillText(Math.floor(speed), W - 66, H - 24);
+    ctx.font = 'bold 14px sans-serif';
+    ctx.fillStyle = '#3de8ff';
+    ctx.fillText('km/h', W - 20, H - 24);
+
+    // タイム
+    ctx.textAlign = 'center';
+    ctx.font = 'bold 30px "Arial Black", sans-serif';
+    ctx.fillStyle = timeLeft < 10 ? '#ff3d5e' : '#f2d048';
+    ctx.fillText(Math.ceil(timeLeft), W / 2, 42);
+    ctx.font = 'bold 11px sans-serif';
+    ctx.fillStyle = '#8b93b8';
+    ctx.fillText('TIME', W / 2, 56);
+
+    // 距離とステージ
+    ctx.textAlign = 'left';
+    ctx.font = 'bold 15px sans-serif';
+    ctx.fillStyle = '#e8eaf6';
+    ctx.fillText('STAGE ' + stage, 18, 30);
+    ctx.fillStyle = '#8b93b8';
+    ctx.font = '13px sans-serif';
+    ctx.fillText((distanceTotal / SPEED_SCALE / 3600).toFixed(1) + ' km', 18, 50);
+
+    // フラッシュメッセージ
+    if (flashTimer > 0 && flashMsg) {
+      ctx.textAlign = 'center';
+      ctx.globalAlpha = Math.min(1, flashTimer);
+      ctx.font = 'italic bold 30px "Arial Black", sans-serif';
+      ctx.fillStyle = flashMsg.color;
+      ctx.fillText(flashMsg.text, W / 2, H * 0.4);
+      ctx.globalAlpha = 1;
+    }
+  }
+
+  // --- ループ ---
+  function loop(time) {
+    if (!running) return;
+    const dt = Math.min(0.05, (time - lastTime) / 1000);
+    lastTime = time;
+    update(dt);
+    render();
+    if (running) requestAnimationFrame(loop);
+  }
+
+  function start() {
+    buildTrack();
+    initSkyline();
+    spawnTraffic(14);
+    playerX = 0; position = 0; speed = 0; steer = 0;
+    distanceTotal = 0; checkpointAt = CHECKPOINT_DIST;
+    stage = 1; timeLeft = CHECKPOINT_TIME;
+    running = true; gameOver = false;
+    flashTimer = 0;
+    document.getElementById('overlay').classList.add('hidden');
+    lastTime = performance.now();
+    requestAnimationFrame(loop);
+  }
+
+  function endGame() {
+    running = false;
+    gameOver = true;
+    const km = distanceTotal / SPEED_SCALE / 3600;
+    if (km > best) {
+      best = km;
+      localStorage.setItem('midnight-best-km', best);
+    }
+    document.getElementById('ovTitle').textContent = 'TIME UP';
+    document.getElementById('ovMsg').innerHTML =
+      '走行距離: ' + km.toFixed(1) + ' km / STAGE ' + stage +
+      '<br>ベスト: ' + best.toFixed(1) + ' km';
+    document.getElementById('startBtn').textContent = 'RETRY';
+    document.getElementById('overlay').classList.remove('hidden');
+  }
+
+  document.getElementById('startBtn').addEventListener('click', start);
+
+  // --- 入力 ---
+  const keyMap = {
+    ArrowLeft: 'left', ArrowRight: 'right', ArrowUp: 'up', ArrowDown: 'down',
+    KeyA: 'left', KeyD: 'right', KeyW: 'up', KeyS: 'down',
+  };
+  document.addEventListener('keydown', e => {
+    if (keyMap[e.code]) { keys[keyMap[e.code]] = true; e.preventDefault(); }
+    if (!running && (e.code === 'Space' || e.code === 'Enter')) start();
+  });
+  document.addEventListener('keyup', e => {
+    if (keyMap[e.code]) keys[keyMap[e.code]] = false;
+  });
+
+  // タッチボタン
+  for (const [id, key] of [['tLeft','tLeft'],['tRight','tRight'],['tAccel','tAccel'],['tBrake','tBrake']]) {
+    const el = document.getElementById(id);
+    const on = e => { e.preventDefault(); keys[key] = true; };
+    const off = e => { e.preventDefault(); keys[key] = false; };
+    el.addEventListener('touchstart', on, { passive: false });
+    el.addEventListener('touchend', off);
+    el.addEventListener('touchcancel', off);
+    el.addEventListener('mousedown', on);
+    el.addEventListener('mouseup', off);
+    el.addEventListener('mouseleave', off);
+  }
+
+  // 初期画面の背景を軽く描画
+  buildTrack();
+  initSkyline();
+  render();
+})();
+</script>
+</body>
+</html>
