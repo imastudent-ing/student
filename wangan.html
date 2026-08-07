@@ -3149,7 +3149,7 @@
     }
     return {
       posX, posZ, kmh: vMs * 3.6, vMs, gear, rpm, redline: ph ? ph.redline : 0,
-      throttle: prevThrottle,
+      throttle: prevThrottle, cg: cornerGuide(),
       heading, raceState, sectionIdx, totalTime, finishZ, sliding, wheelspin, scraping,
       wheelAngle, steerIn, posXm: posX,
       mu: ph ? ph.mu : 0, mass: ph ? ph.mass : 0, dfK: ph ? ph.dfK : 0,
