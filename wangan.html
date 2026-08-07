@@ -199,7 +199,7 @@
   const ctx = canvas.getContext('2d');
   const IS_TOUCH = matchMedia('(pointer: coarse)').matches || 'ontouchstart' in window;
 
-  let W = 0, H = 0, DPR = 1, ROT = false;
+  let W = 0, H = 0, DPR = 1, ROT = false, horizonY = 0, PROJ_K = 1;
 
   // ================= 世界の単位 =================
   // 1m = M2U 内部単位。SEG_LEN は 1 セグメントの長さ。
@@ -207,9 +207,9 @@
   const SEG_LEN = 5 * M2U;              // 5m/セグメント
   const ROAD_HW = 9.0 * M2U;            // 路面半幅 9m (3車線+路肩)
   const LANES = 3;
-  const CAMERA_H = 1.25 * M2U;          // 視点高 1.25m
-  const CAMERA_BACK = 6.0 * M2U;        // 自車の後方 6m にカメラ
-  const CAMERA_DEPTH = 1.30;            // 画角
+  const CAMERA_H = 2.45 * M2U;          // 視点高 2.45m(ルーフ面が見えて立体感が出る)
+  const CAMERA_BACK = 8.6 * M2U;        // 自車の後方 8.6m にカメラ
+  const CAMERA_DEPTH = 1.55;            // 画角(値が小さいほど広角)
   const DRAW_DIST = 140;                // 700m 先まで描画
   const NEAR_DETAIL = 70;               // 詳細描画するセグメント数
   const DECK_H = 1.6 * M2U;             // 高架桁の厚み
@@ -317,6 +317,11 @@
   const TYPE_MASS = { classic: 1180, coupe: 1420, sedan: 1490, hatch: 1060, super: 1350, truck: 2400 };
   const TYPE_CDA  = { classic: 0.74, coupe: 0.64, sedan: 0.68, hatch: 0.66, super: 0.60, truck: 1.95 };
   const DRIVE_FRAC = { AWD: 0.95, MR: 0.70, FR: 0.56, FF: 0.46 };
+  // 前輪荷重配分 / 駆動力の後輪配分 / 重心高
+  const FRONT_WEIGHT = { AWD: 0.56, MR: 0.42, FR: 0.53, FF: 0.62 };
+  const REAR_DRIVE   = { AWD: 0.60, MR: 1.00, FR: 1.00, FF: 0.00 };
+  const WHEELBASE    = { classic: 2.30, coupe: 2.55, sedan: 2.70, hatch: 2.45, super: 2.50, truck: 2.53 };
+  const CG_HEIGHT    = { classic: 0.50, coupe: 0.48, sedan: 0.52, hatch: 0.52, super: 0.42, truck: 0.95 };
 
   function buildPhysics(c) {
     const mass = TYPE_MASS[c.type] || 1400;
@@ -337,12 +342,23 @@
     const xPeak = 0.80;
     const tShape = 1 - 2.222 * Math.pow(xPeak - 0.55, 2);
     const Tmax = powerW / (tShape * xPeak * redline * Math.PI / 30);
+    // --- 二輪(バイシクル)モデルの諸元 ---
+    const L = WHEELBASE[c.type] || 2.55;
+    const fw = FRONT_WEIGHT[c.dt] || 0.53;
+    const b = L * fw;            // 重心~後軸(前輪荷重が大きいほど重心は前)
+    const a = L - b;             // 重心~前軸
+    const Iz = mass * L * L * 0.32;
+    const hCG = CG_HEIGHT[c.type] || 0.48;
+    // タイヤのコーナリング係数(垂直荷重あたり)。シャシー性能が高いほど応答が鋭い
+    const kC = 11 + c.hd * 7;
     return {
       mass, CdA, powerW, redline, idle, wheelR, finalDrive, mu, dfK, Tmax,
       Crr: 0.014,
       driveFrac: DRIVE_FRAC[c.dt] || 0.56,
+      rearDrive: REAR_DRIVE[c.dt] !== undefined ? REAR_DRIVE[c.dt] : 1,
       brakeMu: 0.94,
-      // 参考値
+      L, a, b, Iz, hCG, kC,
+      steerMax: c.type === 'truck' ? 0.34 : 0.28,
       topMs,
     };
   }
@@ -365,12 +381,12 @@
       desc: 'R150m級の連続タイトコーナーと地下トンネル。ブレーキングとシフトワークが試されるテクニカルコース。',
       theme: { pole: '#ffb84d', tunnelLight: '#ffd98a', build: '#0a0e20' },
       sections: [
-        { name: '江戸橋JCT',    avg: 115, pieces: [[300,0,0],[250,14,0],[200,0,0],[250,-16,0],[200,4,0]] },
-        { name: '竹橋~代官町',  avg: 155, pieces: [[250,-8,2],[300,18,4],[250,0,-2],[300,-26,0],[300,8,0]] },
-        { name: '三宅坂JCT',    avg: 134, pieces: [[200,0,0],[300,-30,2],[250,12,0],[300,34,-3],[250,0,0]] },
-        { name: '谷町~飯倉',    avg: 165, pieces: [[400,-8,0],[300,0,4],[300,16,0,'t'],[250,-12,-4,'t'],[250,0,0]] },
-        { name: '汐留トンネル',  avg: 183, pieces: [[300,0,-3,'t'],[350,12,0,'t'],[350,-14,0,'t'],[400,0,3,'t']] },
-        { name: '浜崎橋~江戸橋', avg: 176, pieces: [[400,8,0],[300,-16,2],[300,0,0],[300,14,-2],[300,0,0]] },
+        { name: '江戸橋JCT',    avg: 110, pieces: [[300,0,0],[250,14,0],[200,0,0],[250,-16,0],[200,4,0]] },
+        { name: '竹橋~代官町',  avg: 129, pieces: [[250,-8,2],[300,18,4],[250,0,-2],[300,-26,0],[300,8,0]] },
+        { name: '三宅坂JCT',    avg: 116, pieces: [[200,0,0],[300,-30,2],[250,12,0],[300,34,-3],[250,0,0]] },
+        { name: '谷町~飯倉',    avg: 144, pieces: [[400,-8,0],[300,0,4],[300,16,0,'t'],[250,-12,-4,'t'],[250,0,0]] },
+        { name: '汐留トンネル',  avg: 147, pieces: [[300,0,-3,'t'],[350,12,0,'t'],[350,-14,0,'t'],[400,0,3,'t']] },
+        { name: '浜崎橋~江戸橋', avg: 150, pieces: [[400,8,0],[300,-16,2],[300,0,0],[300,14,-2],[300,0,0]] },
       ],
     },
     {
@@ -379,10 +395,10 @@
       theme: { pole: '#3de8ff', tunnelLight: '#bfe4ff', build: '#0a1024' },
       sections: [
         { name: '大井~東京港TN', avg: 136, pieces: [[600,0,0],[400,6,0],[500,0,0,'t'],[500,-6,0,'t']] },
-        { name: '13号地~有明',   avg: 196, pieces: [[700,0,0],[500,8,0],[500,0,0],[500,-8,0]] },
-        { name: '東雲~辰巳',     avg: 190, pieces: [[500,12,0],[500,0,2],[500,-12,-2],[500,4,0]] },
-        { name: '大橋区間',      avg: 195, pieces: [[500,0,3,'b'],[400,6,4,'bw'],[800,0,0,'b'],[400,-6,-4,'bw'],[500,0,-3,'b']] },
-        { name: '大黒ふ頭',      avg: 199, pieces: [[800,0,0],[500,-8,0],[600,0,0],[700,8,0]] },
+        { name: '13号地~有明',   avg: 172, pieces: [[700,0,0],[500,8,0],[500,0,0],[500,-8,0]] },
+        { name: '東雲~辰巳',     avg: 141, pieces: [[500,12,0],[500,0,2],[500,-12,-2],[500,4,0]] },
+        { name: '大橋区間',      avg: 185, pieces: [[500,0,3,'b'],[400,6,4,'bw'],[800,0,0,'b'],[400,-6,-4,'bw'],[500,0,-3,'b']] },
+        { name: '大黒ふ頭',      avg: 172, pieces: [[800,0,0],[500,-8,0],[600,0,0],[700,8,0]] },
       ],
     },
     {
@@ -390,11 +406,11 @@
       desc: '中速コーナーが続く川崎の工業地帯。壁が近く、ミスの許されないライン取りが要求される。',
       theme: { pole: '#ffe28a', tunnelLight: '#ffd98a', build: '#100e18' },
       sections: [
-        { name: '羽田~大師',       avg: 130, pieces: [[400,0,0],[400,12,0],[300,0,2],[400,-14,0],[300,0,-2]] },
-        { name: '大師~浅田',       avg: 181, pieces: [[500,8,0],[400,0,0],[400,-16,0],[500,6,0]] },
-        { name: '浅田~汐入',       avg: 191, pieces: [[400,0,0,'t'],[400,10,0,'t'],[400,-10,0],[400,0,0]] },
-        { name: '汐入~東神奈川',   avg: 183, pieces: [[500,-8,2],[500,16,0],[500,0,-2],[500,-12,0]] },
-        { name: '東神奈川~金港JCT', avg: 194, pieces: [[600,0,0],[500,10,0],[400,-8,0],[500,0,0]] },
+        { name: '羽田~大師',       avg: 121, pieces: [[400,0,0],[400,12,0],[300,0,2],[400,-14,0],[300,0,-2]] },
+        { name: '大師~浅田',       avg: 152, pieces: [[500,8,0],[400,0,0],[400,-16,0],[500,6,0]] },
+        { name: '浅田~汐入',       avg: 165, pieces: [[400,0,0,'t'],[400,10,0,'t'],[400,-10,0],[400,0,0]] },
+        { name: '汐入~東神奈川',   avg: 151, pieces: [[500,-8,2],[500,16,0],[500,0,-2],[500,-12,0]] },
+        { name: '東神奈川~金港JCT', avg: 143, pieces: [[600,0,0],[500,10,0],[400,-8,0],[500,0,0]] },
       ],
     },
     {
@@ -402,11 +418,11 @@
       desc: '大阪の夜を回る左回りワンウェイ。切り返しの連続する低中速セクション。車の反応が問われる。',
       theme: { pole: '#8fffcf', tunnelLight: '#d8ffe8', build: '#0b1418' },
       sections: [
-        { name: '環状合流~本町',   avg: 111, pieces: [[300,0,0],[300,26,0],[250,0,0],[300,-26,0],[250,8,0]] },
-        { name: '本町~湊町',       avg: 149, pieces: [[300,-12,2],[300,30,0],[300,0,-2],[300,16,0],[300,0,0]] },
-        { name: '湊町~えびす町',   avg: 154, pieces: [[400,-18,0],[350,0,3],[400,26,-3],[350,-8,0]] },
-        { name: 'えびす町~夕陽丘', avg: 154, pieces: [[400,12,0],[400,-26,0],[400,0,2],[400,18,-2]] },
-        { name: '夕陽丘~環状合流', avg: 174, pieces: [[500,0,0],[400,-14,0],[400,12,0],[300,0,0]] },
+        { name: '環状合流~本町',   avg: 102, pieces: [[300,0,0],[300,26,0],[250,0,0],[300,-26,0],[250,8,0]] },
+        { name: '本町~湊町',       avg: 129, pieces: [[300,-12,2],[300,30,0],[300,0,-2],[300,16,0],[300,0,0]] },
+        { name: '湊町~えびす町',   avg: 127, pieces: [[400,-18,0],[350,0,3],[400,26,-3],[350,-8,0]] },
+        { name: 'えびす町~夕陽丘', avg: 134, pieces: [[400,12,0],[400,-26,0],[400,0,2],[400,18,-2]] },
+        { name: '夕陽丘~環状合流', avg: 135, pieces: [[500,0,0],[400,-14,0],[400,12,0],[300,0,0]] },
       ],
     },
   ];
@@ -467,6 +483,9 @@
     canvas.height = Math.round(H * DPR);
     canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
     ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    // タッチ端末は下部にボタンが並ぶので地平線を上げて自車を高めに置く
+    horizonY = H * (IS_TOUCH ? 0.43 : 0.50);
+    PROJ_K = H / 2;
   }
   function mapPoint(e) {
     return ROT ? { x: e.clientY, y: window.innerWidth - e.clientX } : { x: e.clientX, y: e.clientY };
@@ -557,7 +576,14 @@
   let posX = 0;              // 路面中心からの横位置(m)
   let vMs = 0;               // 車速 m/s
   let heading = 0;           // 道路に対する車のヨー角(rad)
+  let yawRate = 0;           // ヨー角速度 rad/s
+  let vLat = 0;              // 車体座標系の横速度 m/s
+  let slipAngle = 0;         // 車体スリップ角(ドリフト角)rad
+  let understeer = false;
   let steerIn = 0;           // ステア入力 -1..1
+  // 車体姿勢(サスペンションのばね・ダンパ)
+  let bodyPitch = 0, bodyPitchV = 0, bodyRoll = 0, bodyRollV = 0, bodyHeave = 0, bodyHeaveV = 0;
+  let prevGrade = 0;
   let gear = 1, rpm = 0, shiftTimer = 0, autoShiftTimer = 0;
   let aLong = 0, aLat = 0;   // 前後・横加速度 m/s^2
   let wheelspin = 0, sliding = 0, scraping = false;
@@ -574,6 +600,8 @@
     buildCourse(COURSES[sel.course]);
     initSky();
     posZ = 0; posX = 0; camXm = 0; vMs = 0; heading = 0; steerIn = 0;
+    yawRate = 0; vLat = 0; slipAngle = 0; understeer = false;
+    bodyPitch = 0; bodyPitchV = 0; bodyRoll = 0; bodyRollV = 0; bodyHeave = 0; bodyHeaveV = 0; prevGrade = 0;
     gear = 1; rpm = ph.idle; shiftTimer = 0;
     aLong = 0; aLat = 0; wheelspin = 0; sliding = 0;
     totalTime = 0; sectionIdx = 0; splits = [];
@@ -674,52 +702,110 @@
     if (vMs > ph.topMs * 1.06) vMs = ph.topMs * 1.06;
     aLong = accelLong;
 
-    // ---- 横方向(摩擦円) ----
-    const usedLong = Math.min(Math.abs(fDrive - fBrake) / (ph.mu * normalLoad), 0.98);
-    const gripLat = gripAccel * Math.sqrt(Math.max(0.04, 1 - usedLong * usedLong));
-    // ステア入力(操舵速度は速度が上がるほど鈍く)
+    // ================= 横方向: 二輪(バイシクル)モデル =================
+    const L = ph.L;
+    // ステア入力
     const steerTarget = left ? -1 : right ? 1 : 0;
-    steerIn += (steerTarget - steerIn) * (7.5 - Math.min(4, vMs / 26)) * dt;
+    steerIn += (steerTarget - steerIn) * (8.5 - Math.min(4.5, vMs / 24)) * dt;
     steerIn = Math.max(-1, Math.min(1, steerIn));
-    // 舵角による最大横加速度(低速では旋回半径の限界に縛られる)
-    const steerAuthority = Math.min(gripLat, vMs * vMs / MIN_TURN_R);
-    let aTire = steerIn * steerAuthority;
-    // 路面バンクの寄与
-    const aBank = G * Math.sin(seg.bank);
-    const aLatTotal = aTire + aBank;
-    aLat = aLatTotal;
-    // コーナーを曲がるのに必要なヨー角速度と、車が実際に出せるヨー角速度
-    const yawCar = vMs > 3 ? aLatTotal / vMs : 0;
+    // 舵角はグリップ限界を基準に制限する。
+    // 限界旋回に必要なアッカーマン舵角の 1.35 倍までしか切れないので、
+    // 切りすぎればアンダーになるが、常時飽和して破綻することはない。
+    const aGripMax = ph.mu * (G + downforce / ph.mass);
+    const deltaGrip = aGripMax * L / Math.max(1, vMs * vMs);
+    const deltaMax = Math.min(ph.steerMax, deltaGrip * 1.35);
+    const delta = steerIn * deltaMax;                   // 前輪実舵角(rad)
+
+    // ---- 前後軸の垂直荷重(荷重移動 + ダウンフォース) ----
+    const dfFront = downforce * 0.42, dfRear = downforce * 0.58;
+    const transfer = ph.mass * aLong * ph.hCG / L;      // 加速で後軸へ、制動で前軸へ
+    let Fzf = ph.mass * G * ph.b / L - transfer + dfFront;
+    let Fzr = ph.mass * G * ph.a / L + transfer + dfRear;
+    Fzf = Math.max(180, Fzf); Fzr = Math.max(180, Fzr);
+
+    // ---- 各軸が使っている前後力(摩擦円の消費分) ----
+    const fxRear = fDrive * ph.rearDrive - fBrake * 0.35;
+    const fxFront = fDrive * (1 - ph.rearDrive) - fBrake * 0.65;
+    const capF = Math.sqrt(Math.max(0, Math.pow(ph.mu * Fzf, 2) - fxFront * fxFront));
+    const capR = Math.sqrt(Math.max(0, Math.pow(ph.mu * Fzr, 2) - fxRear * fxRear));
+
+    if (vMs < 2.5) {
+      // 低速域は運動学モデル(数値的に安定)
+      yawRate = vMs * Math.tan(delta) / L;
+      vLat = 0;
+      aLat = 0;
+      sliding = 0;
+    } else {
+      // スリップ角
+      const slipF = (vLat + ph.a * yawRate) / vMs - delta;
+      const slipR = (vLat - ph.b * yawRate) / vMs;
+      // 横力(飽和付き)。飽和すると滑る
+      const rawF = -ph.kC * Fzf * slipF;
+      const rawR = -ph.kC * Fzr * slipR * 1.06;   // 後軸をわずかに強めて直進安定性を確保
+      const Fyf = Math.max(-capF, Math.min(capF, rawF));
+      const Fyr = Math.max(-capR, Math.min(capR, rawR));
+      // 路面バンクの重力成分
+      const fBank = ph.mass * G * Math.sin(seg.bank);
+      // 運動方程式
+      const vLatDot = (Fyf + Fyr + fBank) / ph.mass - vMs * yawRate;
+      const yawDot = (ph.a * Fyf - ph.b * Fyr) / ph.Iz;
+      vLat += vLatDot * dt;
+      yawRate += yawDot * dt;
+      vLat = Math.max(-28, Math.min(28, vLat));
+      yawRate = Math.max(-2.2, Math.min(2.2, yawRate));
+      aLat = (Fyf + Fyr + fBank) / ph.mass;
+      // タイヤが飽和している度合い(前=アンダー / 後=オーバー)
+      const satF = Math.abs(rawF) > capF ? Math.min(1, (Math.abs(rawF) / Math.max(1, capF) - 1)) : 0;
+      const satR = Math.abs(rawR) > capR ? Math.min(1, (Math.abs(rawR) / Math.max(1, capR) - 1)) : 0;
+      sliding = Math.max(satF, satR);
+      understeer = satF > satR;
+    }
+
+    // ---- 道路に対する相対ヨーと横位置 ----
     const curveSign = Math.sign(seg.curve);
     const yawRoad = isFinite(seg.radius) ? (vMs / seg.radius) * curveSign : 0;
-    heading += (yawCar - yawRoad) * dt;
-    heading -= heading * 1.7 * dt;                      // 方向安定性
-    heading = Math.max(-0.55, Math.min(0.55, heading));
-    // グリップを使い切っていたらスライド演出
-    const demand = Math.abs(yawRoad * vMs - aBank);
-    sliding = Math.max(0, Math.min(1, (demand - gripLat) / 4));
-
-    // 横位置更新
-    posX += vMs * Math.sin(heading) * dt;
+    heading += (yawRate - yawRoad) * dt;
+    heading = Math.max(-0.85, Math.min(0.85, heading));
+    slipAngle = vMs > 2.5 ? Math.atan2(vLat, vMs) : 0;
+    posX += (vMs * Math.sin(heading) + vLat * Math.cos(heading)) * dt;
 
     // ---- 壁(ガードレール) ----
     scraping = false;
     const wallX = HALF_ROAD_M - 1.0;
     if (Math.abs(posX) > wallX) {
-      posX = Math.sign(posX) * wallX;
+      const sgnW = Math.sign(posX);
+      posX = sgnW * wallX;
       if (vMs > 8) {
         scraping = true;
-        // 壁との摩擦で減速し、進行方向を路面に沿わせる
+        // 壁との摩擦で減速し、車体を路面方向へ押し戻す
         vMs -= Math.min(vMs, (6 + vMs * 0.45) * dt);
         heading -= heading * 6 * dt;
+        yawRate -= yawRate * 7 * dt;
+        if (vLat * sgnW > 0) vLat *= Math.pow(0.02, dt);
         shake = Math.max(shake, 5);
-        if (Math.random() < 0.55) {
-          smoke.push({ x: Math.sign(posX), t: 0.4, spark: true });
-        }
+        if (Math.random() < 0.55) smoke.push({ x: sgnW, t: 0.4, spark: true });
       } else {
-        heading = 0;
+        heading = 0; yawRate = 0; vLat = 0;
       }
     }
+
+    // ---- 車体姿勢(サスペンション) ----
+    // ノーズダイブ / スクワット
+    const pitchTarget = -aLong * 0.0092;
+    bodyPitchV += ((pitchTarget - bodyPitch) * 105 - bodyPitchV * 13.5) * dt;
+    bodyPitch += bodyPitchV * dt;
+    bodyPitch = Math.max(-0.09, Math.min(0.09, bodyPitch));
+    // ロール(横G + 路面バンク)
+    const rollTarget = aLat * 0.0075 - seg.bank * 0.55;
+    bodyRollV += ((rollTarget - bodyRoll) * 95 - bodyRollV * 12.5) * dt;
+    bodyRoll += bodyRollV * dt;
+    bodyRoll = Math.max(-0.13, Math.min(0.13, bodyRoll));
+    // 勾配変化による上下動
+    const gradeRate = (grade - prevGrade) / Math.max(dt, 0.001);
+    prevGrade = grade;
+    bodyHeaveV += (-bodyHeave * 190 - bodyHeaveV * 16 - gradeRate * vMs * 0.010) * dt;
+    bodyHeave += bodyHeaveV * dt;
+    bodyHeave = Math.max(-0.10, Math.min(0.10, bodyHeave));
 
     // ---- タイヤスモーク ----
     if ((sliding > 0.25 || wheelspin > 0.3) && vMs > 12 && Math.random() < 0.6) {
@@ -941,12 +1027,13 @@
     const rz = Math.max(NEAR_PLANE, dz * camCos + dx * camSin);
     const rx = dx * camCos - dz * camSin;
     const sc = CAMERA_DEPTH / rz;
-    return { x: W / 2 + sc * rx * W / 2, y: H / 2 - sc * (wy - camY) * H / 2, sc, rz };
+    // 縦横で同じスケール(PROJ_K)を使う。アスペクト比が保たれ、物体が歪まない。
+    return { x: W / 2 + sc * rx * PROJ_K, y: horizonY - sc * (wy - camY) * PROJ_K, sc, rz };
   }
   // 世界座標の光をソフトなグローとして描く
   function glow(p, worldR, color, alpha, maxPx) {
     if (!p || alpha <= 0.02) return;
-    const rr = Math.min(maxPx, Math.max(3, p.sc * worldR * W / 2));
+    const rr = Math.min(maxPx, Math.max(3, p.sc * worldR * PROJ_K));
     const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, rr);
     g.addColorStop(0, color);
     g.addColorStop(0.45, 'rgba(255,255,255,0)');
@@ -966,52 +1053,55 @@
 
   function drawSky(inTunnel) {
     if (inTunnel) { ctx.fillStyle = '#05060d'; ctx.fillRect(0, 0, W, H); return; }
-    const sky = ctx.createLinearGradient(0, 0, 0, H * 0.52);
+    const hz = horizonY;
+    const sky = ctx.createLinearGradient(0, 0, 0, hz + H * 0.02);
     sky.addColorStop(0, '#02030a');
     sky.addColorStop(0.7, '#0c1330');
     sky.addColorStop(1, '#1a2350');
     ctx.fillStyle = sky;
-    ctx.fillRect(0, 0, W, H * 0.52);
+    ctx.fillRect(0, 0, W, hz + H * 0.02);
+    ctx.fillStyle = '#070912';
+    ctx.fillRect(0, hz + H * 0.02, W, H - hz);
     // 地表(高架の下の街)へなだらかに落とす
-    const grd = ctx.createLinearGradient(0, H * 0.44, 0, H * 0.70);
+    const grd = ctx.createLinearGradient(0, hz - H * 0.06, 0, hz + H * 0.20);
     grd.addColorStop(0, 'rgba(26,35,80,0)');
     grd.addColorStop(0.45, 'rgba(14,18,42,.95)');
     grd.addColorStop(1, '#070912');
-    ctx.fillStyle = '#070912';
-    ctx.fillRect(0, H * 0.52, W, H * 0.48);
     ctx.fillStyle = grd;
-    ctx.fillRect(0, H * 0.44, W, H * 0.26);
+    ctx.fillRect(0, hz - H * 0.06, W, H * 0.26);
     const shift = -(heading * W * 0.55);
     ctx.save();
     ctx.translate(shift, 0);
     ctx.fillStyle = '#dfe6ff';
-    for (const st of stars) { ctx.globalAlpha = st.a; ctx.fillRect(st.x * W * 1.6 - W * 0.3, st.y * H, 2, 2); }
+    for (const st of stars) { ctx.globalAlpha = st.a; ctx.fillRect(st.x * W * 1.6 - W * 0.3, st.y * hz * 1.9, 2, 2); }
     ctx.globalAlpha = 1;
     const ms = Math.min(W, H);
     ctx.fillStyle = 'rgba(230,235,255,.9)';
-    ctx.beginPath(); ctx.arc(W * 0.8, H * 0.11, ms * 0.028, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(W * 0.8, hz * 0.24, ms * 0.028, 0, Math.PI * 2); ctx.fill();
     ctx.fillStyle = '#02030a';
-    ctx.beginPath(); ctx.arc(W * 0.8 + ms * 0.013, H * 0.11 - 4, ms * 0.025, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(W * 0.8 + ms * 0.013, hz * 0.24 - 4, ms * 0.025, 0, Math.PI * 2); ctx.fill();
     ctx.restore();
   }
 
   function render() {
-    const baseSeg = findSegment(posZ);
-    const basePct = (posZ % SEG_LEN) / SEG_LEN;
+    // カメラは自車の後方にあるので、描画はカメラの居るセグメントから始める
+    camZ = Math.max(0, posZ - CAMERA_BACK);
+    const baseSeg = findSegment(camZ);
+    const basePct = (camZ % SEG_LEN) / SEG_LEN;
+    const carSeg = findSegment(posZ);
+    const carPct = (posZ % SEG_LEN) / SEG_LEN;
     drawSky(baseSeg.tunnel);
 
-    // カメラ設定(自車の後方・上方、ヨーは車の向きの一部を追従)
     const roadY = baseSeg.p1y + (baseSeg.p2y - baseSeg.p1y) * basePct;
     // カメラは車の横移動を少し遅れて追う(壁際でも視界が破綻しない)
     camXm += (posX * 0.82 - camXm) * 0.14;
     camX = camXm * M2U;
     camY = roadY + CAMERA_H - Math.sin(baseSeg.bank) * camX;
-    camZ = posZ - CAMERA_BACK;
-    const camYaw = heading * 0.55;
+    const camYaw = heading * 0.42;
     camCos = Math.cos(camYaw); camSin = Math.sin(camYaw);
 
-    // カメラロール(横G+バンクで車体が傾く感じ)
-    const roll = -aLat * 0.0055 - baseSeg.bank * 0.5;
+    // カメラロール(横G+バンクでわずかに傾ける)
+    const roll = -aLat * 0.0026 - baseSeg.bank * 0.22;
     ctx.save();
     ctx.translate(W / 2 + (Math.random() - .5) * shake, H / 2 + (Math.random() - .5) * shake);
     ctx.rotate(roll);
@@ -1036,6 +1126,8 @@
       const L2 = p3(x2 - ROAD_HW * bc, s.p2y + ROAD_HW * bs, z2);
       const R2 = p3(x2 + ROAD_HW * bc, s.p2y - ROAD_HW * bs, z2);
       rows.push({ s, i, x1, x2, z1, z2, L1, R1, L2, R2, n });
+      // 自車位置での道路中心Xを覚えておく(3Dカーの配置に使う)
+      if (i === carSeg.index) carRoadX = x1 + (x2 - x1) * carPct;
     }
 
     // 奥から手前へ描画(ペインターズアルゴリズム)
@@ -1117,7 +1209,8 @@
       }
 
       // ---- 路面 ----
-      const base = dark ? [30, 33, 43] : [36, 40, 51];
+      // 舗装の明暗差は控えめに(手前のセグメントは画面を大きく覆うため縞が目立つ)
+      const base = dark ? [31, 34, 44] : [34, 38, 49];
       quad(L1, R1, R2, L2, shade(base[0], base[1], base[2], fog, s.tunnel ? 0.72 : 1));
 
       // ---- 白線 ----
@@ -1193,8 +1286,8 @@
     }
 
     // ---- 夜霧(距離感) ----
-    const fy0 = H * 0.40, fy1 = H * 0.66;
-    const fogGrad = ctx.createLinearGradient(0, fy0, 0, fy1);
+    const fy0 = horizonY - H * 0.10, fy1 = horizonY + H * 0.16;
+    const fogGrad = ctx.createLinearGradient(0, fy0, 0, fy1); // 霧は地平線帯に重ねる
     const fogCol = baseSeg.tunnel ? '10,12,22' : '26,35,80';
     fogGrad.addColorStop(0, 'rgba(' + fogCol + ',0)');
     fogGrad.addColorStop(0.22, 'rgba(' + fogCol + ',.42)');
@@ -1202,10 +1295,16 @@
     ctx.fillStyle = fogGrad;
     ctx.fillRect(0, fy0, W, fy1 - fy0);
 
-    updateCarScreenX();
-    drawSmoke();
     drawPlayerCar();
+    drawSmoke();
     ctx.restore();
+
+    // 画面下部のビネット(手前の路面が単調に広がるのを引き締める)
+    const vg = ctx.createLinearGradient(0, H * 0.78, 0, H);
+    vg.addColorStop(0, 'rgba(3,4,10,0)');
+    vg.addColorStop(1, 'rgba(3,4,10,.55)');
+    ctx.fillStyle = vg;
+    ctx.fillRect(0, H * 0.78, W, H * 0.22);
 
     drawSpeedLines();
     drawHud();
@@ -1215,7 +1314,7 @@
   // 世界座標の点光源を、画面上のサイズを制限して描く
   function dot(p, worldR, color, alpha, maxPx) {
     if (!p || alpha <= 0.01) return;
-    const rr = Math.min(maxPx, Math.max(0.7, p.sc * worldR * W / 2));
+    const rr = Math.min(maxPx, Math.max(0.7, p.sc * worldR * PROJ_K));
     ctx.globalAlpha = Math.min(1, alpha);
     ctx.fillStyle = color;
     ctx.beginPath(); ctx.arc(p.x, p.y, rr, 0, Math.PI * 2); ctx.fill();
@@ -1299,7 +1398,7 @@
 
   function drawSmoke() {
     const s = Math.min(W, H);
-    const baseY = H - s * (IS_TOUCH ? 0.16 : 0.11);
+    const baseY = carScreenY;
     for (const p of smoke) {
       const age = p.spark ? 1 - p.t / 0.4 : 1 - p.t / 0.75;
       const sz = p.spark ? 3 : 5 + age * 34;
@@ -1312,7 +1411,254 @@
     ctx.globalAlpha = 1;
   }
 
-  // ---- 車体スプライト ----
+  // ============ 3Dカーモデル ============
+  // 車種ごとの寸法(m)。ロフト(断面の押し出し)で車体を組み立てる。
+  const SHAPE = {
+    classic: { L:4.14, W:1.63, ride:0.16, belt:0.90, roof:1.26, rf0:-0.95, rf1:0.50, nose:0.80, tail:0.94, wb:2.30, tw:1.46, wr:0.31, ww:0.21, wing:0 },
+    coupe:   { L:4.45, W:1.76, ride:0.13, belt:0.92, roof:1.28, rf0:-1.05, rf1:0.55, nose:0.74, tail:0.96, wb:2.55, tw:1.60, wr:0.33, ww:0.26, wing:1 },
+    sedan:   { L:4.70, W:1.77, ride:0.15, belt:0.98, roof:1.42, rf0:-1.25, rf1:0.72, nose:0.86, tail:1.04, wb:2.70, tw:1.60, wr:0.33, ww:0.24, wing:0 },
+    hatch:   { L:4.16, W:1.69, ride:0.15, belt:0.94, roof:1.38, rf0:-0.95, rf1:0.78, nose:0.84, tail:1.30, wb:2.45, tw:1.53, wr:0.31, ww:0.22, wing:0 },
+    super:   { L:4.44, W:1.94, ride:0.10, belt:0.80, roof:1.12, rf0:-0.70, rf1:0.45, nose:0.62, tail:0.88, wb:2.50, tw:1.76, wr:0.34, ww:0.32, wing:1 },
+    truck:   { L:4.69, W:1.70, ride:0.42, belt:1.15, roof:2.12, rf0:-1.05, rf1:1.15, nose:1.30, tail:2.12, wb:2.53, tw:1.52, wr:0.36, ww:0.21, wing:0 },
+  };
+
+  // 断面列から箱状のポリゴンを生成
+  function loft(V, F, secs, role, topRole) {
+    const ring = [];
+    for (const s of secs) {
+      ring.push(V.length);
+      V.push([-s.hw, s.y0, s.z], [s.hw, s.y0, s.z], [s.hw, s.y1, s.z], [-s.hw, s.y1, s.z]);
+    }
+    for (let i = 0; i < ring.length - 1; i++) {
+      const a = ring[i], b = ring[i + 1];
+      F.push({ v: [a + 0, a + 1, b + 1, b + 0], r: 'under' });
+      F.push({ v: [a + 3, b + 3, b + 2, a + 2], r: topRole || role });
+      F.push({ v: [a + 0, b + 0, b + 3, a + 3], r: role });
+      F.push({ v: [a + 1, a + 2, b + 2, b + 1], r: role });
+    }
+    const f = ring[0], l = ring[ring.length - 1];
+    F.push({ v: [f + 0, f + 3, f + 2, f + 1], r: role });
+    F.push({ v: [l + 0, l + 1, l + 2, l + 3], r: role });
+    return ring;
+  }
+  // 円柱(タイヤ)
+  function cylinder(V, F, cx, cy, cz, radius, halfW, sides, role) {
+    const inner = [], outer = [];
+    for (let i = 0; i < sides; i++) {
+      const t = i / sides * Math.PI * 2;
+      const y = cy + Math.sin(t) * radius, z = cz + Math.cos(t) * radius;
+      inner.push(V.length); V.push([cx - halfW, y, z]);
+      outer.push(V.length); V.push([cx + halfW, y, z]);
+    }
+    for (let i = 0; i < sides; i++) {
+      const j = (i + 1) % sides;
+      F.push({ v: [inner[i], outer[i], outer[j], inner[j]], r: role });
+    }
+    // ホイール面
+    for (let i = 0; i < sides; i += 2) {
+      const j = (i + 1) % sides, k = (i + 2) % sides;
+      F.push({ v: [outer[i], outer[j], outer[k], outer[i]], r: 'rim' });
+      F.push({ v: [inner[i], inner[k], inner[j], inner[i]], r: 'rim' });
+    }
+  }
+
+  function makeCarMesh(type, hasWing) {
+    const p = SHAPE[type] || SHAPE.coupe;
+    const V = [], F = [];
+    const hw = p.W / 2, hl = p.L / 2;
+    // 車体本体
+    loft(V, F, [
+      { z: -hl,          hw: hw * 0.90, y0: p.ride + 0.10, y1: p.tail * 0.86 },
+      { z: -hl * 0.72,   hw: hw * 0.99, y0: p.ride,        y1: p.tail },
+      { z: -hl * 0.22,   hw: hw,        y0: p.ride,        y1: p.belt },
+      { z:  hl * 0.28,   hw: hw,        y0: p.ride,        y1: p.belt * 0.98 },
+      { z:  hl * 0.74,   hw: hw * 0.96, y0: p.ride + 0.02, y1: p.nose * 1.04 },
+      { z:  hl,          hw: hw * 0.82, y0: p.ride + 0.08, y1: p.nose },
+    ], 'body');
+    // キャビン(グラスハウス)
+    const cw = type === 'truck' ? hw * 0.97 : hw * 0.80;
+    loft(V, F, [
+      { z: p.rf0,                        hw: cw * 0.90, y0: p.belt * 0.96, y1: p.roof * 0.93 },
+      { z: p.rf0 + (p.rf1 - p.rf0) * .3, hw: cw,        y0: p.belt * 0.96, y1: p.roof },
+      { z: p.rf0 + (p.rf1 - p.rf0) * .8, hw: cw * 0.98, y0: p.belt * 0.96, y1: p.roof },
+      { z: p.rf1,                        hw: cw * 0.86, y0: p.belt * 0.96, y1: p.roof * 0.90 },
+    ], 'glass', 'roof');
+    // タイヤ4輪
+    const wx = p.tw / 2, wzF = p.wb / 2, wzR = -p.wb / 2;
+    const wheels = [];
+    for (const [sx, sz, isFront] of [[-1, wzF, true], [1, wzF, true], [-1, wzR, false], [1, wzR, false]]) {
+      const start = V.length;
+      cylinder(V, F, sx * wx, p.wr, sz, p.wr, p.ww / 2, 8, 'tire');
+      wheels.push({ from: start, to: V.length, front: isFront, cx: sx * wx, cz: sz });
+    }
+    // リアウイング
+    if (hasWing || p.wing) {
+      const wy = p.tail + 0.20, wz = -hl + 0.16;
+      loft(V, F, [
+        { z: wz - 0.13, hw: hw * 0.86, y0: wy, y1: wy + 0.055 },
+        { z: wz + 0.13, hw: hw * 0.86, y0: wy - 0.02, y1: wy + 0.035 },
+      ], 'wing');
+      for (const sx of [-1, 1]) {
+        const before = V.length;
+        loft(V, F, [
+          { z: wz - 0.05, hw: 0.035, y0: p.tail * 0.92, y1: wy },
+          { z: wz + 0.05, hw: 0.035, y0: p.tail * 0.92, y1: wy },
+        ], 'wing');
+        // このステーの頂点だけを左右にずらす
+        for (let i = before; i < V.length; i++) V[i][0] += sx * hw * 0.66;
+      }
+    }
+    // リアバンパー / ディフューザー(リア面に段差を作って平板さを消す)
+    if (type !== 'truck') {
+      loft(V, F, [
+        { z: -hl - 0.04, hw: hw * 0.86, y0: p.ride + 0.04, y1: p.tail * 0.40 },
+        { z: -hl + 0.34, hw: hw * 0.93, y0: p.ride + 0.02, y1: p.tail * 0.44 },
+      ], 'bumper');
+      // ショルダー(リアフェンダーの張り出し)
+      for (const sx of [-1, 1]) {
+        const before = V.length;
+        loft(V, F, [
+          { z: -hl * 0.86, hw: 0.055, y0: p.ride + 0.16, y1: p.tail * 0.86 },
+          { z: -hl * 0.30, hw: 0.055, y0: p.ride + 0.16, y1: p.belt * 0.98 },
+        ], 'body');
+        for (let i = before; i < V.length; i++) V[i][0] += sx * hw * 1.01;
+      }
+    }
+    // テールランプ / ナンバープレート(車体後端にわずかに浮かせる)
+    const lampY = p.tail * 0.62, lampZ = -hl - 0.055;
+    const parts = [];
+    if (type === 'classic') {
+      for (const sx of [-1, 1]) for (const o of [0.30, 0.52]) {
+        parts.push({ x: sx * hw * o, y: lampY, w: 0.13, h: 0.13, role: 'lamp' });
+      }
+    } else if (type === 'truck') {
+      for (const sx of [-1, 1]) {
+        parts.push({ x: sx * hw * 0.80, y: p.tail * 0.86, w: 0.15, h: 0.22, role: 'lamp' });
+        parts.push({ x: sx * hw * 0.80, y: p.tail * 0.62, w: 0.15, h: 0.14, role: 'amber' });
+      }
+    } else {
+      for (const sx of [-1, 1]) {
+        parts.push({ x: sx * hw * 0.58, y: lampY, w: hw * 0.52, h: 0.17, role: 'lamp' });
+      }
+    }
+    parts.push({ x: 0, y: lampY - 0.20, w: 0.33, h: 0.16, role: 'plate' });
+    for (const q of parts) {
+      const i0 = V.length;
+      V.push([q.x - q.w / 2, q.y - q.h / 2, lampZ], [q.x + q.w / 2, q.y - q.h / 2, lampZ],
+             [q.x + q.w / 2, q.y + q.h / 2, lampZ], [q.x - q.w / 2, q.y + q.h / 2, lampZ]);
+      F.push({ v: [i0, i0 + 1, i0 + 2, i0 + 3], r: q.role, flat: true });
+    }
+    // マフラー
+    for (const sx of (type === 'super' ? [-1, 1] : [1])) {
+      const i0 = V.length, ex = sx * hw * 0.52, ey = p.ride + 0.09;
+      V.push([ex - 0.06, ey - 0.05, lampZ], [ex + 0.06, ey - 0.05, lampZ],
+             [ex + 0.06, ey + 0.05, lampZ], [ex - 0.06, ey + 0.05, lampZ]);
+      F.push({ v: [i0, i0 + 1, i0 + 2, i0 + 3], r: 'pipe', flat: true });
+    }
+    return { V, F, wheels, p };
+  }
+
+  let carMesh = null, carMeshKey = '';
+  function ensureMesh(type, wing) {
+    const key = type + (wing ? 'W' : '');
+    if (carMeshKey !== key) { carMesh = makeCarMesh(type, wing); carMeshKey = key; }
+    return carMesh;
+  }
+
+  // メッシュを世界へ配置して描画
+  function drawCar3D(mesh, wx, wy, wz, yaw, pitch, roll, color, opt) {
+    const { V, F, wheels } = mesh;
+    const cy = Math.cos(yaw), sy = Math.sin(yaw);
+    const cp = Math.cos(pitch), sp = Math.sin(pitch);
+    const cr = Math.cos(roll), sr = Math.sin(roll);
+    const n = V.length;
+    const wxs = new Float64Array(n), wys = new Float64Array(n), wzs = new Float64Array(n);
+    const px = new Float64Array(n), py = new Float64Array(n), pz = new Float64Array(n);
+    // 前輪の操舵
+    const sd = Math.cos(opt.steer), sdS = Math.sin(opt.steer);
+    const steerSet = new Uint8Array(n);
+    for (const wh of wheels) if (wh.front) for (let i = wh.from; i < wh.to; i++) steerSet[i] = 1;
+
+    for (let i = 0; i < n; i++) {
+      let vx = V[i][0], vy = V[i][1], vz = V[i][2];
+      if (steerSet[i]) {
+        // 前輪をホイール中心まわりに操舵
+        const ox = V[i][0], oz = V[i][2];
+        const cxw = ox > 0 ? mesh.p.tw / 2 : -mesh.p.tw / 2, czw = mesh.p.wb / 2;
+        const rx = ox - cxw, rz = oz - czw;
+        vx = cxw + rx * sd + rz * sdS;
+        vz = czw - rx * sdS + rz * sd;
+      }
+      // ロール(z軸) -> ピッチ(x軸) -> ヨー(y軸)
+      const x1 = vx * cr - vy * sr, y1 = vx * sr + vy * cr, z1 = vz;
+      const y2 = y1 * cp - z1 * sp, z2 = y1 * sp + z1 * cp;
+      const x3 = x1 * cy + z2 * sy, z3 = -x1 * sy + z2 * cy;
+      wxs[i] = wx + x3 * M2U; wys[i] = wy + y2 * M2U; wzs[i] = wz + z3 * M2U;
+      const P = p3(wxs[i], wys[i], wzs[i]);
+      px[i] = P.x; py[i] = P.y; pz[i] = P.rz;
+    }
+
+    // 面を奥から手前へ
+    const order = [];
+    for (let k = 0; k < F.length; k++) {
+      const v = F[k].v;
+      order.push({ k, d: (pz[v[0]] + pz[v[1]] + pz[v[2]] + pz[v[3]]) * 0.25 });
+    }
+    order.sort((a, b) => b.d - a.d);
+
+    const brake = opt.brake;
+    const LIGHT = [-0.52, 0.78, -0.35];   // 月あかり(左上後方)。左右で陰影差を出す
+    for (const o of order) {
+      const f = F[o.k], v = f.v;
+      // 面法線(車体中心から外向きに揃える)
+      const ax = wxs[v[1]] - wxs[v[0]], ay = wys[v[1]] - wys[v[0]], az = wzs[v[1]] - wzs[v[0]];
+      const bx = wxs[v[3]] - wxs[v[0]], by = wys[v[3]] - wys[v[0]], bz = wzs[v[3]] - wzs[v[0]];
+      let nx = ay * bz - az * by, ny = az * bx - ax * bz, nz = ax * by - ay * bx;
+      const nl = Math.hypot(nx, ny, nz) || 1;
+      nx /= nl; ny /= nl; nz /= nl;
+      const ccx = (wxs[v[0]] + wxs[v[2]]) / 2 - wx, ccy = (wys[v[0]] + wys[v[2]]) / 2 - wy - 0.6 * M2U;
+      const ccz = (wzs[v[0]] + wzs[v[2]]) / 2 - wz;
+      if (nx * ccx + ny * ccy + nz * ccz < 0) { nx = -nx; ny = -ny; nz = -nz; }
+      const lam = Math.max(0, nx * LIGHT[0] + ny * LIGHT[1] + nz * LIGHT[2]);
+      let col;
+      switch (f.r) {
+        case 'body': case 'roof':
+          col = mixColor(color, '#ffffff', 0.06 + lam * 0.30);
+          col = mixColor(col, '#0a0f22', 0.30 - lam * 0.26);
+          break;
+        case 'glass': col = mixColor('#0c1226', '#7fa8e0', 0.10 + lam * 0.34); break;
+        case 'wing':  col = mixColor('#15161c', '#ffffff', lam * 0.30); break;
+        case 'bumper': col = mixColor(mixColor(color, '#000000', 0.42), '#ffffff', lam * 0.24); break;
+        case 'tire':  col = mixColor('#0c0d10', '#ffffff', lam * 0.22); break;
+        case 'rim':   col = mixColor('#4a4f5c', '#ffffff', lam * 0.45); break;
+        case 'under': col = '#05060b'; break;
+        case 'lamp':  col = brake ? '#ff6b80' : '#c62b3a'; break;
+        case 'amber': col = '#e8a33d'; break;
+        case 'plate': col = '#e9ecdf'; break;
+        case 'pipe':  col = mixColor('#3a3d45', '#ffffff', lam * 0.5); break;
+        default:      col = mixColor(color, '#000000', 0.4);
+      }
+      ctx.fillStyle = col;
+      ctx.beginPath();
+      ctx.moveTo(px[v[0]], py[v[0]]);
+      ctx.lineTo(px[v[1]], py[v[1]]);
+      ctx.lineTo(px[v[2]], py[v[2]]);
+      ctx.lineTo(px[v[3]], py[v[3]]);
+      ctx.closePath();
+      ctx.fill();
+      // ブレーキランプのハロー
+      if (f.r === 'lamp' && brake) {
+        ctx.globalAlpha = 0.30;
+        ctx.fillStyle = '#ff3d5e';
+        ctx.fill();
+        ctx.globalAlpha = 1;
+      }
+    }
+    // 車体中心のスクリーン座標を返す
+    return p3(wx, wy, wz);
+  }
+
+  // ---- 車体スプライト(ガレージのプレビュー用) ----
   function drawCarSprite(c, x, y, w, type, color, opt) {
     opt = opt || {};
     const brake = opt.brake;
@@ -1425,23 +1771,65 @@
     c.fillRect(w * 0.37, -h * 0.1, w * 0.13, h * 0.14);
     c.restore();
   }
+  // '#rrggbb' と 'rgb(r,g,b)' の双方を受け付ける
+  function parseCol(c) {
+    if (c[0] === '#') {
+      const v = parseInt(c.slice(1), 16);
+      return [(v >> 16) & 255, (v >> 8) & 255, v & 255];
+    }
+    const m = c.match(/(\d+)\D+(\d+)\D+(\d+)/);
+    return m ? [+m[1], +m[2], +m[3]] : [128, 128, 128];
+  }
   function mixColor(a, b, t) {
-    const pa = parseInt(a.slice(1), 16), pb = parseInt(b.slice(1), 16);
-    const r = Math.round(((pa >> 16) & 255) * (1 - t) + ((pb >> 16) & 255) * t);
-    const g = Math.round(((pa >> 8) & 255) * (1 - t) + ((pb >> 8) & 255) * t);
-    const bl = Math.round((pa & 255) * (1 - t) + (pb & 255) * t);
-    return 'rgb(' + r + ',' + g + ',' + bl + ')';
+    const pa = parseCol(a), pb = parseCol(b);
+    return 'rgb(' + Math.round(pa[0] * (1 - t) + pb[0] * t) + ',' +
+                    Math.round(pa[1] * (1 - t) + pb[1] * t) + ',' +
+                    Math.round(pa[2] * (1 - t) + pb[2] * t) + ')';
   }
 
-  // 自車の画面上のX。カメラが車を減衰追従するため、その差分だけオフセットする。
-  let carScreenX = 0;
-  function updateCarScreenX() {
-    const s = Math.min(W, H);
-    const lagSc = CAMERA_DEPTH / (CAMERA_BACK * 1.4);
-    carScreenX = W / 2 + lagSc * (posX - camXm) * M2U * W / 2
-                 + heading * s * 0.22 + steerIn * s * 0.015;
-  }
+  // 自車の画面上のX(3D投影から得る。スモークなどが追従する)
+  let carScreenX = 0, carScreenY = 0;
+  // 自車位置における道路中心の世界X(描画ループが毎フレーム更新する)
+  let carRoadX = 0;
   function drawPlayerCar() {
+    const s = Math.min(W, H);
+    const baseSeg = findSegment(posZ);
+    const basePct = (posZ % SEG_LEN) / SEG_LEN;
+    const roadY = baseSeg.p1y + (baseSeg.p2y - baseSeg.p1y) * basePct;
+    const carWX = carRoadX + posX * M2U;
+    const carWY = roadY - Math.sin(baseSeg.bank) * posX * M2U + bodyHeave * M2U;
+    const mesh = ensureMesh(car.type, sel.tune === 2);
+    const brake = keys.down || input.brake;
+
+    // 路面への投影影
+    const shC = p3(carWX, carWY + 2, posZ);
+    if (shC) {
+      const hl = mesh.p.L / 2 * M2U * 0.92, hwid = mesh.p.W / 2 * M2U * 0.9;
+      const cyh = Math.cos(heading), syh = Math.sin(heading);
+      const corner = (ox, oz) => p3(carWX + (ox * cyh + oz * syh), carWY + 2, posZ + (-ox * syh + oz * cyh));
+      ctx.globalAlpha = 0.30;
+      quad(corner(-hwid, -hl), corner(hwid, -hl), corner(hwid, hl), corner(-hwid, hl), '#03040a');
+      ctx.globalAlpha = 1;
+    }
+
+    // 3Dの車体本体(ヨー・ピッチ・ロール込み)
+    const proj = drawCar3D(mesh, carWX, carWY, posZ,
+      heading, bodyPitch, bodyRoll + Math.sin(baseSeg.bank) * 0.6, car.color,
+      { brake, steer: steerIn * mesh.p.wb * 0.09 });
+    carScreenX = proj ? proj.x : W / 2;
+    carScreenY = proj ? proj.y : H * 0.78;
+
+    // 火花
+    if (scraping) {
+      ctx.fillStyle = '#ffcf5e';
+      const sx = carScreenX + Math.sign(posX) * s * 0.09;
+      for (let i = 0; i < 7; i++) {
+        ctx.fillRect(sx + (Math.random() - .5) * 18, carScreenY - Math.random() * s * 0.05, 3, 3);
+      }
+    }
+  }
+
+  function drawPlayerCarOld() {
     const s = Math.min(W, H);
     const w = s * 0.21;
     const x = carScreenX;
@@ -1598,7 +1986,9 @@
       ctx.textAlign = 'center';
       ctx.font = 'bold ' + s * 0.024 + 'px sans-serif';
       ctx.fillStyle = 'rgba(255,61,94,' + (0.5 + 0.5 * Math.sin(performance.now() / 90)) + ')';
-      ctx.fillText(wheelspin > 0.3 ? 'WHEEL SPIN' : 'GRIP LIMIT', W / 2, H * 0.62);
+      const msg = wheelspin > 0.3 ? 'WHEEL SPIN'
+                : (understeer ? 'UNDER STEER' : 'OVER STEER');
+      ctx.fillText(msg, W / 2, pad + s * 0.185);
     }
 
     let fy = H * 0.30;
