@@ -359,9 +359,38 @@
       brakeMu: 0.94,
       L, a, b, Iz, hCG, kC,
       steerMax: c.type === 'truck' ? 0.34 : 0.28,
+      // タイヤのピークスリップ角(rad)。良いシャシーほど鋭く立ち上がる
+      slipPeak: 0.175 - c.hd * 0.05,
+      // トレッド(左右荷重移動の計算用)
+      track: (SHAPE[c.type] || SHAPE.coupe).tw,
+      // 前輪のロール剛性配分。前寄りほどアンダー傾向
+      rollDist: 0.50 + (fw - 0.53) * 0.55,
+      brakeBias: 0.66,
+      FzRef: mass * G,
       topMs,
     };
   }
+  // ---- タイヤ特性曲線 ----
+  // 正規化スリップ(スリップ/ピークスリップ)に対する摩擦利用率を返す。
+  // ピークを超えると力が落ちるため、滑り出すと本当に姿勢が破綻し、
+  // 滑りを収めればグリップが戻る(実タイヤと同じ挙動)。
+  function tireCurve(sn) {
+    const s = Math.abs(sn);
+    const f = s <= 1
+      ? Math.sin(Math.PI / 2 * s)
+      : 1 - 0.28 * (1 - Math.exp(-(s - 1) * 0.9));
+    return sn < 0 ? -f : f;
+  }
+  // 荷重依存の摩擦係数(荷重が増えるほど単位荷重あたりのグリップは落ちる)
+  function muAtLoad(mu, Fz, FzRef) {
+    return mu * Math.max(0.62, 1.10 - 0.10 * (Fz / Math.max(1, FzRef)));
+  }
+  // 左右荷重移動を考慮した1軸の横グリップ上限(N)
+  function axleGrip(mu, Fz, dFz, FzRef) {
+    const l = Math.max(60, Fz / 2 - dFz), r = Math.max(60, Fz / 2 + dFz);
+    return muAtLoad(mu, l, FzRef / 2) * l + muAtLoad(mu, r, FzRef / 2) * r;
+  }
+
   // エンジントルク(Nm)
   function engineTorque(rpm, ph) {
     if (rpm > ph.redline) return 0;
@@ -378,51 +407,55 @@
   const COURSES = [
     {
       id: 'c1', name: '都心環状線 C1 内回り', len: '8.4km',
-      desc: 'R150m級の連続タイトコーナーと地下トンネル。ブレーキングとシフトワークが試されるテクニカルコース。',
+      desc: 'R150m級の連続タイトコーナーと地下トンネル。ブレーキングとシフトワークが試されるテクニカルコース。交通量は多い。',
       theme: { pole: '#ffb84d', tunnelLight: '#ffd98a', build: '#0a0e20' },
+      trafficRate: 0.66, hazards: 2,
       sections: [
-        { name: '江戸橋JCT',    avg: 110, pieces: [[300,0,0],[250,14,0],[200,0,0],[250,-16,0],[200,4,0]] },
-        { name: '竹橋~代官町',  avg: 129, pieces: [[250,-8,2],[300,18,4],[250,0,-2],[300,-26,0],[300,8,0]] },
-        { name: '三宅坂JCT',    avg: 116, pieces: [[200,0,0],[300,-30,2],[250,12,0],[300,34,-3],[250,0,0]] },
-        { name: '谷町~飯倉',    avg: 144, pieces: [[400,-8,0],[300,0,4],[300,16,0,'t'],[250,-12,-4,'t'],[250,0,0]] },
-        { name: '汐留トンネル',  avg: 147, pieces: [[300,0,-3,'t'],[350,12,0,'t'],[350,-14,0,'t'],[400,0,3,'t']] },
-        { name: '浜崎橋~江戸橋', avg: 150, pieces: [[400,8,0],[300,-16,2],[300,0,0],[300,14,-2],[300,0,0]] },
+        { name: '江戸橋JCT',    avg: 104, pieces: [[180,0,0],[130,16,0],[110,-6,0],[150,-20,0],[120,6,2],[140,24,0],[170,0,-2],[200,-10,0]] },
+        { name: '竹橋~代官町',  avg: 125, pieces: [[150,-9,2],[180,20,4],[120,0,-2],[160,-28,0],[140,10,0],[170,-14,-3],[190,6,0],[290,0,0]] },
+        { name: '三宅坂JCT',    avg: 97, pieces: [[130,0,0],[170,-32,2],[110,8,0],[150,26,0],[130,-12,-3],[180,36,0],[160,0,2],[270,-16,0]] },
+        { name: '谷町~飯倉',    avg: 109, pieces: [[220,-9,0],[180,12,4],[150,0,0,'t'],[190,18,0,'t'],[160,-14,-4,'t'],[200,6,0],[180,-22,0],[220,0,0]] },
+        { name: '汐留トンネル',  avg: 104, pieces: [[200,0,-3,'t'],[190,14,0,'t'],[170,-8,0,'t'],[200,-18,0,'t'],[180,10,2,'t'],[210,0,0,'t'],[250,-6,3]] },
+        { name: '浜崎橋~江戸橋', avg: 108, pieces: [[230,10,0],[170,-18,2],[150,6,0],[190,16,-2],[160,-10,0],[210,22,0],[190,0,0],[300,-8,0]] },
       ],
     },
     {
       id: 'wangan', name: '湾岸線 東行き', len: '11.4km',
       desc: '緩いRの続く超高速ステージ。ダウンフォースと最高速がものを言う。大橋区間のうねりで限界に挑め。',
       theme: { pole: '#3de8ff', tunnelLight: '#bfe4ff', build: '#0a1024' },
+      trafficRate: 0.42, hazards: 2,
       sections: [
-        { name: '大井~東京港TN', avg: 136, pieces: [[600,0,0],[400,6,0],[500,0,0,'t'],[500,-6,0,'t']] },
-        { name: '13号地~有明',   avg: 172, pieces: [[700,0,0],[500,8,0],[500,0,0],[500,-8,0]] },
-        { name: '東雲~辰巳',     avg: 141, pieces: [[500,12,0],[500,0,2],[500,-12,-2],[500,4,0]] },
-        { name: '大橋区間',      avg: 185, pieces: [[500,0,3,'b'],[400,6,4,'bw'],[800,0,0,'b'],[400,-6,-4,'bw'],[500,0,-3,'b']] },
-        { name: '大黒ふ頭',      avg: 172, pieces: [[800,0,0],[500,-8,0],[600,0,0],[700,8,0]] },
+        { name: '大井~東京港TN', avg: 115, pieces: [[450,0,0],[300,7,0],[250,-4,0],[350,0,0,'t'],[300,-8,0,'t'],[350,5,0,'t']] },
+        { name: '13号地~有明',   avg: 138, pieces: [[500,0,0],[350,9,0],[300,-5,0],[400,0,2],[350,-10,-2],[300,6,0]] },
+        { name: '東雲~辰巳',     avg: 141, pieces: [[350,14,0],[300,-6,2],[300,0,0],[350,-16,-2],[350,8,0],[350,0,0]] },
+        { name: '大橋区間',      avg: 147, pieces: [[400,0,3,'b'],[300,7,4,'bw'],[500,-4,0,'b'],[400,0,0,'b'],[300,-7,-4,'bw'],[350,5,-3,'b'],[350,0,0]] },
+        { name: '大黒ふ頭',      avg: 146, pieces: [[500,0,0],[350,-9,0],[300,5,0],[450,0,0],[400,10,0],[300,-6,0],[300,0,0]] },
       ],
     },
     {
       id: 'yokohane', name: '横羽線 下り', len: '9.2km',
       desc: '中速コーナーが続く川崎の工業地帯。壁が近く、ミスの許されないライン取りが要求される。',
       theme: { pole: '#ffe28a', tunnelLight: '#ffd98a', build: '#100e18' },
+      trafficRate: 0.68, hazards: 3,
       sections: [
-        { name: '羽田~大師',       avg: 121, pieces: [[400,0,0],[400,12,0],[300,0,2],[400,-14,0],[300,0,-2]] },
-        { name: '大師~浅田',       avg: 152, pieces: [[500,8,0],[400,0,0],[400,-16,0],[500,6,0]] },
-        { name: '浅田~汐入',       avg: 165, pieces: [[400,0,0,'t'],[400,10,0,'t'],[400,-10,0],[400,0,0]] },
-        { name: '汐入~東神奈川',   avg: 151, pieces: [[500,-8,2],[500,16,0],[500,0,-2],[500,-12,0]] },
-        { name: '東神奈川~金港JCT', avg: 143, pieces: [[600,0,0],[500,10,0],[400,-8,0],[500,0,0]] },
+        { name: '羽田~大師',       avg: 116, pieces: [[280,0,0],[220,14,0],[180,-7,2],[240,-16,0],[200,9,0],[230,0,-2],[250,18,0],[200,-6,0]] },
+        { name: '大師~浅田',       avg: 129, pieces: [[300,9,0],[240,-5,0],[220,0,0],[260,-18,0],[220,7,2],[280,12,0],[280,0,-2]] },
+        { name: '浅田~汐入',       avg: 131, pieces: [[250,0,0,'t'],[220,12,0,'t'],[200,-6,0,'t'],[230,-12,0],[240,8,0],[220,0,0],[240,-9,0]] },
+        { name: '汐入~東神奈川',   avg: 111, pieces: [[300,-9,2],[260,18,0],[220,-6,0],[280,0,-2],[240,-14,0],[280,10,0],[220,0,0],[200,6,0]] },
+        { name: '東神奈川~金港JCT', avg: 122, pieces: [[320,0,0],[260,12,0],[220,-9,0],[280,16,0],[240,0,2],[300,-11,-2],[380,0,0]] },
       ],
     },
     {
       id: 'hanshin', name: '阪神高速 環状線', len: '7.6km',
       desc: '大阪の夜を回る左回りワンウェイ。切り返しの連続する低中速セクション。車の反応が問われる。',
       theme: { pole: '#8fffcf', tunnelLight: '#d8ffe8', build: '#0b1418' },
+      trafficRate: 0.50, hazards: 2,
       sections: [
-        { name: '環状合流~本町',   avg: 102, pieces: [[300,0,0],[300,26,0],[250,0,0],[300,-26,0],[250,8,0]] },
-        { name: '本町~湊町',       avg: 129, pieces: [[300,-12,2],[300,30,0],[300,0,-2],[300,16,0],[300,0,0]] },
-        { name: '湊町~えびす町',   avg: 127, pieces: [[400,-18,0],[350,0,3],[400,26,-3],[350,-8,0]] },
-        { name: 'えびす町~夕陽丘', avg: 134, pieces: [[400,12,0],[400,-26,0],[400,0,2],[400,18,-2]] },
-        { name: '夕陽丘~環状合流', avg: 135, pieces: [[500,0,0],[400,-14,0],[400,12,0],[300,0,0]] },
+        { name: '環状合流~本町',   avg: 85, pieces: [[200,0,0],[170,28,0],[130,-9,0],[180,-28,0],[150,10,0],[160,22,0],[180,-12,0],[230,0,0]] },
+        { name: '本町~湊町',       avg: 98, pieces: [[180,-14,2],[190,32,0],[150,-8,0],[170,0,-2],[190,18,0],[160,-24,0],[200,7,0],[260,0,0]] },
+        { name: '湊町~えびす町',   avg: 106, pieces: [[220,-20,0],[180,9,3],[190,28,0],[160,-11,-3],[200,16,0],[180,0,0],[190,-18,0],[180,6,0]] },
+        { name: 'えびす町~夕陽丘', avg: 100, pieces: [[220,13,0],[190,-28,0],[170,8,0],[200,0,2],[180,20,0],[190,-12,-2],[210,26,0],[240,0,0]] },
+        { name: '夕陽丘~環状合流', avg: 105, pieces: [[260,0,0],[200,-16,0],[180,9,0],[220,13,0],[190,-22,0],[210,0,0],[340,7,0]] },
       ],
     },
   ];
@@ -559,10 +592,60 @@
       s.checkpoint = sectionEnds.some(se => se.z === s.z);
       s.finish = s.z === finishZ;
     });
+    buildSigns(c);
+    // 工事規制の位置に当たり判定を持たせる
+    for (const h of hazards) {
+      for (let k = 0; k < h.len; k++) {
+        const s = segments[h.i + k];
+        if (s) s.cone = h.side;
+      }
+    }
   }
   // curve値 -> コーナー半径(m)
   function radiusOf(curve) {
     return curve ? RADIUS_K / Math.abs(curve) : Infinity;
+  }
+
+  // ---- 標識と工事規制をコース形状から自動生成する ----
+  let signs = [], hazards = [], signAt = {};
+  function buildSigns(c) {
+    signs = [];
+    hazards = [];
+    signAt = {};
+    const segPerM = M2U / SEG_LEN;
+    let inCorner = false;
+    for (let i = 2; i < segments.length; i++) {
+      const s = segments[i];
+      const tight = Math.abs(s.curve) > 8;
+      if (tight && !inCorner) {
+        inCorner = true;
+        // コーナーの手前に警戒標識(R が小さいほど手前に出す)
+        const R = s.radius;
+        const lead = Math.round((R < 250 ? 150 : 95) * segPerM);
+        const at = i - lead;
+        if (at > 6 && !segments[at].tunnel) {
+          signs.push({ i: at, kind: 'curve', dir: Math.sign(s.curve), r: Math.round(R) });
+        }
+      } else if (!tight && Math.abs(s.curve) < 3) {
+        inCorner = false;
+      }
+    }
+    // 速度標識と案内板を一定間隔で
+    const every = Math.round(700 * segPerM);
+    for (let i = every; i < segments.length - 40; i += every) {
+      if (segments[i].tunnel) continue;
+      signs.push({ i, kind: (i / every) % 2 === 0 ? 'limit' : 'board' });
+    }
+    // 工事規制(車線規制)。コースごとの数だけ、直線区間に置く
+    const nH = c.hazards || 0;
+    for (let h = 0; h < nH; h++) {
+      const at = Math.round(segments.length * (0.18 + 0.62 * (h + 0.5) / nH));
+      let idx = at;
+      // 直線的な場所を探す
+      for (let k = 0; k < 60 && Math.abs(segments[idx].curve) > 6; k++) idx = (idx + 7) % (segments.length - 60) + 20;
+      hazards.push({ i: idx, len: Math.round(70 * segPerM), side: h % 2 === 0 ? -1 : 1 });
+    }
+    for (const sg of signs) signAt[sg.i] = sg;
   }
 
   function findSegment(z) {
@@ -595,6 +678,109 @@
   let running = false, lastTime = 0, muted = false;
   const HALF_ROAD_M = ROAD_HW / M2U;
 
+  // ================= 交通車両 =================
+  // 深夜の首都高らしく、走行車線を流す車がまばらに走っている。
+  let traffic = [], nextSpawnZ = 0, hitCooldown = 0;
+  const TRAFFIC_KINDS = [
+    { type: 'sedan', mass: 1500, w: 1.77, l: 4.70, kmh: [70, 95] },
+    { type: 'hatch', mass: 1100, w: 1.69, l: 4.16, kmh: [65, 90] },
+    { type: 'coupe', mass: 1400, w: 1.76, l: 4.45, kmh: [85, 115] },
+    { type: 'truck', mass: 3400, w: 1.70, l: 4.69, kmh: [55, 75] },
+  ];
+  const TRAFFIC_COLORS = ['#e8eaf0', '#2b2f38', '#8b93a5', '#20305c', '#7a2230', '#d8d2c4', '#33513a'];
+  // 車線中心の横位置(m)。実際の高速道路と同じ3.5m幅。
+  function laneCenter(i) { return (i - (LANES - 1) / 2) * 3.5; }
+
+  // タイムアタックとして公平になるよう、交通の配置はコースごとに固定にする
+  let tSeed = 1;
+  function trand() {
+    tSeed = (tSeed * 1664525 + 1013904223) >>> 0;
+    return tSeed / 4294967296;
+  }
+  function resetTraffic() {
+    traffic = [];
+    nextSpawnZ = 260 * M2U;
+    hitCooldown = 0;
+    tSeed = 0;
+    for (let i = 0; i < course.id.length; i++) tSeed = (tSeed * 131 + course.id.charCodeAt(i)) >>> 0;
+    tSeed = (tSeed ^ 0x9e3779b9) >>> 0;
+  }
+  function spawnOne(z) {
+    const k = TRAFFIC_KINDS[Math.floor(trand() * TRAFFIC_KINDS.length)];
+    // トラックは走行車線(左寄り)を走る
+    const li = k.type === 'truck'
+      ? Math.floor(trand() * 2)
+      : Math.floor(trand() * LANES);
+    traffic.push({
+      z, lane: li, x: laneCenter(li),
+      type: k.type, mass: k.mass, w: k.w, l: k.l,
+      speed: (k.kmh[0] + trand() * (k.kmh[1] - k.kmh[0])) / 3.6,
+      color: TRAFFIC_COLORS[Math.floor(trand() * TRAFFIC_COLORS.length)],
+      brake: 0,
+    });
+  }
+  function updateTraffic(dt) {
+    if (hitCooldown > 0) hitCooldown -= dt;
+    // 前方に一定間隔で補充
+    const horizon = posZ + 900 * M2U;
+    let guard = 0;
+    while (nextSpawnZ < horizon && guard++ < 40) {
+      if (trand() < course.trafficRate) spawnOne(nextSpawnZ);
+      nextSpawnZ += (110 + trand() * 240) * M2U;
+    }
+    for (const t of traffic) {
+      t.z += t.speed * M2U * dt;
+      if (t.brake > 0) t.brake -= dt;
+    }
+    // 通り過ぎた車を掃除
+    if (traffic.length > 0 && traffic[0].z < posZ - 90 * M2U) {
+      traffic = traffic.filter(t => t.z > posZ - 90 * M2U);
+    }
+
+    // ---- 衝突判定 ----
+    if (hitCooldown > 0) return;
+    const myHalfL = 2.3, myHalfW = 0.92;
+    for (const t of traffic) {
+      const dz = (t.z - posZ) / M2U;
+      if (Math.abs(dz) > myHalfL + t.l / 2) continue;
+      const dx = t.x - posX;
+      if (Math.abs(dx) > myHalfW + t.w / 2) continue;
+      collideWithTraffic(t, dz, dx);
+      break;
+    }
+  }
+  function collideWithTraffic(t, dz, dx) {
+    const m1 = ph.mass, m2 = t.mass;
+    const e = 0.22;                                   // 反発係数
+    const vRel = vMs - t.speed;
+    const sideHit = Math.abs(dz) < 1.6;               // 並走状態での接触
+    if (sideHit) {
+      // 側面接触: 弾かれて姿勢を乱す
+      const dir = dx > 0 ? -1 : 1;
+      vLat += dir * 3.4;
+      yawRate += dir * 0.5;
+      vMs -= Math.min(vMs, 4 + Math.abs(vRel) * 0.25);
+      shake = Math.max(shake, 9);
+      flash('接触!', '#ff8f4d', 0.8);
+    } else if (vRel > 0) {
+      // 追突: 運動量交換
+      const j = (1 + e) * vRel * m2 / (m1 + m2);
+      vMs = Math.max(0, vMs - j);
+      t.speed += (1 + e) * vRel * m1 / (m1 + m2);
+      t.brake = 1.2;
+      const dir = dx > 0 ? -1 : 1;
+      vLat += dir * 1.8;
+      yawRate += dir * 0.22;
+      shake = Math.max(shake, 14);
+      flash('CRASH!', '#ff3d5e', 1.1);
+    } else {
+      return;
+    }
+    sfxCrashSound();
+    hitCooldown = 0.6;
+    for (let i = 0; i < 6; i++) smoke.push({ x: (Math.random() - .5) * 1.6, t: 0.5, spark: true });
+  }
+
   function startRace() {
     car = currentCar(); ph = car.ph;
     buildCourse(COURSES[sel.course]);
@@ -602,6 +788,7 @@
     posZ = 0; posX = 0; camXm = 0; vMs = 0; heading = 0; steerIn = 0;
     yawRate = 0; vLat = 0; slipAngle = 0; understeer = false;
     bodyPitch = 0; bodyPitchV = 0; bodyRoll = 0; bodyRollV = 0; bodyHeave = 0; bodyHeaveV = 0; prevGrade = 0;
+    resetTraffic();
     gear = 1; rpm = ph.idle; shiftTimer = 0;
     aLong = 0; aLat = 0; wheelspin = 0; sliding = 0;
     totalTime = 0; sectionIdx = 0; splits = [];
@@ -672,92 +859,98 @@
     const normalLoad = ph.mass * G + downforce;           // N
     const gripAccel = ph.mu * normalLoad / ph.mass;       // 総グリップ (m/s^2)
 
-    // ---- 前後方向 ----
+    // ================= 荷重: 前後・左右の移動 =================
+    const L = ph.L;
+    const grade = (seg.p2y - seg.p1y) / SEG_LEN;
+    const dfFront = downforce * 0.42, dfRear = downforce * 0.58;
+    // 前後荷重移動(加速で後軸へ、制動で前軸へ)。前フレームの加速度を使う
+    const transferLong = ph.mass * aLong * ph.hCG / L;
+    let Fzf = ph.mass * G * ph.b / L - transferLong + dfFront;
+    let Fzr = ph.mass * G * ph.a / L + transferLong + dfRear;
+    Fzf = Math.max(200, Fzf); Fzr = Math.max(200, Fzr);
+    // 左右荷重移動。ロール剛性配分で前後に振り分ける
+    const transferLat = ph.mass * aLat * ph.hCG / ph.track;
+    const dFzF = transferLat * ph.rollDist;
+    const dFzR = transferLat * (1 - ph.rollDist);
+    // 左右移動を織り込んだ軸グリップ(荷重依存でグリップは目減りする)
+    const gripF = axleGrip(ph.mu, Fzf, dFzF, ph.FzRef);
+    const gripR = axleGrip(ph.mu, Fzr, dFzR, ph.FzRef);
+
+    // ================= 前後方向 =================
     const fDrag = 0.5 * RHO * ph.CdA * vMs * vMs;
     const fRoll = ph.Crr * ph.mass * G;
     let fDrive = 0;
-    wheelspin = Math.max(0, wheelspin - dt * 3);
+    wheelspin = Math.max(0, wheelspin - dt * 2.2);
 
     if (accel && shiftTimer <= 0 && !revLimit) {
       // 発進時はクラッチミートで回転を保つ
       const effRpm = (gear === 1 && rpm < ph.redline * 0.45) ? ph.redline * 0.45 : rpm;
       const T = engineTorque(effRpm, ph);
       fDrive = T * GEARS[gear - 1] * ph.finalDrive * DRIVE_EFF / ph.wheelR;
-      // トラクション限界(駆動輪荷重 × μ)
-      const fTraction = ph.mu * normalLoad * ph.driveFrac;
-      if (fDrive > fTraction) { wheelspin = Math.min(1, (fDrive / fTraction - 1) * 1.4); fDrive = fTraction; }
+      // 駆動輪のトラクション上限。超えた分はホイールスピンになり、
+      // 滑っている間は摩擦が落ちるので実際に前に進まなくなる
+      const fTraction = gripF * (1 - ph.rearDrive) + gripR * ph.rearDrive;
+      if (fDrive > fTraction) {
+        wheelspin = Math.min(1, (fDrive / fTraction - 1) * 1.2);
+        fDrive = fTraction * (1 - 0.20 * wheelspin);
+      }
     }
-    let fBrake = 0;
-    if (brake) fBrake = ph.brakeMu * ph.mu * normalLoad;   // グリップの94%を制動に使う
-    // エンジンブレーキ
+    // 制動(ABS相当: 各軸のグリップの97%まで)
+    let fBrakeF = 0, fBrakeR = 0;
+    if (brake) {
+      fBrakeF = Math.min(ph.brakeBias * ph.mass * 13, gripF * 0.97);
+      fBrakeR = Math.min((1 - ph.brakeBias) * ph.mass * 13, gripR * 0.97);
+    }
+    const fBrake = fBrakeF + fBrakeR;
     const fEngBrake = (!accel && vMs > 1) ? 55 + rpm * 0.045 : 0;
 
     let accelLong = (fDrive - fDrag - fRoll - fBrake - fEngBrake) / ph.mass;
-    // 勾配の影響
-    const grade = (seg.p2y - seg.p1y) / SEG_LEN;
     accelLong -= G * grade;
-
     vMs += accelLong * dt;
     if (vMs < 0) vMs = 0;
     if (vMs > ph.topMs * 1.06) vMs = ph.topMs * 1.06;
     aLong = accelLong;
 
-    // ================= 横方向: 二輪(バイシクル)モデル =================
-    const L = ph.L;
-    // ステア入力
+    // ================= 横方向: 二輪モデル + タイヤ特性曲線 =================
     const steerTarget = left ? -1 : right ? 1 : 0;
     steerIn += (steerTarget - steerIn) * (8.5 - Math.min(4.5, vMs / 24)) * dt;
     steerIn = Math.max(-1, Math.min(1, steerIn));
-    // 舵角はグリップ限界を基準に制限する。
-    // 限界旋回に必要なアッカーマン舵角の 1.35 倍までしか切れないので、
-    // 切りすぎればアンダーになるが、常時飽和して破綻することはない。
-    const aGripMax = ph.mu * (G + downforce / ph.mass);
+    // 実車のドライバーと同じく、高速では舵をわずかしか使わない。
+    // 限界旋回に要する舵角の1.6倍を上限とし、切りすぎればアンダーになる。
+    const aGripMax = gripF / (ph.mass * ph.b / L);
     const deltaGrip = aGripMax * L / Math.max(1, vMs * vMs);
-    const deltaMax = Math.min(ph.steerMax, deltaGrip * 1.35);
+    const deltaMax = Math.min(ph.steerMax, deltaGrip * 1.6);
     const delta = steerIn * deltaMax;                   // 前輪実舵角(rad)
 
-    // ---- 前後軸の垂直荷重(荷重移動 + ダウンフォース) ----
-    const dfFront = downforce * 0.42, dfRear = downforce * 0.58;
-    const transfer = ph.mass * aLong * ph.hCG / L;      // 加速で後軸へ、制動で前軸へ
-    let Fzf = ph.mass * G * ph.b / L - transfer + dfFront;
-    let Fzr = ph.mass * G * ph.a / L + transfer + dfRear;
-    Fzf = Math.max(180, Fzf); Fzr = Math.max(180, Fzr);
-
-    // ---- 各軸が使っている前後力(摩擦円の消費分) ----
-    const fxRear = fDrive * ph.rearDrive - fBrake * 0.35;
-    const fxFront = fDrive * (1 - ph.rearDrive) - fBrake * 0.65;
-    const capF = Math.sqrt(Math.max(0, Math.pow(ph.mu * Fzf, 2) - fxFront * fxFront));
-    const capR = Math.sqrt(Math.max(0, Math.pow(ph.mu * Fzr, 2) - fxRear * fxRear));
+    // 各軸が前後力で消費している摩擦(摩擦楕円)
+    const fxFront = fDrive * (1 - ph.rearDrive) - fBrakeF;
+    const fxRear = fDrive * ph.rearDrive - fBrakeR;
+    const availF = Math.sqrt(Math.max(0.01, 1 - Math.pow(Math.min(1, Math.abs(fxFront) / gripF), 2)));
+    const availR = Math.sqrt(Math.max(0.01, 1 - Math.pow(Math.min(1, Math.abs(fxRear) / gripR), 2)));
 
     if (vMs < 2.5) {
-      // 低速域は運動学モデル(数値的に安定)
       yawRate = vMs * Math.tan(delta) / L;
-      vLat = 0;
-      aLat = 0;
-      sliding = 0;
+      vLat = 0; aLat = 0; sliding = 0;
     } else {
-      // スリップ角
       const slipF = (vLat + ph.a * yawRate) / vMs - delta;
       const slipR = (vLat - ph.b * yawRate) / vMs;
-      // 横力(飽和付き)。飽和すると滑る
-      const rawF = -ph.kC * Fzf * slipF;
-      const rawR = -ph.kC * Fzr * slipR * 1.06;   // 後軸をわずかに強めて直進安定性を確保
-      const Fyf = Math.max(-capF, Math.min(capF, rawF));
-      const Fyr = Math.max(-capR, Math.min(capR, rawR));
-      // 路面バンクの重力成分
+      const snF = slipF / ph.slipPeak;
+      const snR = slipR / (ph.slipPeak * 1.04);   // 後軸をわずかに粘らせて直進安定性を確保
+      // タイヤ特性曲線 × 軸グリップ × 摩擦楕円の残余
+      const Fyf = -tireCurve(snF) * gripF * availF;
+      const Fyr = -tireCurve(snR) * gripR * availR;
       const fBank = ph.mass * G * Math.sin(seg.bank);
-      // 運動方程式
       const vLatDot = (Fyf + Fyr + fBank) / ph.mass - vMs * yawRate;
       const yawDot = (ph.a * Fyf - ph.b * Fyr) / ph.Iz;
       vLat += vLatDot * dt;
       yawRate += yawDot * dt;
-      vLat = Math.max(-28, Math.min(28, vLat));
-      yawRate = Math.max(-2.2, Math.min(2.2, yawRate));
+      vLat = Math.max(-30, Math.min(30, vLat));
+      yawRate = Math.max(-2.4, Math.min(2.4, yawRate));
       aLat = (Fyf + Fyr + fBank) / ph.mass;
-      // タイヤが飽和している度合い(前=アンダー / 後=オーバー)
-      const satF = Math.abs(rawF) > capF ? Math.min(1, (Math.abs(rawF) / Math.max(1, capF) - 1)) : 0;
-      const satR = Math.abs(rawR) > capR ? Math.min(1, (Math.abs(rawR) / Math.max(1, capR) - 1)) : 0;
-      sliding = Math.max(satF, satR);
+      // ピークスリップを超えた度合い = 滑り具合
+      const satF = Math.max(0, Math.abs(snF) - 1);
+      const satR = Math.max(0, Math.abs(snR) - 1);
+      sliding = Math.min(1, Math.max(satF, satR) * 0.8);
       understeer = satF > satR;
     }
 
@@ -768,6 +961,22 @@
     heading = Math.max(-0.85, Math.min(0.85, heading));
     slipAngle = vMs > 2.5 ? Math.atan2(vLat, vMs) : 0;
     posX += (vMs * Math.sin(heading) + vLat * Math.cos(heading)) * dt;
+
+    // ---- 交通車両 ----
+    if (raceState === 'running') updateTraffic(dt);
+
+    // ---- 工事規制のパイロン ----
+    if (seg.cone && hitCooldown <= 0) {
+      const coneX = seg.cone * HALF_ROAD_M * 0.52;
+      if (Math.abs(posX - coneX) < 1.15) {
+        vMs -= Math.min(vMs, 12);
+        vLat += (posX > coneX ? 1 : -1) * 1.6;
+        shake = Math.max(shake, 8);
+        hitCooldown = 0.35;
+        flash('規制帯!', '#ff8f4d', 0.7);
+        sfxCrashSound();
+      }
+    }
 
     // ---- 壁(ガードレール) ----
     scraping = false;
@@ -892,9 +1101,9 @@
   }
 
   // ================= サウンド =================
-  let AC = null, engOsc, engOsc2, engGain, windGain, noiseBuf;
+  let AC = null, engOsc, engOsc2, engGain, windGain, noiseBuf, screechGain, screechFilt;
   function initAudio() {
-    if (AC) { AC.resume && AC.resume(); return; }
+    if (AC) { resumeAudio(); return; }
     try {
       AC = new (window.AudioContext || window.webkitAudioContext)();
       engOsc = AC.createOscillator(); engOsc.type = 'sawtooth';
@@ -913,21 +1122,59 @@
       windGain = AC.createGain(); windGain.gain.value = 0;
       src.connect(nf); nf.connect(windGain); windGain.connect(AC.destination);
       src.start();
+      // タイヤのスキール音(グリップのピークを超えた量で鳴る)
+      const scr = AC.createBufferSource(); scr.buffer = noiseBuf; scr.loop = true;
+      screechFilt = AC.createBiquadFilter();
+      screechFilt.type = 'bandpass'; screechFilt.frequency.value = 2400; screechFilt.Q.value = 9;
+      screechGain = AC.createGain(); screechGain.gain.value = 0;
+      scr.connect(screechFilt); screechFilt.connect(screechGain); screechGain.connect(AC.destination);
+      scr.start();
+      // ブラウザが勝手に止めた場合に備えて復帰の機会を増やす
+      AC.onstatechange = resumeAudio;
+      setInterval(resumeAudio, 1500);
     } catch (e) { AC = null; }
+  }
+  // AudioContext はタブの非表示・着信・OSの割り込みなどで suspended になり、
+  // 放置すると二度と鳴らなくなる。あらゆる契機で復帰させる。
+  function resumeAudio() {
+    if (!AC) return;
+    if (AC.state === 'suspended' || AC.state === 'interrupted') {
+      const r = AC.resume();
+      if (r && r.catch) r.catch(() => {});
+    }
+  }
+  // AudioParam に NaN/Infinity を書き込むとノードが永久に無音になるため必ず通す
+  function setParam(param, v, now) {
+    if (!param) return;
+    const x = isFinite(v) ? Math.max(0, Math.min(20000, v)) : 0;
+    try { param.setTargetAtTime(x, now, 0.02); } catch (e) { try { param.value = x; } catch (e2) {} }
   }
   function updateEngine(throttle) {
     if (!AC || !engGain) return;
-    if (muted || !running) { engGain.gain.value = 0; windGain.gain.value = 0; return; }
-    const rpmN = ph ? rpm / ph.redline : 0.3;
-    const fr = 38 + rpmN * 190 + gear * 5;
-    engOsc.frequency.value = fr;
-    engOsc2.frequency.value = fr * 0.5;
+    resumeAudio();
+    const now = AC.currentTime;
+    if (muted || !running) {
+      setParam(engGain.gain, 0, now);
+      setParam(windGain && windGain.gain, 0, now);
+      setParam(screechGain && screechGain.gain, 0, now);
+      return;
+    }
+    // スキール音: 滑り量とホイールスピンで鳴り、速度で音程が上がる
+    const skid = Math.max(sliding, wheelspin * 0.85);
+    setParam(screechGain.gain, skid > 0.06 ? Math.min(0.13, skid * 0.16) : 0, now);
+    setParam(screechFilt.frequency, 1700 + Math.min(1500, vMs * 18) + skid * 500, now);
+    const rpmN = ph && ph.redline ? rpm / ph.redline : 0.3;
+    const fr = 38 + (isFinite(rpmN) ? rpmN : 0.3) * 190 + gear * 5;
+    setParam(engOsc.frequency, fr, now);
+    setParam(engOsc2.frequency, fr * 0.5, now);
     const cut = shiftTimer > 0 ? 0.28 : 1;
-    engGain.gain.value = (0.024 + throttle * 0.042 + rpmN * 0.022) * cut;
-    windGain.gain.value = Math.max(0, (vMs - 45) / 620) + (scraping ? 0.14 : 0) + sliding * 0.06 + wheelspin * 0.05;
+    setParam(engGain.gain, (0.024 + throttle * 0.042 + (isFinite(rpmN) ? rpmN : 0) * 0.022) * cut, now);
+    setParam(windGain.gain,
+      Math.max(0, (vMs - 45) / 620) + (scraping ? 0.14 : 0) + sliding * 0.06 + wheelspin * 0.05, now);
   }
   function blip(freq, dur, type, vol, slide) {
-    if (!AC || muted) return;
+    if (!AC || muted || !isFinite(freq)) return;
+    resumeAudio();
     const o = AC.createOscillator(), g = AC.createGain();
     o.type = type || 'square';
     o.frequency.setValueAtTime(freq, AC.currentTime);
@@ -1013,7 +1260,13 @@
     }
   });
   document.addEventListener('keyup', e => { if (keyMap[e.code]) keys[keyMap[e.code]] = false; });
-  document.addEventListener('visibilitychange', () => { if (!document.hidden) lastTime = performance.now(); });
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) { lastTime = performance.now(); resumeAudio(); }
+  });
+  // ユーザー操作は音声再開の最も確実な契機なので、すべて拾う
+  for (const ev of ['pointerdown', 'keydown', 'touchstart', 'focus']) {
+    window.addEventListener(ev, resumeAudio, { passive: true });
+  }
 
   // ================= 3D 描画 =================
   let camX = 0, camY = 0, camZ = 0, camCos = 1, camSin = 0;
@@ -1283,6 +1536,9 @@
       } else if ((s.checkpoint || s.finish) && r.n > 1) {
         drawGate(r, s, fog);
       }
+      // 工事規制のパイロンと道路標識
+      if (s.cone) drawCones(r, s, fog);
+      if (signAt[r.i] && !s.tunnel && r.n > 2) drawSign(r, s, signAt[r.i], fog);
     }
 
     // ---- 夜霧(距離感) ----
@@ -1295,6 +1551,7 @@
     ctx.fillStyle = fogGrad;
     ctx.fillRect(0, fy0, W, fy1 - fy0);
 
+    drawTraffic(rows, baseSeg);
     drawPlayerCar();
     drawSmoke();
     ctx.restore();
@@ -1558,11 +1815,20 @@
     return { V, F, wheels, p };
   }
 
-  let carMesh = null, carMeshKey = '';
+  const meshCache = {};
   function ensureMesh(type, wing) {
     const key = type + (wing ? 'W' : '');
-    if (carMeshKey !== key) { carMesh = makeCarMesh(type, wing); carMeshKey = key; }
-    return carMesh;
+    if (!meshCache[key]) meshCache[key] = makeCarMesh(type, wing);
+    return meshCache[key];
+  }
+  // 頂点変換用のスクラッチ(毎フレームの確保を避ける)
+  const SCR = { n: 0, wx: null, wy: null, wz: null, px: null, py: null, pz: null, steer: null };
+  function ensureScratch(n) {
+    if (SCR.n >= n) return;
+    SCR.n = n;
+    SCR.wx = new Float64Array(n); SCR.wy = new Float64Array(n); SCR.wz = new Float64Array(n);
+    SCR.px = new Float64Array(n); SCR.py = new Float64Array(n); SCR.pz = new Float64Array(n);
+    SCR.steer = new Uint8Array(n);
   }
 
   // メッシュを世界へ配置して描画
@@ -1572,11 +1838,12 @@
     const cp = Math.cos(pitch), sp = Math.sin(pitch);
     const cr = Math.cos(roll), sr = Math.sin(roll);
     const n = V.length;
-    const wxs = new Float64Array(n), wys = new Float64Array(n), wzs = new Float64Array(n);
-    const px = new Float64Array(n), py = new Float64Array(n), pz = new Float64Array(n);
+    ensureScratch(n);
+    const wxs = SCR.wx, wys = SCR.wy, wzs = SCR.wz, px = SCR.px, py = SCR.py, pz = SCR.pz;
     // 前輪の操舵
     const sd = Math.cos(opt.steer), sdS = Math.sin(opt.steer);
-    const steerSet = new Uint8Array(n);
+    const steerSet = SCR.steer;
+    steerSet.fill(0, 0, n);
     for (const wh of wheels) if (wh.front) for (let i = wh.from; i < wh.to; i++) steerSet[i] = 1;
 
     for (let i = 0; i < n; i++) {
@@ -1791,6 +2058,106 @@
   let carScreenX = 0, carScreenY = 0;
   // 自車位置における道路中心の世界X(描画ループが毎フレーム更新する)
   let carRoadX = 0;
+  // 交通車両を奥から手前へ描画
+  function drawTraffic(rows, baseSeg) {
+    if (!traffic.length) return;
+    const first = baseSeg.index, last = first + rows.length - 1;
+    const list = [];
+    for (const t of traffic) {
+      const si = Math.floor(t.z / SEG_LEN);
+      if (si < first || si > last) continue;
+      list.push({ t, row: rows[si - first], pct: (t.z % SEG_LEN) / SEG_LEN, si });
+    }
+    if (!list.length) return;
+    list.sort((a, b) => b.si - a.si);
+    for (const it of list) {
+      const r = it.row, s = r.s;
+      const cxT = r.x1 + (r.x2 - r.x1) * it.pct;
+      const yT = s.p1y + (s.p2y - s.p1y) * it.pct;
+      const wx = cxT + it.t.x * M2U;
+      const wy = yT - Math.sin(s.bank) * it.t.x * M2U;
+      const mesh = ensureMesh(it.t.type, false);
+      drawCar3D(mesh, wx, wy, it.t.z, 0, 0, s.bank * 0.5, it.t.color,
+                { brake: it.t.brake > 0, steer: 0 });
+    }
+  }
+
+  // 工事規制のパイロン
+  function drawCones(r, s, fog) {
+    if (!s.cone) return;
+    if (r.i % 2 !== 0) return;
+    const xw = s.cone * ROAD_HW * 0.52;
+    const base = p3(r.x1 + xw, s.p1y, r.z1);
+    const top = p3(r.x1 + xw, s.p1y + 0.72 * M2U, r.z1);
+    if (!base || !top) return;
+    const wpx = Math.max(1.5, base.sc * 0.34 * M2U * PROJ_K);
+    ctx.fillStyle = shade(232, 110, 40, fog);
+    ctx.beginPath();
+    ctx.moveTo(base.x - wpx, base.y);
+    ctx.lineTo(base.x + wpx, base.y);
+    ctx.lineTo(top.x + wpx * 0.22, top.y);
+    ctx.lineTo(top.x - wpx * 0.22, top.y);
+    ctx.closePath(); ctx.fill();
+    ctx.fillStyle = shade(240, 240, 245, fog);
+    const my = base.y + (top.y - base.y) * 0.55;
+    ctx.fillRect(base.x - wpx * 0.6, my, wpx * 1.2, Math.max(1, (base.y - top.y) * 0.13));
+  }
+
+  // 道路標識(支柱+板)。板はドライバー側を向く
+  function drawSign(r, s, sg, fog) {
+    const side = sg.kind === 'board' ? 0 : 1;          // 案内板は路側、他は右側
+    const px = r.x1 + (sg.kind === 'board' ? -ROAD_HW * 1.2 : ROAD_HW * 1.2);
+    const h0 = sg.kind === 'board' ? 5.4 : 2.6;
+    const postB = p3(px, s.p1y, r.z1);
+    const postT = p3(px, s.p1y + h0 * M2U, r.z1);
+    if (!postB || !postT) return;
+    const pw = Math.max(1, postB.sc * 0.10 * M2U * PROJ_K);
+    ctx.fillStyle = shade(70, 76, 96, fog);
+    ctx.fillRect(postT.x - pw, postT.y, pw * 2, postB.y - postT.y);
+    const size = (sg.kind === 'board' ? 2.6 : 0.95) * M2U;
+    const cx = postT.x, cy = postT.y;
+    const hp = Math.max(3, postT.sc * size * PROJ_K * 0.5);
+    if (hp < 3) return;
+    const f = 1 - fog;
+    ctx.globalAlpha = Math.max(0.15, f);
+    if (sg.kind === 'curve') {
+      // 黄色の警戒標識(ひし形)+ 曲がる向きの矢印
+      ctx.fillStyle = '#f0c419';
+      ctx.beginPath();
+      ctx.moveTo(cx, cy - hp); ctx.lineTo(cx + hp, cy); ctx.lineTo(cx, cy + hp); ctx.lineTo(cx - hp, cy);
+      ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = '#1a1a1a'; ctx.lineWidth = Math.max(1, hp * 0.09); ctx.stroke();
+      ctx.strokeStyle = '#1a1a1a'; ctx.lineWidth = Math.max(1.2, hp * 0.16);
+      ctx.beginPath();
+      ctx.moveTo(cx - sg.dir * hp * 0.34, cy + hp * 0.42);
+      ctx.lineTo(cx - sg.dir * hp * 0.34, cy - hp * 0.05);
+      ctx.lineTo(cx + sg.dir * hp * 0.36, cy - hp * 0.45);
+      ctx.stroke();
+    } else if (sg.kind === 'limit') {
+      ctx.fillStyle = '#f7f7f2';
+      ctx.beginPath(); ctx.arc(cx, cy, hp, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = '#cc2222'; ctx.lineWidth = Math.max(1.5, hp * 0.22);
+      ctx.beginPath(); ctx.arc(cx, cy, hp * 0.86, 0, Math.PI * 2); ctx.stroke();
+      if (hp > 9) {
+        ctx.fillStyle = '#1a1a1a';
+        ctx.font = 'bold ' + (hp * 1.05) + 'px sans-serif';
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText('60', cx, cy + hp * 0.04);
+        ctx.textBaseline = 'alphabetic';
+      }
+    } else {
+      // 緑の案内板
+      ctx.fillStyle = '#136b3c';
+      ctx.fillRect(cx - hp, cy - hp * 0.46, hp * 2, hp * 0.92);
+      ctx.strokeStyle = '#e8f0e8'; ctx.lineWidth = Math.max(1, hp * 0.06);
+      ctx.strokeRect(cx - hp, cy - hp * 0.46, hp * 2, hp * 0.92);
+      ctx.fillStyle = '#e8f0e8';
+      ctx.fillRect(cx - hp * 0.7, cy - hp * 0.18, hp * 1.0, Math.max(1, hp * 0.1));
+      ctx.fillRect(cx - hp * 0.7, cy + hp * 0.08, hp * 0.7, Math.max(1, hp * 0.1));
+    }
+    ctx.globalAlpha = 1;
+  }
+
   function drawPlayerCar() {
     const s = Math.min(W, H);
     const baseSeg = findSegment(posZ);
@@ -2166,6 +2533,10 @@
       heading, raceState, sectionIdx, totalTime, finishZ, sliding, wheelspin,
       mu: ph ? ph.mu : 0, mass: ph ? ph.mass : 0, dfK: ph ? ph.dfK : 0,
       halfRoad: HALF_ROAD_M, look,
+      nTraffic: traffic.length, nSigns: signs.length, nHaz: hazards.length,
+      nextSpawn: nextSpawnZ / M2U,
+      trafficAhead: traffic.filter(t => t.z > posZ && t.z < posZ + 400 * M2U)
+                           .map(t => ({ d: Math.round((t.z - posZ) / M2U), x: +t.x.toFixed(1), kmh: Math.round(t.speed * 3.6) })),
     };
   };
 
