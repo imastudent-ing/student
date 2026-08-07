@@ -664,6 +664,8 @@
   let slipAngle = 0;         // 車体スリップ角(ドリフト角)rad
   let understeer = false;
   let steerIn = 0;           // ステア入力 -1..1
+  let alignSt = 0;           // セルフアライニング舵角(ローパス状態)
+  let prevSnF = 0;           // 前フレームの前輪正規化スリップ
   // 車体姿勢(サスペンションのばね・ダンパ)
   let bodyPitch = 0, bodyPitchV = 0, bodyRoll = 0, bodyRollV = 0, bodyHeave = 0, bodyHeaveV = 0;
   let prevGrade = 0;
@@ -680,7 +682,7 @@
 
   // ================= 交通車両 =================
   // 深夜の首都高らしく、走行車線を流す車がまばらに走っている。
-  let traffic = [], nextSpawnZ = 0, hitCooldown = 0;
+  let traffic = [], nextSpawnZ = 0, hitCooldown = 0, wallSfxT = 0;
   const TRAFFIC_KINDS = [
     { type: 'sedan', mass: 1500, w: 1.77, l: 4.70, kmh: [70, 95] },
     { type: 'hatch', mass: 1100, w: 1.69, l: 4.16, kmh: [65, 90] },
@@ -786,7 +788,7 @@
     buildCourse(COURSES[sel.course]);
     initSky();
     posZ = 0; posX = 0; camXm = 0; vMs = 0; heading = 0; steerIn = 0;
-    yawRate = 0; vLat = 0; slipAngle = 0; understeer = false;
+    yawRate = 0; vLat = 0; slipAngle = 0; understeer = false; alignSt = 0; prevSnF = 0;
     bodyPitch = 0; bodyPitchV = 0; bodyRoll = 0; bodyRollV = 0; bodyHeave = 0; bodyHeaveV = 0; prevGrade = 0;
     resetTraffic();
     gear = 1; rpm = ph.idle; shiftTimer = 0;
@@ -915,12 +917,24 @@
     const steerTarget = left ? -1 : right ? 1 : 0;
     steerIn += (steerTarget - steerIn) * (8.5 - Math.min(4.5, vMs / 24)) * dt;
     steerIn = Math.max(-1, Math.min(1, steerIn));
-    // 実車のドライバーと同じく、高速では舵をわずかしか使わない。
-    // 限界旋回に要する舵角の1.6倍を上限とし、切りすぎればアンダーになる。
+    // 切り込み側の上限は定常旋回基準(高速では舵をわずかしか使わない)。
     const aGripMax = gripF / (ph.mass * ph.b / L);
     const deltaGrip = aGripMax * L / Math.max(1, vMs * vMs);
-    const deltaMax = Math.min(ph.steerMax, deltaGrip * 1.6);
-    const delta = steerIn * deltaMax;                   // 前輪実舵角(rad)
+    const deltaSteady = Math.min(ph.steerMax, deltaGrip * 1.6);
+    // セルフアライニングトルク(キャスター効果):
+    // 姿勢スリップがピークの1.15倍を超える大スライド時のみ、前輪が速度方向へ
+    // 自動的に倣う。前輪のグリップが回復し、カウンターステアが成立する。
+    // 通常走行〜限界旋回(スリップ≦ピーク付近)では一切介入しない。
+    const stateSlip = vMs > 2.5 ? (vLat + ph.a * yawRate) / vMs : 0;
+    // ゲートは「前輪の実スリップ」(前フレーム値)で判定する。
+    // ドライバーが舵で追従できている間(前輪スリップ小)は一切介入せず、
+    // 前輪が本当にグリップを失った時だけ速度方向へ倣わせる。
+    const sat = Math.min(1, Math.max(0, (Math.abs(prevSnF) - 1.3) / 0.5));
+    // 急に効かせると反動で逆振りする(タンクスラッパー)ため、ローパスで穏やかに
+    const alignTarget = stateSlip * 0.55 * sat;
+    alignSt += (alignTarget - alignSt) * Math.min(1, 9 * dt);
+    const delta = Math.max(-ph.steerMax, Math.min(ph.steerMax,
+      alignSt + steerIn * deltaSteady));                // 前輪実舵角(rad)
 
     // 各軸が前後力で消費している摩擦(摩擦楕円)
     const fxFront = fDrive * (1 - ph.rearDrive) - fBrakeF;
@@ -930,28 +944,31 @@
 
     if (vMs < 2.5) {
       yawRate = vMs * Math.tan(delta) / L;
-      vLat = 0; aLat = 0; sliding = 0;
+      vLat = 0; aLat = 0; sliding = 0; prevSnF = 0;
     } else {
       const slipF = (vLat + ph.a * yawRate) / vMs - delta;
       const slipR = (vLat - ph.b * yawRate) / vMs;
       const snF = slipF / ph.slipPeak;
       const snR = slipR / (ph.slipPeak * 1.04);   // 後軸をわずかに粘らせて直進安定性を確保
+      const satF = Math.max(0, Math.abs(snF) - 1);
+      const satR = Math.max(0, Math.abs(snR) - 1);
       // タイヤ特性曲線 × 軸グリップ × 摩擦楕円の残余
       const Fyf = -tireCurve(snF) * gripF * availF;
       const Fyr = -tireCurve(snR) * gripR * availR;
       const fBank = ph.mass * G * Math.sin(seg.bank);
       const vLatDot = (Fyf + Fyr + fBank) / ph.mass - vMs * yawRate;
-      const yawDot = (ph.a * Fyf - ph.b * Fyr) / ph.Iz;
+      // ピーク超えのタイヤは復元が消え発振しやすい(タンクスラッパー)。
+      // ニューマチックトレール由来のヨー減衰を、飽和時のみ効かせる
+      const yawDamp = Math.min(1, satF + satR) * 2.2;
+      const yawDot = (ph.a * Fyf - ph.b * Fyr) / ph.Iz - yawRate * yawDamp;
       vLat += vLatDot * dt;
       yawRate += yawDot * dt;
       vLat = Math.max(-30, Math.min(30, vLat));
       yawRate = Math.max(-2.4, Math.min(2.4, yawRate));
       aLat = (Fyf + Fyr + fBank) / ph.mass;
-      // ピークスリップを超えた度合い = 滑り具合
-      const satF = Math.max(0, Math.abs(snF) - 1);
-      const satR = Math.max(0, Math.abs(snR) - 1);
       sliding = Math.min(1, Math.max(satF, satR) * 0.8);
       understeer = satF > satR;
+      prevSnF = snF;
     }
 
     // ---- 道路に対する相対ヨーと横位置 ----
@@ -979,23 +996,49 @@
     }
 
     // ---- 壁(ガードレール) ----
+    // 位置だけでなく速度も壁に沿わせる(法線成分を消す)のが要点。
+    // これをしないと、斜めのままの車が毎フレーム壁へ押し付けられて
+    // 擦過減速が続き、姿勢も直らなくなる。
     scraping = false;
     const wallX = HALF_ROAD_M - 1.0;
-    if (Math.abs(posX) > wallX) {
+    // 接触帯(壁から15cm)で処理する。めり込んだ瞬間だけだと、反発の後に
+    // 整列処理が途切れて「斜めのまま貼り付く」状態になるため。
+    if (Math.abs(posX) > wallX - 0.15) {
       const sgnW = Math.sign(posX);
-      posX = sgnW * wallX;
-      if (vMs > 8) {
-        scraping = true;
-        // 壁との摩擦で減速し、車体を路面方向へ押し戻す
-        vMs -= Math.min(vMs, (6 + vMs * 0.45) * dt);
-        heading -= heading * 6 * dt;
-        yawRate -= yawRate * 7 * dt;
-        if (vLat * sgnW > 0) vLat *= Math.pow(0.02, dt);
-        shake = Math.max(shake, 5);
-        if (Math.random() < 0.55) smoke.push({ x: sgnW, t: 0.4, spark: true });
-      } else {
-        heading = 0; yawRate = 0; vLat = 0;
+      const pen = Math.abs(posX) > wallX;
+      if (pen) posX = sgnW * wallX;
+      const chW = Math.cos(heading), shW = Math.sin(heading);
+      let vFwd = vMs * chW - vLat * shW;       // 道路方向の速度成分
+      let vSide = vMs * shW + vLat * chW;      // 壁法線方向の速度成分
+      if (pen && vSide * sgnW > 0) {
+        const impact = Math.abs(vSide);
+        // 法線速度を消す(反発はごく小さく)。食い込みぶんの前進速度を失う
+        vSide = -sgnW * impact * 0.05;
+        vFwd = Math.max(0, vFwd - impact * 0.40);
+        // 壁がノーズを押し戻すモーメント
+        yawRate -= sgnW * Math.min(0.45, impact * 0.10);
+        if (impact > 3) {
+          shake = Math.max(shake, Math.min(14, 3 + impact));
+          if (wallSfxT <= 0) { sfxCrashSound(); wallSfxT = 0.5; }
+          for (let i = 0; i < 4; i++) smoke.push({ x: sgnW, t: 0.45, spark: true });
+        }
       }
+      const noseIn = heading * sgnW > 0.02;    // ノーズが壁側を向いている
+      if (vFwd > 8 && (pen || noseIn)) {
+        scraping = true;
+        // 擦過抵抗: 壁とほぼ平行なら軽く、角度が深いほど強い。
+        // グラインド中は壁が車体を平行へ整列させ続ける
+        vFwd = Math.max(0, vFwd - (3.0 + Math.abs(shW) * vFwd * 0.9) * dt);
+        heading -= heading * 5 * dt;
+        yawRate -= yawRate * 6 * dt;
+        shake = Math.max(shake, 3);
+        if (Math.random() < 0.5) smoke.push({ x: sgnW, t: 0.4, spark: true });
+      } else if (vFwd < 3 && pen) {
+        heading = 0; yawRate = 0; vSide = 0;
+      }
+      // 車体座標系へ戻す
+      vMs = Math.max(0, vFwd * chW + vSide * shW);
+      vLat = -vFwd * shW + vSide * chW;
     }
 
     // ---- 車体姿勢(サスペンション) ----
@@ -1057,6 +1100,7 @@
     }
 
     if (shake > 0) shake = Math.max(0, shake - 28 * dt);
+    if (wallSfxT > 0) wallSfxT -= dt;
     for (const f of flashes) f.t -= dt;
     flashes = flashes.filter(f => f.t > 0);
     updateEngine(accel ? 1 : 0);
@@ -2320,10 +2364,18 @@
     ctx.font = 'bold ' + s * 0.015 + 'px sans-serif';
     ctx.fillStyle = '#7f89ad';
     ctx.fillText((rpm / 1000).toFixed(1) + ' ×1000rpm', tx, ty + s * 0.068);
-    if (sel.mt && ph && rpm > ph.redline * 0.95 && gear < 6) {
-      ctx.fillStyle = Math.floor(performance.now() / 130) % 2 ? '#ff3d5e' : '#ffd048';
-      ctx.font = 'bold ' + s * 0.02 + 'px sans-serif';
-      ctx.fillText('▲ SHIFT UP', tx, ty - tr - s * 0.014);
+    if (sel.mt && ph) {
+      if (rpm > ph.redline * 0.95 && gear < 6) {
+        ctx.fillStyle = Math.floor(performance.now() / 130) % 2 ? '#ff3d5e' : '#ffd048';
+        ctx.font = 'bold ' + s * 0.02 + 'px sans-serif';
+        ctx.fillText('▲ SHIFT UP', tx, ty - tr - s * 0.014);
+      } else if (gear > 1 && vMs > 3 && rpm < ph.redline * 0.42 &&
+                 rpmFromSpeed(vMs, gear - 1, ph) < ph.redline * 0.88) {
+        // 壁ヒット等の大減速後、ギアが高すぎてトルクが出ない状態を知らせる
+        ctx.fillStyle = Math.floor(performance.now() / 200) % 2 ? '#3de8ff' : '#8b93b8';
+        ctx.font = 'bold ' + s * 0.02 + 'px sans-serif';
+        ctx.fillText('▼ SHIFT DOWN', tx, ty - tr - s * 0.014);
+      }
     }
 
     // ---- Gメーター ----
@@ -2530,7 +2582,7 @@
     }
     return {
       posX, posZ, kmh: vMs * 3.6, vMs, gear, rpm, redline: ph ? ph.redline : 0,
-      heading, raceState, sectionIdx, totalTime, finishZ, sliding, wheelspin,
+      heading, raceState, sectionIdx, totalTime, finishZ, sliding, wheelspin, scraping,
       mu: ph ? ph.mu : 0, mass: ph ? ph.mass : 0, dfK: ph ? ph.dfK : 0,
       halfRoad: HALF_ROAD_M, look,
       nTraffic: traffic.length, nSigns: signs.length, nHaz: hazards.length,
