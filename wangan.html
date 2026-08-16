@@ -3305,36 +3305,116 @@
   // ================= オンライン対戦 (P2P / WebRTC) =================
   // サーバー不要。SDPを圧縮した「コード」をチャットアプリ等で交換して直接接続する。
   const net = {
-    on: false, isHost: false, pc: null, dc: null, ws: null, beat: null,
+    on: false, isHost: false, pc: null, dc: null, sigs: [], roomCode: '',
     connected: false, rtt: 0, opp: null, sendAcc: 0, pingT: 0, hitCd: 0,
   };
-  // ---- 部屋番号方式のシグナリング ----
-  // 公開のPeerJSクラウドをSDPの受け渡し(合図)にだけ使い、
-  // 接続後のゲーム通信はすべてP2P(WebRTC DataChannel)で行う。
-  function sigUrl(id) {
-    const base = window.__mhSignalUrl || 'wss://0.peerjs.com/peerjs?key=peerjs';
-    return base + '&id=' + encodeURIComponent(id) + '&token=' + Math.random().toString(36).slice(2, 10);
-  }
-  function sigOpen(id) {
+  // ---- 部屋番号方式のシグナリング (MQTT over WebSocket) ----
+  // 公開MQTTブローカー3系統へ同時接続し、SDPの受け渡し(合図)にだけ使う。
+  // どれか1つでも生きていれば接続できる。ゲーム通信は完全P2P。
+  const SIG_BROKERS = [
+    'wss://broker.emqx.io:8084/mqtt',
+    'wss://broker.hivemq.com:8884/mqtt',
+    'wss://test.mosquitto.org:8081',
+  ];
+  // MQTT 3.1.1 の最小クライアント(CONNECT/SUBSCRIBE/PUBLISH QoS0/PING)
+  function mqttOpen(url, onMsg) {
     return new Promise((res, rej) => {
       let ws;
-      try { ws = new WebSocket(sigUrl(id)); } catch (e) { return rej(e); }
-      const to = setTimeout(() => { try { ws.close(); } catch (e) {} rej(new Error('timeout')); }, 9000);
-      ws.onmessage = e => {
-        let m; try { m = JSON.parse(e.data); } catch (err) { return; }
-        if (m.type === 'OPEN') { clearTimeout(to); ws.onclose = null; ws.onerror = null; res(ws); }
-        else if (m.type === 'ID-TAKEN') { clearTimeout(to); rej(new Error('taken')); }
+      try { ws = new WebSocket(url, 'mqtt'); } catch (e) { return rej(e); }
+      ws.binaryType = 'arraybuffer';
+      const enc = new TextEncoder(), dec = new TextDecoder();
+      const cat = a => {
+        const r = new Uint8Array(a.reduce((n, x) => n + x.length, 0));
+        let o = 0; for (const x of a) { r.set(x, o); o += x.length; }
+        return r;
       };
-      ws.onerror = () => { clearTimeout(to); rej(new Error('error')); };
-      ws.onclose = () => { clearTimeout(to); rej(new Error('closed')); };
+      const mstr = s => { const b = enc.encode(s); return cat([Uint8Array.of(b.length >> 8, b.length & 255), b]); };
+      const vlen = n => { const o = []; do { let d = n & 127; n >>= 7; if (n) d |= 128; o.push(d); } while (n); return Uint8Array.from(o); };
+      const pkt = (h, body) => { try { ws.send(cat([Uint8Array.of(h), vlen(body.length), body])); } catch (e) {} };
+      let opened = false, pktId = 1, ping = null;
+      const to = setTimeout(() => { try { ws.close(); } catch (e) {} rej(new Error('timeout')); }, 8000);
+      const client = {
+        url, alive: true,
+        sub(t) { pkt(0x82, cat([Uint8Array.of(pktId >> 8, pktId & 255), mstr(t), Uint8Array.of(0)])); pktId = (pktId + 1) & 0xffff || 1; },
+        pub(t, s, retain) { pkt(retain ? 0x31 : 0x30, cat([mstr(t), enc.encode(s)])); },
+        close() { this.alive = false; clearInterval(ping); try { ws.close(); } catch (e) {} },
+      };
+      ws.onopen = () => {
+        const cid = 'mhw' + Math.random().toString(36).slice(2, 12);
+        pkt(0x10, cat([mstr('MQTT'), Uint8Array.of(4, 2, 0, 60), mstr(cid)]));
+      };
+      let buf = new Uint8Array(0);
+      ws.onmessage = e => {
+        buf = cat([buf, new Uint8Array(e.data)]);
+        for (;;) {
+          if (buf.length < 2) break;
+          let len = 0, mul = 1, i = 1, done = false;
+          for (; i < Math.min(buf.length, 5); i++) {
+            len += (buf[i] & 127) * mul; mul *= 128;
+            if (!(buf[i] & 128)) { done = true; i++; break; }
+          }
+          if (!done || buf.length < i + len) break;
+          const type = buf[0] >> 4, flags = buf[0] & 15;
+          const body = buf.subarray(i, i + len);
+          buf = buf.slice(i + len);
+          if (type === 2) {                       // CONNACK
+            clearTimeout(to);
+            if (body[1] === 0) {
+              opened = true;
+              ping = setInterval(() => { try { ws.send(Uint8Array.of(0xC0, 0)); } catch (e) {} }, 40000);
+              res(client);
+            } else rej(new Error('connack ' + body[1]));
+          } else if (type === 3) {                // PUBLISH
+            const tl = (body[0] << 8) | body[1];
+            const topic = dec.decode(body.subarray(2, 2 + tl));
+            let off = 2 + tl;
+            if (flags & 6) off += 2;              // QoS>0はパケットID分を飛ばす
+            onMsg(topic, dec.decode(body.subarray(off)));
+          }
+        }
+      };
+      ws.onerror = () => { if (!opened) { clearTimeout(to); rej(new Error('error')); } };
+      ws.onclose = () => { clearInterval(ping); client.alive = false; if (!opened) { clearTimeout(to); rej(new Error('closed')); } };
     });
   }
-  function sigSend(ws, type, dst, payload) {
-    try { ws.send(JSON.stringify({ type, dst, payload })); } catch (e) {}
+  // 全ブローカーへ接続し、同一トピックを購読。メッセージはmidで重複排除
+  function sigStart(topics, onMsg) {
+    net.sigs = [];
+    const brokers = window.__mhBrokers || SIG_BROKERS;
+    const seen = new Set();
+    const wrapped = (topic, str) => {
+      if (!str) return;
+      let m; try { m = JSON.parse(str); } catch (e) { return; }
+      if (m.mid) {
+        if (seen.has(m.mid)) return;
+        seen.add(m.mid);
+        if (seen.size > 300) seen.clear();
+      }
+      onMsg(topic, m);
+    };
+    return new Promise((res, rej) => {
+      let ok = false, fails = 0;
+      for (const b of brokers) {
+        mqttOpen(b, wrapped).then(c => {
+          if (!net.on) { c.close(); return; }
+          net.sigs.push(c);
+          for (const t of topics) c.sub(t);
+          if (!ok) { ok = true; res(); }
+        }).catch(() => {
+          if (++fails === brokers.length && !ok) rej(new Error('no broker'));
+        });
+      }
+    });
   }
-  function sigClose() {
-    if (net.beat) { clearInterval(net.beat); net.beat = null; }
-    if (net.ws) { try { net.ws.onclose = null; net.ws.onmessage = null; net.ws.close(); } catch (e) {} net.ws = null; }
+  function sigPub(topic, obj, retain) {
+    const s = obj === '' ? '' : JSON.stringify(Object.assign({ mid: Math.random().toString(36).slice(2, 10) }, obj));
+    for (const c of net.sigs || []) if (c.alive) c.pub(topic, s, retain);
+  }
+  function sigStop() {
+    // ホストは在室サイン(retained)を消してから切る
+    if (net.isHost && net.roomCode) sigPub('mhw/' + net.roomCode + '/p', '', true);
+    for (const c of net.sigs || []) c.close();
+    net.sigs = [];
   }
   async function hostRoom() {
     netReset(); net.on = true; net.isHost = true;
@@ -3343,39 +3423,31 @@
     el('roomCode').textContent = '----';
     netStatus('部屋を準備中…');
     try {
-      let ws = null, code = '';
-      for (let i = 0; i < 6 && !ws; i++) {
-        code = String(1000 + Math.floor(Math.random() * 9000));
-        try { ws = await sigOpen('mh-wangan-' + code); }
-        catch (e) { if (e.message !== 'taken') throw e; }
-      }
-      if (!ws) throw new Error('no room');
-      net.ws = ws;
-      net.beat = setInterval(() => { try { ws.send('{"type":"HEARTBEAT"}'); } catch (e) {} }, 20000);
+      const code = String(1000 + Math.floor(Math.random() * 9000));
+      net.roomCode = code;
+      let offerReady = false, pendingKnock = false, answered = false;
+      const sendOffer = () => {
+        netStatus('友達が入室! 接続しています…');
+        sigPub('mhw/' + code + '/tog', { mh: 'offer', sdp: net.pc.localDescription.sdp });
+      };
+      await sigStart(['mhw/' + code + '/toh'], async (topic, m) => {
+        if (m.mh === 'knock') {
+          if (offerReady) sendOffer(); else pendingKnock = true;
+        } else if (m.mh === 'answer' && m.sdp && !answered) {
+          answered = true;
+          try { await net.pc.setRemoteDescription({ type: 'answer', sdp: m.sdp }); } catch (e) {}
+        }
+      });
       el('roomCode').textContent = code;
       netStatus('友達の入室を待っています…');
-      // SDP準備が終わる前に届いたノックは取り置き、準備後に返す
-      let offerReady = false, pendingKnock = null;
-      const sendOffer = to => {
-        netStatus('友達が入室! 接続しています…');
-        sigSend(ws, 'OFFER', to, { mh: 'offer', sdp: net.pc.localDescription.sdp });
-      };
-      ws.onmessage = async e => {
-        let m; try { m = JSON.parse(e.data); } catch (err) { return; }
-        const pl = m.payload || {};
-        if (pl.mh === 'knock' && pl.from) {
-          if (offerReady) sendOffer(pl.from); else pendingKnock = pl.from;
-        } else if (pl.mh === 'answer' && pl.sdp) {
-          try { await net.pc.setRemoteDescription({ type: 'answer', sdp: pl.sdp }); } catch (err) {}
-        }
-      };
+      sigPub('mhw/' + code + '/p', { mh: 'here' }, true);   // 在室サイン(retained)
       // P2Pの招待状(SDP)を作る
       net.pc = newPeer();
       bindChannel(net.pc.createDataChannel('race'));
       await net.pc.setLocalDescription(await net.pc.createOffer());
       await iceDone(net.pc);
       offerReady = true;
-      if (pendingKnock) { sendOffer(pendingKnock); pendingKnock = null; }
+      if (pendingKnock) { pendingKnock = false; sendOffer(); }
     } catch (e) {
       netStatus('⚠ 部屋を作れませんでした。回線を確認するか、下の手動コード交換モードを試してください', '#ff8f4d');
     }
@@ -3384,38 +3456,29 @@
     netReset(); net.on = true; net.isHost = false;
     netStatus('部屋 ' + code + ' に接続中…');
     try {
-      const myId = 'mh-guest-' + Math.random().toString(36).slice(2, 10);
-      const ws = await sigOpen(myId);
-      net.ws = ws;
-      net.beat = setInterval(() => { try { ws.send('{"type":"HEARTBEAT"}'); } catch (e) {} }, 20000);
-      const hostId = 'mh-wangan-' + code;
-      let gotOffer = false;
-      // ホストがSDP準備中の場合に備え、オファーが来るまで3秒おきに再ノック
-      const knock = () => sigSend(ws, 'OFFER', hostId, { mh: 'knock', from: myId });
-      const knocker = setInterval(() => { if (!gotOffer) knock(); }, 3000);
+      let gotOffer = false, knocker = null;
       const fail = setTimeout(() => {
-        clearInterval(knocker);
-        if (!net.connected && !gotOffer) netStatus('⚠ 部屋が見つかりません。番号を確認してください', '#ff8f4d');
+        if (knocker) clearInterval(knocker);
+        if (!gotOffer && !net.connected) netStatus('⚠ 部屋が見つかりません。番号を確認してください', '#ff8f4d');
       }, 15000);
-      ws.onmessage = async e => {
-        let m; try { m = JSON.parse(e.data); } catch (err) { return; }
-        if (m.type === 'EXPIRE' || m.type === 'LEAVE') {
-          clearTimeout(fail); clearInterval(knocker);
-          netStatus('⚠ その部屋番号は見つかりません', '#ff8f4d');
-          return;
-        }
-        const pl = m.payload || {};
-        if (pl.mh === 'offer' && pl.sdp && !gotOffer) {
-          gotOffer = true; clearTimeout(fail); clearInterval(knocker);
+      await sigStart(['mhw/' + code + '/tog', 'mhw/' + code + '/p'], async (topic, m) => {
+        if (topic.endsWith('/p')) return;      // 在室サイン(存在確認のみ)
+        if (m.mh === 'offer' && m.sdp && !gotOffer) {
+          gotOffer = true;
+          clearTimeout(fail);
+          if (knocker) clearInterval(knocker);
           netStatus('接続しています…');
           net.pc = newPeer();
           net.pc.ondatachannel = ev => bindChannel(ev.channel);
-          await net.pc.setRemoteDescription({ type: 'offer', sdp: pl.sdp });
+          await net.pc.setRemoteDescription({ type: 'offer', sdp: m.sdp });
           await net.pc.setLocalDescription(await net.pc.createAnswer());
           await iceDone(net.pc);
-          sigSend(ws, 'ANSWER', hostId, { mh: 'answer', sdp: net.pc.localDescription.sdp });
+          sigPub('mhw/' + code + '/toh', { mh: 'answer', sdp: net.pc.localDescription.sdp });
         }
-      };
+      });
+      // ホストのSDP準備中に届いても大丈夫なよう、3秒おきに再ノック
+      const knock = () => sigPub('mhw/' + code + '/toh', { mh: 'knock' });
+      knocker = setInterval(() => { if (!gotOffer) knock(); }, 3000);
       knock();
     } catch (e) {
       netStatus('⚠ 接続サーバーに繋がりません。下の手動コード交換モードを試してください', '#ff8f4d');
@@ -3477,7 +3540,7 @@
       net.connected = true;
       netStatus('✅ 接続完了! クルマ選択へ進みます…', '#5ee08a');
       netSend({ t: 'hi' });
-      setTimeout(sigClose, 1200);   // 合図用サーバーはもう不要
+      setTimeout(sigStop, 1200);   // 合図用サーバーはもう不要
       setTimeout(() => { if (net.connected && !running) openGarage(); }, 900);
     };
     dc.onclose = () => netDrop('相手が切断しました');
@@ -3491,11 +3554,11 @@
     net.opp = null;
   }
   function netReset() {
-    sigClose();
+    sigStop();
     try { if (net.dc) net.dc.close(); } catch (e) {}
     try { if (net.pc) net.pc.close(); } catch (e) {}
     net.on = false; net.isHost = false; net.pc = null; net.dc = null;
-    net.connected = false; net.opp = null; net.rtt = 0;
+    net.connected = false; net.opp = null; net.rtt = 0; net.roomCode = '';
   }
   function netSend(obj) {
     if (net.dc && net.dc.readyState === 'open') {
