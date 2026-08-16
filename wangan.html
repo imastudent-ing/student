@@ -136,7 +136,46 @@
   <div class="sublogo">首都高 TIME ATTACK</div>
   <div class="desc" id="titleDesc"></div>
   <button class="main" id="btn-title">GAME START</button>
+  <button class="sub" id="btn-versus" style="margin-top:14px;">🌐 友達と対戦 (オンライン)</button>
   <div class="note">実物理シミュレーション搭載。摩擦円・空気抵抗・荷重移動・バンクを再現。<br>コーナーはブレーキングとギア選択で攻略せよ。</div>
+</div>
+
+<!-- オンライン対戦ロビー -->
+<div class="screen hidden" id="scr-versus">
+  <div class="wrapcol">
+    <div class="logo" style="font-size:22px;margin:8px 0 0;">ONLINE BATTLE</div>
+    <div class="desc" style="text-align:left;margin-top:8px;">
+      サーバー不要のP2P直接対戦。コードをLINEなどで交換して接続します。<br>
+      ① どちらかが「部屋を作る」→ 招待コードを友達に送る<br>
+      ② 友達は「部屋に入る」→ コードを貼り付け → 返信コードを送り返す<br>
+      ③ 部屋を作った側が返信コードを貼り付けたら接続完了!
+    </div>
+    <div id="vsRole" class="btnrow" style="justify-content:flex-start;">
+      <button class="main" style="margin-top:0;" id="btn-host">部屋を作る (ホスト)</button>
+      <button class="main" style="margin-top:0;background:linear-gradient(135deg,#1fa463,#3d8bff);" id="btn-join">部屋に入る (ゲスト)</button>
+    </div>
+    <div id="vsHostFlow" class="hidden" style="width:100%;">
+      <h2 class="sec">1. この招待コードを友達に送る</h2>
+      <textarea id="taOffer" readonly rows="3" style="width:100%;background:#0d1226;color:#9fe8ff;border:1px solid #2c3354;border-radius:8px;font-size:11px;padding:8px;word-break:break-all;"></textarea>
+      <div class="btnrow" style="justify-content:flex-start;margin-top:8px;"><button class="sub" id="btn-copy-offer">📋 コードをコピー</button></div>
+      <h2 class="sec">2. 友達からの返信コードを貼り付け</h2>
+      <textarea id="taAnswerIn" rows="3" placeholder="返信コードをここに貼り付け" style="width:100%;background:#0d1226;color:#e8eaf6;border:1px solid #2c3354;border-radius:8px;font-size:11px;padding:8px;"></textarea>
+      <div class="btnrow" style="justify-content:flex-start;margin-top:8px;"><button class="main" style="margin-top:0;" id="btn-connect">接続する</button></div>
+    </div>
+    <div id="vsGuestFlow" class="hidden" style="width:100%;">
+      <h2 class="sec">1. 友達の招待コードを貼り付け</h2>
+      <textarea id="taOfferIn" rows="3" placeholder="招待コードをここに貼り付け" style="width:100%;background:#0d1226;color:#e8eaf6;border:1px solid #2c3354;border-radius:8px;font-size:11px;padding:8px;"></textarea>
+      <div class="btnrow" style="justify-content:flex-start;margin-top:8px;"><button class="main" style="margin-top:0;" id="btn-make-answer">返信コードを作る</button></div>
+      <h2 class="sec">2. この返信コードを友達に送り返す</h2>
+      <textarea id="taAnswer" readonly rows="3" style="width:100%;background:#0d1226;color:#9fe8ff;border:1px solid #2c3354;border-radius:8px;font-size:11px;padding:8px;"></textarea>
+      <div class="btnrow" style="justify-content:flex-start;margin-top:8px;"><button class="sub" id="btn-copy-answer">📋 コードをコピー</button></div>
+    </div>
+    <div class="desc" id="netStatus" style="margin-top:12px;color:#f2d048;"></div>
+    <div class="btnrow">
+      <button class="sub" id="btn-versus-back">← タイトル</button>
+    </div>
+    <div class="note">接続後はホストがコースを決めて同時スタート。相手の車は画面に表示されます(接触はしません)。<br>回線状況(モバイル回線同士など)によっては接続できない場合があります。</div>
+  </div>
 </div>
 
 <!-- 車両選択 -->
@@ -184,6 +223,7 @@
   <div class="desc" id="resCar"></div>
   <table class="result"><tbody id="resBody"></tbody></table>
   <div class="total" id="resTotal"></div>
+  <div class="desc" id="resVs" style="font-weight:bold;font-size:16px;margin-top:8px;"></div>
   <div class="record hidden" id="resRecord">★ NEW RECORD ★</div>
   <div class="desc" id="resBest" style="margin-top:6px;"></div>
   <div class="btnrow">
@@ -549,7 +589,7 @@
   }
 
   // ================= 画面遷移 =================
-  const screens = ['title', 'garage', 'course', 'result'];
+  const screens = ['title', 'versus', 'garage', 'course', 'result'];
   function showScreen(name) {
     for (const s of screens) document.getElementById('scr-' + s).classList.toggle('hidden', s !== name);
   }
@@ -857,6 +897,14 @@
     sectionTimeLeft = sectionEnds[0].limit; sectionStartTime = 0;
     raceState = 'countdown'; countdown = 3.6;
     finishTimer = 0; shake = 0; flashes = []; smoke = [];
+    // 対戦: 自車情報を相手へ送り、相手の状態をリセット
+    if (net.connected) {
+      netSend({ t: 'car', type: car.type, color: car.color, wing: sel.tune === 2, name: car.maker + ' ' + car.model });
+      if (!net.opp) net.opp = { type: 'coupe', color: '#e8eaf0', wing: false, name: 'RIVAL' };
+      Object.assign(net.opp, { z: 0, x: 0, hd: 0, v: 0, state: 'countdown', total: null, dnf: false });
+      net.sendAcc = 0; net.pingT = 0;
+      const rb = el('btn-retry'); if (rb) rb.textContent = 'リトライ';
+    }
     saveGarage();
     showScreen(null);
     initAudio();
@@ -1212,14 +1260,17 @@
           sectionTimeLeft = sectionEnds[sectionIdx].limit;
           flash(secEnd.name + '  ' + fmtTime(secTime), '#3de8ff', 0.8);
           sfxCheckpoint();
+          if (net.connected) netSend({ t: 'sec', name: secEnd.name, time: secTime });
         } else {
           raceState = 'finished'; finishTimer = 0;
           flash('FINISH!', '#f2d048', 1.5); sfxFinish();
+          if (net.connected) netSend({ t: 'fin', total: totalTime });
         }
       }
       if (raceState === 'running' && sectionTimeLeft <= 0) {
         sectionTimeLeft = 0; raceState = 'timeup'; finishTimer = 0;
         flash('TIME UP…', '#ff3d5e', 1.3); sfxCrashSound();
+        if (net.connected) netSend({ t: 'fin', total: null, dnf: true });
       }
     } else if (raceState === 'finished' || raceState === 'timeup') {
       vMs = Math.max(0, vMs - 14 * dt);
@@ -1235,6 +1286,22 @@
     if (wallSfxT > 0) wallSfxT -= dt;
     for (const f of flashes) f.t -= dt;
     flashes = flashes.filter(f => f.t > 0);
+
+    // ---- オンライン対戦: 状態送信と相手の補間 ----
+    if (net.connected) {
+      net.sendAcc += dt;
+      if (net.sendAcc >= 0.066) {
+        net.sendAcc = 0;
+        netSend({
+          t: 's', z: +(posZ / M2U).toFixed(1), x: +posX.toFixed(2),
+          hd: +heading.toFixed(3), v: +vMs.toFixed(1), st: raceState,
+        });
+      }
+      net.pingT += dt;
+      if (net.pingT > 2) { net.pingT = 0; netSend({ t: 'ping', ts: performance.now() }); }
+      // 受信の合間はデッドレコニング(速度で外挿)
+      if (net.opp && net.opp.state === 'running') net.opp.z += net.opp.v * dt;
+    }
     updateEngine(throttle);
   }
 
@@ -1273,6 +1340,7 @@
       document.getElementById('resTotal').textContent = '規定時間内に走りきれなかった…';
       document.getElementById('resBest').textContent = '';
     }
+    updateVsResult();
     showScreen('result');
   }
 
@@ -1899,6 +1967,7 @@
     ctx.fillRect(0, fy0, W, fy1 - fy0);
 
     drawTraffic(rows, baseSeg);
+    drawOpponent(rows, baseSeg);
     drawPlayerCar();
     drawSmoke();
     ctx.restore();
@@ -2528,6 +2597,33 @@
     }
   }
 
+  // オンライン対戦の相手車(接触はしない)
+  function drawOpponent(rows, baseSeg) {
+    if (!net.connected || !net.opp || net.opp.z === undefined) return;
+    const o = net.opp;
+    const oz = o.z * M2U;
+    const si = Math.floor(oz / SEG_LEN);
+    const first = baseSeg.index;
+    if (si < first || si >= first + rows.length) return;
+    const r = rows[si - first], s = r.s;
+    const pct = (oz % SEG_LEN) / SEG_LEN;
+    const cxT = r.x1 + (r.x2 - r.x1) * pct;
+    const yT = s.p1y + (s.p2y - s.p1y) * pct;
+    const wx = cxT + o.x * M2U;
+    const wy = yT - Math.sin(s.bank) * o.x * M2U;
+    const mesh = ensureMesh(o.type || 'coupe', o.wing);
+    drawCar3D(mesh, wx, wy, oz, o.hd || 0, 0, s.bank * 0.5, o.color || '#e8eaf0', { brake: false, steer: 0 });
+    // 頭上のライバルタグ
+    const p = p3(wx, wy + 2.3 * M2U, oz);
+    if (p && p.rz > NEAR_PLANE * 1.05) {
+      const fs = Math.max(9, Math.min(15, p.sc * M2U * PROJ_K * 0.02));
+      ctx.textAlign = 'center';
+      ctx.font = 'bold ' + fs + 'px sans-serif';
+      ctx.fillStyle = 'rgba(200,160,255,.92)';
+      ctx.fillText('⚔ RIVAL', p.x, p.y);
+    }
+  }
+
   // 工事規制のパイロン
   function drawCones(r, s, fog) {
     if (!s.cone) return;
@@ -2882,6 +2978,21 @@
     } else {
       ctx.fillText(car ? car.maker + ' ' + car.model + '  [' + car.dt + ']' : '', pad + s * 0.13, H - pad - s * 0.005);
     }
+    // ---- 対戦: 相手との差 ----
+    if (net.connected && net.opp && net.opp.z !== undefined && raceState !== 'countdown') {
+      const gap = net.opp.z - posZ / M2U;
+      ctx.textAlign = 'right';
+      ctx.font = 'bold ' + s * 0.024 + 'px sans-serif';
+      let txt, col;
+      if (net.opp.state === 'finished') { txt = '⚔ RIVAL: GOAL'; col = '#b58cff'; }
+      else if (net.opp.state === 'timeup') { txt = '⚔ RIVAL: TIME UP'; col = '#8b93b8'; }
+      else if (gap > 3) { txt = '⚔ RIVAL 前方 ' + Math.round(gap) + 'm'; col = '#ff8fb0'; }
+      else if (gap < -3) { txt = '⚔ RIVAL 後方 ' + Math.round(-gap) + 'm'; col = '#8fe8ff'; }
+      else { txt = '⚔ RIVAL 並走!'; col = '#f2d048'; }
+      ctx.fillStyle = col;
+      ctx.fillText(txt, W - pad - s * 0.115, pad + s * 0.035);
+    }
+
     const driftDeg = Math.abs(slipAngle) * 57.3;
     if (driftDeg > 7) {
       // ドリフト角の表示(湾岸流: 滑らせて曲がるのは正しい走り)
@@ -3119,13 +3230,257 @@
     buildMakerChips(); buildModelList(); buildTuneChips(); buildBalChips(); buildSwatches(); buildMtChips(); refreshPreview();
     showScreen('garage');
   }
+
+  // ================= オンライン対戦 (P2P / WebRTC) =================
+  // サーバー不要。SDPを圧縮した「コード」をチャットアプリ等で交換して直接接続する。
+  const net = {
+    on: false, isHost: false, pc: null, dc: null,
+    connected: false, rtt: 0, opp: null, sendAcc: 0, pingT: 0,
+  };
+  function netStatus(msg, color) {
+    const e = el('netStatus');
+    if (e) { e.textContent = msg; e.style.color = color || '#f2d048'; }
+  }
+  // コード = 'MH1' + 圧縮フラグ + base64url(deflate(JSON))
+  async function encodeSignal(obj) {
+    const raw = new TextEncoder().encode(JSON.stringify(obj));
+    let bytes = raw, mark = 'R';
+    try {
+      const st = new Blob([raw]).stream().pipeThrough(new CompressionStream('deflate-raw'));
+      bytes = new Uint8Array(await new Response(st).arrayBuffer());
+      mark = 'C';
+    } catch (e) {}
+    let bin = '';
+    for (const b of bytes) bin += String.fromCharCode(b);
+    return 'MH1' + mark + btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  }
+  async function decodeSignal(code) {
+    code = (code || '').trim().replace(/\s+/g, '');
+    if (!code.startsWith('MH1')) throw new Error('bad code');
+    const mark = code[3];
+    const b64 = code.slice(4).replace(/-/g, '+').replace(/_/g, '/');
+    const bin = atob(b64 + '='.repeat((4 - b64.length % 4) % 4));
+    let bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    if (mark === 'C') {
+      const st = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
+      bytes = new Uint8Array(await new Response(st).arrayBuffer());
+    }
+    return JSON.parse(new TextDecoder().decode(bytes));
+  }
+  function newPeer() {
+    const pc = new RTCPeerConnection({
+      iceServers: [{ urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] }],
+    });
+    pc.onconnectionstatechange = () => {
+      if (pc.connectionState === 'failed' || pc.connectionState === 'disconnected') netDrop('接続が切れました');
+    };
+    return pc;
+  }
+  // ICE候補が揃うまで待つ(トリクルなしの一発コード交換にするため)
+  function iceDone(pc) {
+    return new Promise(res => {
+      if (pc.iceGatheringState === 'complete') return res();
+      const t = setTimeout(res, 4000);
+      pc.addEventListener('icegatheringstatechange', () => {
+        if (pc.iceGatheringState === 'complete') { clearTimeout(t); res(); }
+      });
+    });
+  }
+  function bindChannel(dc) {
+    net.dc = dc;
+    dc.onopen = () => {
+      net.connected = true;
+      netStatus('✅ 接続完了! クルマ選択へ進みます…', '#5ee08a');
+      netSend({ t: 'hi' });
+      setTimeout(() => { if (net.connected && !running) openGarage(); }, 900);
+    };
+    dc.onclose = () => netDrop('相手が切断しました');
+    dc.onmessage = e => { try { netRecv(JSON.parse(e.data)); } catch (err) {} };
+  }
+  function netDrop(msg) {
+    if (!net.on) return;
+    if (net.connected && running) flash(msg, '#ff8f4d', 0.9);
+    else netStatus('⚠ ' + msg, '#ff8f4d');
+    net.connected = false;
+    net.opp = null;
+  }
+  function netReset() {
+    try { if (net.dc) net.dc.close(); } catch (e) {}
+    try { if (net.pc) net.pc.close(); } catch (e) {}
+    net.on = false; net.isHost = false; net.pc = null; net.dc = null;
+    net.connected = false; net.opp = null; net.rtt = 0;
+  }
+  function netSend(obj) {
+    if (net.dc && net.dc.readyState === 'open') {
+      try { net.dc.send(JSON.stringify(obj)); } catch (e) {}
+    }
+  }
+  function netRecv(m) {
+    switch (m.t) {
+      case 'ping': netSend({ t: 'pong', ts: m.ts }); break;
+      case 'pong': net.rtt = Math.min(999, performance.now() - m.ts); break;
+      case 'car':
+        net.opp = Object.assign(net.opp || {}, {
+          type: m.type, color: m.color, wing: !!m.wing, name: m.name,
+        });
+        if (net.opp.z === undefined) Object.assign(net.opp, { z: 0, x: 0, hd: 0, v: 0, state: 'countdown', total: null, dnf: false });
+        break;
+      case 'start':
+        // ホストが決めたコースで同時スタート(通信の片道分だけ早める)
+        if (!net.isHost) {
+          sel.course = m.course;
+          const wait = Math.max(120, m.wait - net.rtt / 2);
+          setTimeout(() => { lastBeep = -1; startRace(); }, wait);
+        }
+        break;
+      case 's':
+        if (net.opp) {
+          net.opp.z = m.z; net.opp.x = m.x; net.opp.hd = m.hd; net.opp.v = m.v;
+          net.opp.state = m.st;
+        }
+        break;
+      case 'sec':
+        if (raceState === 'running' && isFinite(m.time)) flash('RIVAL ' + m.name + ' ' + fmtTime(m.time), '#b58cff', 0.75);
+        break;
+      case 'fin':
+        if (net.opp) {
+          net.opp.total = isFinite(m.total) ? m.total : null;
+          net.opp.dnf = !!m.dnf;
+          net.opp.state = m.dnf ? 'timeup' : 'finished';
+        }
+        if (raceState === 'running') {
+          flash(m.dnf ? '相手がタイムアップ!' : '相手がゴール! ' + fmtTime(m.total), '#b58cff', 1.0);
+        }
+        updateVsResult();
+        break;
+    }
+  }
+  // 結果画面の勝敗表示(自分・相手の完走状況が変わるたびに呼ぶ)
+  function updateVsResult() {
+    const e = el('resVs');
+    if (!e) return;
+    if (!net.connected || !net.opp) { e.textContent = ''; return; }
+    const o = net.opp;
+    if (o.total === null && !o.dnf) {
+      e.textContent = '⚔ 相手はまだ走行中…';
+      e.style.color = '#b58cff';
+      return;
+    }
+    const myDnf = raceState !== 'finished';
+    let msg, col;
+    if (myDnf && o.dnf) { msg = '両者タイムアップ — DRAW'; col = '#8b93b8'; }
+    else if (o.dnf) { msg = '🏆 YOU WIN! (相手はタイムアップ)'; col = '#f2d048'; }
+    else if (myDnf) { msg = 'YOU LOSE… (相手 ' + fmtTime(o.total) + ')'; col = '#ff8f4d'; }
+    else {
+      const diff = o.total - totalTime;
+      if (diff > 0.005) { msg = '🏆 YOU WIN!  ' + fmtTime(diff) + ' 差'; col = '#f2d048'; }
+      else if (diff < -0.005) { msg = 'YOU LOSE…  ' + fmtTime(-diff) + ' 差'; col = '#ff8f4d'; }
+      else { msg = '同着 — DRAW'; col = '#8b93b8'; }
+    }
+    e.textContent = msg;
+    e.style.color = col;
+  }
+  function copyTa(id, btn) {
+    const ta = el(id);
+    ta.select();
+    const done = () => { btn.textContent = '✅ コピーしました'; setTimeout(() => btn.textContent = '📋 コードをコピー', 1600); };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(ta.value).then(done, () => document.execCommand('copy') && done());
+    else { document.execCommand('copy'); done(); }
+  }
+  el('btn-versus').onclick = () => {
+    netReset();
+    el('vsHostFlow').classList.add('hidden');
+    el('vsGuestFlow').classList.add('hidden');
+    for (const id of ['taOffer', 'taAnswer', 'taOfferIn', 'taAnswerIn']) el(id).value = '';
+    if (!window.RTCPeerConnection) {
+      netStatus('⚠ このページでは対戦機能が使えません。公開URL版で開いてください', '#ff8f4d');
+    } else {
+      net.on = true;
+      netStatus('');
+    }
+    showScreen('versus');
+  };
+  el('btn-versus-back').onclick = () => { netReset(); showScreen('title'); };
+  el('btn-host').onclick = async () => {
+    if (!window.RTCPeerConnection) return;
+    netReset(); net.on = true; net.isHost = true;
+    el('vsHostFlow').classList.remove('hidden');
+    el('vsGuestFlow').classList.add('hidden');
+    netStatus('コードを生成中…');
+    try {
+      net.pc = newPeer();
+      bindChannel(net.pc.createDataChannel('race'));
+      await net.pc.setLocalDescription(await net.pc.createOffer());
+      await iceDone(net.pc);
+      el('taOffer').value = await encodeSignal({ s: net.pc.localDescription.sdp });
+      netStatus('① 招待コードを友達に送ってください');
+    } catch (e) { netStatus('⚠ コード生成に失敗しました: ' + e.message, '#ff8f4d'); }
+  };
+  el('btn-join').onclick = () => {
+    if (!window.RTCPeerConnection) return;
+    netReset(); net.on = true; net.isHost = false;
+    el('vsGuestFlow').classList.remove('hidden');
+    el('vsHostFlow').classList.add('hidden');
+    netStatus('友達の招待コードを貼り付けてください');
+  };
+  el('btn-make-answer').onclick = async () => {
+    try {
+      netStatus('返信コードを生成中…');
+      const sig = await decodeSignal(el('taOfferIn').value);
+      net.pc = newPeer();
+      net.pc.ondatachannel = e => bindChannel(e.channel);
+      await net.pc.setRemoteDescription({ type: 'offer', sdp: sig.s });
+      await net.pc.setLocalDescription(await net.pc.createAnswer());
+      await iceDone(net.pc);
+      el('taAnswer').value = await encodeSignal({ s: net.pc.localDescription.sdp });
+      netStatus('② 返信コードを友達に送り、接続を待っています…');
+    } catch (e) { netStatus('⚠ 招待コードが正しくありません', '#ff8f4d'); }
+  };
+  el('btn-connect').onclick = async () => {
+    try {
+      netStatus('接続中…');
+      const sig = await decodeSignal(el('taAnswerIn').value);
+      await net.pc.setRemoteDescription({ type: 'answer', sdp: sig.s });
+    } catch (e) { netStatus('⚠ 返信コードが正しくありません', '#ff8f4d'); }
+  };
+  el('btn-copy-offer').onclick = e => copyTa('taOffer', e.target);
+  el('btn-copy-answer').onclick = e => copyTa('taAnswer', e.target);
+
+  function hostLaunch() {
+    netSend({ t: 'start', course: sel.course, wait: 1000 });
+    flash('対戦スタート!', '#b58cff', 1.0);
+    setTimeout(() => { lastBeep = -1; startRace(); }, 1000);
+  }
   el('btn-title').onclick = () => { tryLandscape(); openGarage(); };
-  el('btn-garage-back').onclick = () => showScreen('title');
-  el('btn-garage-next').onclick = () => { saveGarage(); buildCourseList(); showScreen('course'); };
+  el('btn-garage-back').onclick = () => showScreen(net.connected ? 'versus' : 'title');
+  el('btn-garage-next').onclick = () => {
+    saveGarage(); buildCourseList();
+    const bs = el('btn-course-start');
+    if (net.connected && !net.isHost) {
+      bs.textContent = 'ホストの開始待ち…';
+      bs.disabled = true; bs.style.opacity = 0.55;
+    } else {
+      bs.textContent = net.connected ? '対戦スタート' : 'タイムアタック開始';
+      bs.disabled = false; bs.style.opacity = 1;
+    }
+    showScreen('course');
+  };
   el('btn-course-back').onclick = () => openGarage();
-  el('btn-course-start').onclick = () => { lastBeep = -1; tryLandscape(); startRace(); };
-  el('btn-retry').onclick = () => { lastBeep = -1; tryLandscape(); startRace(); };
-  el('btn-res-course').onclick = () => { buildCourseList(); showScreen('course'); };
+  el('btn-course-start').onclick = () => {
+    if (net.connected && !net.isHost) return;
+    lastBeep = -1; tryLandscape();
+    if (net.connected) hostLaunch(); else startRace();
+  };
+  el('btn-retry').onclick = e => {
+    if (net.connected && !net.isHost) { e.target.textContent = 'ホストの開始待ち…'; return; }
+    lastBeep = -1; tryLandscape();
+    if (net.connected) hostLaunch(); else startRace();
+  };
+  el('btn-res-course').onclick = () => {
+    if (net.connected && !net.isHost) return;
+    buildCourseList(); showScreen('course');
+  };
   el('btn-res-garage').onclick = () => openGarage();
 
   el('titleDesc').innerHTML =
@@ -3158,11 +3513,18 @@
         name: se.name, limit: se.limit,
         lenM: Math.round((se.z - (i > 0 ? sectionEnds[i - 1].z : 0)) / M2U),
       })),
+      net: { on: net.on, connected: net.connected, isHost: net.isHost, rtt: Math.round(net.rtt),
+             opp: net.opp ? { z: net.opp.z, x: net.opp.x, v: net.opp.v, state: net.opp.state, total: net.opp.total } : null },
       nTraffic: traffic.length, nSigns: signs.length, nHaz: hazards.length,
       nextSpawn: nextSpawnZ / M2U,
       trafficAhead: traffic.filter(t => t.z > posZ && t.z < posZ + 400 * M2U)
                            .map(t => ({ d: Math.round((t.z - posZ) / M2U), x: +t.x.toFixed(1), kmh: Math.round(t.speed * 3.6) })),
     };
+  };
+
+  window.__mhSet = o => {
+    if (o.posZ !== undefined) posZ = o.posZ;
+    if (o.vMs !== undefined) vMs = o.vMs;
   };
 
   // 初期プレビュー
