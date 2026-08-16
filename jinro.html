@@ -648,6 +648,7 @@ function renderSetup(){
     <div class="card"><h2>人数</h2>
       <div class="stepper"><span class="nm">プレイヤー人数 (4〜20)</span>
         <span class="stepctl"><button onclick="stepN(-1)">−</button><b>${d.n}</b><button onclick="stepN(1)">＋</button></span></div>
+      <div class="note" style="margin-top:6px;">あなた(ホスト)もこの人数に含まれ、1人のプレイヤーとして参加します。</div>
     </div>
     <div class="card"><h2>ルール設定</h2>${ruH}</div>
     <div class="card"><h2>役職構成</h2>
@@ -724,6 +725,7 @@ function renderLobby(st){
     <div class="card" style="text-align:center;"><h2>部屋コード</h2>
       <div class="code-big">${esc(code)}</div>
       <div class="note">このコードを友達に伝えてね (${memberPids.length}/${R.n}人)</div>
+      ${isHost?'<div class="note">あなたもプレイヤーとして参加しています。名前を設定してね。</div>':''}
     </div>
     <div class="card"><h2>自分の名前</h2>
       <input type="text" id="nameIn" maxlength="12" placeholder="名前を入力" value="${esc(myName)}">
