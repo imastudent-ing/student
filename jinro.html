@@ -1009,10 +1009,11 @@ function myVoteSent(day){
   for(const s in evs){ const e=evs[s]; if(e.t==='vote'&&e.day===day)return true; }
   return false;
 }
-function myActSent(day){
+function myActSent(day){ return !!myActOf(day); }
+function myActOf(day){
   const evs=E[me]||{};
-  for(const s in evs){ const e=evs[s]; if(e.t==='act'&&e.day===day)return true; }
-  return false;
+  for(const s in evs){ const e=evs[s]; if(e.t==='act'&&e.day===day)return e; }
+  return null;
 }
 function sendVote(day){ if(!sel.vote)return; pubEv({t:'vote',day,tgt:sel.vote}); sel.vote=null; }
 
@@ -1062,6 +1063,14 @@ function renderNight(st){
           <button class="btn red" ${sel.act?'':'disabled'} onclick="sendAct(${st.day})">${btnLabel}</button></div>`;
       }
     }else{
+      // 占い師は占った直後に結果が見える(結果は相手の役職だけで決まる)
+      if(rk==='uranai'){
+        const a=myActOf(st.day);
+        if(a&&a.tgt&&a.tgt!=='none'&&st.role[a.tgt]){
+          const res=DIVINE_WOLF.includes(st.role[a.tgt])?'人狼':'人間';
+          h+=`<div class="ann priv"><span class="lbl">占い結果(あなただけに見えています)</span><b>${nm(st,a.tgt)}</b> は「<b style="color:${res==='人狼'?'var(--red)':'var(--grn)'}">${res}</b>」です</div>`;
+        }
+      }
       h+=`<div class="waiting">🌙 みんなの夜の行動を待っています<div class="cnt">${st.actsIn} / ${st.actsNeed}</div></div>`;
     }
   }
