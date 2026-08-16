@@ -90,6 +90,8 @@
   .modal .mbox{background:var(--panel); border:1px solid var(--line); border-radius:14px; width:100%; max-width:520px; padding:16px;}
   .hidden{display:none !important;}
   .err{color:var(--red); font-size:13px; text-align:center; margin:8px 0;}
+  #reconnBar{position:fixed; top:0; left:0; right:0; z-index:60; background:var(--red); color:#fff;
+    text-align:center; font-size:12px; font-weight:700; padding:5px;}
   .note{font-size:11px; color:var(--dim); line-height:1.7;}
   .winbig{font-size:32px; font-weight:800; text-align:center; margin:14px 0;}
   .win-village{color:var(--grn);} .win-wolf{color:var(--red);} .win-fox{color:var(--pur);} .win-draw{color:var(--dim);}
@@ -107,6 +109,7 @@
   <button onclick="UI.helpModal()">ルール</button>
 </div></div>
 <div id="modalWrap" class="hidden"></div>
+<div id="reconnBar" class="hidden">⚡ 再接続中…</div>
 
 <script>
 'use strict';
@@ -471,7 +474,7 @@ function mqttOpen(url,onMsg,onDown){
 }
 
 const Net={
-  conns:[], code:'', ok:false,
+  conns:[], code:'', ok:false, connecting:false,
   async connect(code,onMsg){
     this.close();
     this.code=code;
@@ -500,7 +503,7 @@ const Net={
 /* =====================================================================
    アプリ本体
    ===================================================================== */
-const LS={get(k,d){try{const v=localStorage.getItem(k);return v==null?d:v;}catch(e){return d;}},set(k,v){try{localStorage.setItem(k,v);}catch(e){}}};
+const LS={get(k,d){try{const v=localStorage.getItem(k);return v==null?d:v;}catch(e){return d;}},set(k,v){try{localStorage.setItem(k,v);}catch(e){}},del(k){try{localStorage.removeItem(k);}catch(e){}}};
 const me=(()=>{ let id=LS.get('jr_pid',''); if(!id){ id=Math.random().toString(36).slice(2,10); LS.set('jr_pid',id);} return id; })();
 
 let R=null;            // 部屋定義 (retained)
@@ -551,7 +554,10 @@ function html(strings,...vals){ return strings.reduce((a,s,i)=>a+s+(vals[i]??'')
 
 const UI={
   screen:'home', err:'',
-  connDot(){ const d=$('#connDot'); if(d)d.className=Net.ok?'ok':''; },
+  connDot(){
+    const d=$('#connDot'); if(d)d.className=Net.ok?'ok':'';
+    const rb=$('#reconnBar'); if(rb)rb.className=(UI.screen==='game'&&!Net.ok)?'':'hidden';
+  },
   roleModal(){
     const st=curState();
     if(!st.role)return;
@@ -699,14 +705,33 @@ async function rejoinRoom(c){
     const st=curState();
     const inGame=st.members?st.members.includes(me):st.joins.includes(me);
     if(!inGame){
-      if(st.members){ Net.close(); UI.err='この部屋はすでにゲームが始まっています。'; UI.screen='home'; render(); return; }
-      if(st.joins.length>=R.n){ Net.close(); UI.err='この部屋は満員です。'; UI.screen='home'; render(); return; }
+      if(st.members){ Net.close(); LS.del('jr_room'); UI.err='この部屋はすでにゲームが始まっています。'; UI.screen='home'; render(); return; }
+      if(st.joins.length>=R.n){ Net.close(); LS.del('jr_room'); UI.err='この部屋は満員です。'; UI.screen='home'; render(); return; }
     }
     if(!st.joins.includes(me)) sendJoin(); else { joined=true; LS.set('jr_room',code); }
     UI.screen='game'; render();
   }catch(e){ Net.close(); UI.err='接続できませんでした。通信環境を確認してください。'; UI.screen='home'; render(); }
 }
-function leaveRoom(){ Net.close(); R=null; E={}; joined=false; UI.screen='home'; UI.err=''; render(); }
+function leaveRoom(){ Net.close(); R=null; E={}; joined=false; LS.del('jr_room'); UI.screen='home'; UI.err=''; render(); }
+
+/* ---- 自動復帰・自動再接続 ----
+   ・ページを開いた時、前回の部屋が記録されていれば自動で再入室する
+   ・画面を離れる等で通信が全部切れても、戻った瞬間に自動で繋ぎ直す
+     (切断中の出来事はretainedイベントとして残っているので全て追いつける) */
+let reconLast=0;
+async function ensureConnected(){
+  if(UI.screen!=='game'||!code||Net.connecting)return;
+  if(Net.conns.some(c=>c.alive))return;
+  if(Date.now()-reconLast<4000)return;
+  reconLast=Date.now();
+  Net.connecting=true;
+  try{ await Net.connect(code,onNetMsg); }catch(e){}
+  Net.connecting=false;
+  render();
+}
+document.addEventListener('visibilitychange',()=>{ if(!document.hidden)ensureConnected(); });
+window.addEventListener('focus',()=>ensureConnected());
+window.addEventListener('pageshow',()=>ensureConnected());
 
 /* ---- ロビー ---- */
 function renderLobby(st){
@@ -1025,6 +1050,7 @@ function showBar(st){
   $('#myRoleLbl').textContent=rk?(rk==='???'?'？？？':ROLES[rk].name)+(dead?' (死亡)':''):'';
   UI.connDot();
 }
+
 function render(){
   // 再描画で入力中のテキストが消えないように、フォーカス中の入力欄を保存/復元する
   const ae=document.activeElement;
@@ -1053,8 +1079,10 @@ function renderInner(){
   if(st.stage==='night')return renderNight(st);
   if(st.stage==='end')return renderEnd(st);
 }
-setInterval(()=>{ if(UI.screen==='game')render(); },1000);
+setInterval(()=>{ if(UI.screen==='game'){ ensureConnected(); render(); } },1000);
 render();
+// 前回の部屋が記録されていれば自動で再入室 (「退出する」を押した時だけ記録が消える)
+{ const last=LS.get('jr_room',''); if(/^\d{4}$/.test(last)) rejoinRoom(last); }
 </script>
 </body>
 </html>
