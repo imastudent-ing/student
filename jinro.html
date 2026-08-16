@@ -526,19 +526,89 @@ function onNetMsg(topic,str){
   const parts=topic.split('/');
   if(parts[0]!==TOPIC_NS||parts[1]!==code)return;
   let m; try{ m=JSON.parse(str); }catch(e){ return; }
-  if(parts[2]==='room'){
-    if(!R||R.nonce!==m.nonce){
-      const rejoin=joined;   // ゲーム中に部屋が作り直されたら自動で新ロビーへ
-      R=m; nonce=m.nonce; E={}; mySeq=0; sel={};
-      if(rejoin) sendJoin();
-    }else R=m;
-    render();
+  if(parts[2]==='room'&&parts.length===3){
+    adoptRoom(m);
+  }else if(parts[2]==='sync'&&parts.length===3){
+    handleSync(m);
   }else if(parts[2]===nonce&&parts[3]==='e'&&parts.length===6){
     const p=parts[4], s=+parts[5];
     if(!Number.isInteger(s))return;
     E[p]=E[p]||{};
     if(!(s in E[p])){ E[p][s]=m; if(p===me)mySeq=Math.max(mySeq,s+1); render(); }
   }
+}
+function adoptRoom(m){
+  if(!m||!m.nonce)return;
+  if(R&&m.nonce===R.nonce){ R=m; render(); return; }
+  // 別ブローカーに残った古い部屋定義で巻き戻らないよう、新しいものだけ採用する
+  if(R&&(m.ts||0)<(R.ts||0))return;
+  const rejoin=joined;   // ゲーム中に部屋が作り直されたら自動で新ロビーへ
+  R=m; nonce=m.nonce; E={}; mySeq=0; sel={};
+  if(rejoin)sendJoin();
+  render();
+}
+
+/* ---- ピア同期 ----
+   公開ブローカーはretainedメッセージを消すことがある(再起動・保持期限)。
+   全端末がゲーム全履歴(E)をメモリに持っているので、復帰者は部屋にいる
+   仲間の端末から直接イベントを受け取れる。誰か1人でも残っていれば必ず復帰できる。 */
+let syncSeen={};
+function eventCount(){ let n=0; for(const p in E)n+=Object.keys(E[p]).length; return n; }
+function eventSig(){ let n=0,h=0; for(const p in E)for(const s in E[p]){n++; h=(h+strHash(p+'/'+s))>>>0;} return n+':'+h; }
+function sendSyncReq(){
+  if(!code)return;
+  if(Object.keys(syncSeen).length>300)syncSeen={};
+  Net.pub(`${TOPIC_NS}/${code}/sync`,
+    {k:'req',id:Math.random().toString(36).slice(2,8),from:me,nonce:nonce||null,
+     have:eventCount(),sig:eventSig(),rts:R?(R.ts||0):0});
+}
+function handleSync(m){
+  if(!m||!m.k||m.from===me)return;
+  if(m.k==='req'){
+    // 相手のほうが新しい部屋を持っていそうなら、こちらからも同期要求を出す
+    if(m.nonce&&m.nonce!==nonce&&(m.rts||0)>(R?(R.ts||0):0)){ setTimeout(sendSyncReq,300+Math.random()*500); return; }
+    if(syncSeen[m.id])return;
+    let should=false;
+    if(!m.nonce) should=!!R;
+    else if(R&&m.nonce!==nonce) should=(R.ts||0)>(m.rts||0);
+    else if(R&&m.nonce===nonce) should=((eventSig()!==m.sig)&&(eventCount()>=m.have))||((R.ts||0)>(m.rts||0));
+    if(!should)return;
+    // 複数人が同時に返さないよう、ランダム待機して誰かが返したら黙る
+    setTimeout(()=>{
+      if(syncSeen[m.id])return;
+      syncSeen[m.id]=1;
+      Net.pub(`${TOPIC_NS}/${code}/sync`,{k:'res',id:m.id,from:me,R,E});
+    },200+Math.random()*1200);
+  }else if(m.k==='res'){
+    syncSeen[m.id]=1;
+    mergeSync(m);
+  }
+}
+function mergeSync(m){
+  if(!m.R||!m.R.nonce)return;
+  if(!R||(m.R.nonce!==R.nonce&&(m.R.ts||0)>=(R.ts||0))){
+    R=m.R; nonce=R.nonce; E={}; mySeq=0; sel={};
+  }else if(m.R.nonce!==R.nonce)return; // 相手が古い部屋を見ている
+  let changed=false;
+  for(const p in (m.E||{})){
+    for(const s in m.E[p]){
+      const sn=+s; if(!Number.isInteger(sn)||!m.E[p][s])continue;
+      E[p]=E[p]||{};
+      if(!(s in E[p])){ E[p][s]=m.E[p][s]; changed=true; if(p===me)mySeq=Math.max(mySeq,sn+1); }
+    }
+  }
+  if(changed){
+    if(joined&&!Object.values(E[me]||{}).some(e=>e.t==='join'))sendJoin();
+    republishOwn();
+    render();
+  }
+}
+/* 自分のイベントと(ホストなら)部屋定義をretained再公開してブローカーを自己修復する */
+function republishOwn(){
+  if(!code||!nonce)return;
+  const evs=E[me]||{};
+  for(const s in evs)Net.pub(`${TOPIC_NS}/${code}/${nonce}/e/${me}/${s}`,evs[s],true);
+  if(R&&R.host===me)Net.pub(`${TOPIC_NS}/${code}/room`,R,true);
 }
 function sendJoin(){
   joined=true;
@@ -697,11 +767,17 @@ async function rejoinRoom(c){
   try{
     code=c; joined=false; R=null; E={}; mySeq=0; nonce='';
     await Net.connect(c,onNetMsg);
-    // retained (部屋定義+イベント) の到着待ち
+    // retained (部屋定義+イベント) の到着待ち。
+    // ブローカーからretainedが消えていても、部屋にいる仲間からピア同期で復元する
     let waited=0;
-    while(!R&&waited<5000){ await new Promise(r=>setTimeout(r,250)); waited+=250; }
+    while(!R&&waited<7000){
+      if(waited===1500||waited===3500)sendSyncReq();
+      await new Promise(r=>setTimeout(r,250)); waited+=250;
+    }
     if(!R){ Net.close(); UI.err='部屋が見つかりませんでした。コードを確認してください。'; UI.screen='home'; render(); return; }
+    sendSyncReq();
     await new Promise(r=>setTimeout(r,900));
+    republishOwn();
     const st=curState();
     const inGame=st.members?st.members.includes(me):st.joins.includes(me);
     if(!inGame){
@@ -725,7 +801,11 @@ async function ensureConnected(){
   if(Date.now()-reconLast<4000)return;
   reconLast=Date.now();
   Net.connecting=true;
-  try{ await Net.connect(code,onNetMsg); }catch(e){}
+  try{
+    await Net.connect(code,onNetMsg);
+    republishOwn();   // 再接続先のブローカーのretainedを自己修復
+    sendSyncReq();    // 切断中の差分を仲間からもらう
+  }catch(e){}
   Net.connecting=false;
   render();
 }
@@ -1079,7 +1159,8 @@ function renderInner(){
   if(st.stage==='night')return renderNight(st);
   if(st.stage==='end')return renderEnd(st);
 }
-setInterval(()=>{ if(UI.screen==='game'){ ensureConnected(); render(); } },1000);
+let tickN=0;
+setInterval(()=>{ if(UI.screen==='game'){ tickN++; ensureConnected(); if(tickN%10===0)sendSyncReq(); render(); } },1000);
 render();
 // 前回の部屋が記録されていれば自動で再入室 (「退出する」を押した時だけ記録が消える)
 { const last=LS.get('jr_room',''); if(/^\d{4}$/.test(last)) rejoinRoom(last); }
