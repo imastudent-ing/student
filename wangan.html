@@ -174,7 +174,7 @@
     <div class="btnrow">
       <button class="sub" id="btn-versus-back">← タイトル</button>
     </div>
-    <div class="note">接続後はホストがコースを決めて同時スタート。相手の車は画面に表示されます(接触はしません)。<br>回線状況(モバイル回線同士など)によっては接続できない場合があります。</div>
+    <div class="note">接続後はホストがコースを決めて同時スタート。相手の車とはぶつかり合える(接触・押し合いOK)。<br>回線状況(モバイル回線同士など)によっては接続できない場合があります。</div>
   </div>
 </div>
 
@@ -899,7 +899,7 @@
     finishTimer = 0; shake = 0; flashes = []; smoke = [];
     // 対戦: 自車情報を相手へ送り、相手の状態をリセット
     if (net.connected) {
-      netSend({ t: 'car', type: car.type, color: car.color, wing: sel.tune === 2, name: car.maker + ' ' + car.model });
+      netSend({ t: 'car', type: car.type, color: car.color, wing: sel.tune === 2, name: car.maker + ' ' + car.model, mass: ph.mass });
       if (!net.opp) net.opp = { type: 'coupe', color: '#e8eaf0', wing: false, name: 'RIVAL' };
       Object.assign(net.opp, { z: 0, x: 0, hd: 0, v: 0, state: 'countdown', total: null, dnf: false });
       net.sendAcc = 0; net.pingT = 0;
@@ -1157,6 +1157,57 @@
 
     // ---- 交通車両 ----
     if (raceState === 'running') updateTraffic(dt);
+
+    // ---- 対戦相手との接触(湾岸流の押し合い) ----
+    // 相手の車体はネット越しの位置なので、反力は自分の車にだけ与える。
+    // 相手側でも同じ判定が走るので、双方の画面でそれぞれ弾かれる。
+    if (net.connected && net.opp && net.opp.state === 'running' && raceState === 'running') {
+      net.hitCd = Math.max(0, (net.hitCd || 0) - dt);
+      const o = net.opp;
+      const dzP = o.z - posZ / M2U;          // 前が正(m)
+      const dxP = o.x - posX;
+      const touching = Math.abs(dzP) < 4.5 && Math.abs(dxP) < 1.85;
+      if (touching) {
+        const dir = dxP > 0 ? -1 : 1;        // 相手から離れる向き
+        // 重なりからの連続的な押し出し(めり込み防止)
+        posX += dir * Math.min(2.6 * dt, 1.85 - Math.abs(dxP));
+        if (net.hitCd <= 0) {
+          const m1 = ph.mass, m2 = o.mass || 1400, e = 0.2;
+          const vRel = vMs - o.v;
+          if (Math.abs(dzP) < 3.3) {
+            // 並走での側面接触: 押し合い。弾かれて姿勢が乱れる
+            vLat += dir * 2.6;
+            yawRate += dir * 0.32;
+            vMs -= Math.min(vMs, 1.5 + Math.abs(vRel) * 0.12);
+            shake = Math.max(shake, 8);
+            flash('接触!', '#ff8f4d', 0.7);
+          } else if (dzP > 0 && vRel > 0.5) {
+            // 相手に追突: 自分が減速して弾かれる
+            const j = (1 + e) * vRel * m2 / (m1 + m2);
+            vMs = Math.max(0, vMs - j * 0.8);
+            vLat += dir * 1.4;
+            yawRate += dir * 0.18;
+            shake = Math.max(shake, 11);
+            flash('CRASH!', '#ff3d5e', 0.9);
+          } else if (dzP < 0 && vRel < -0.5) {
+            // 相手に追突された: 前へ押し出され姿勢が乱れる
+            const j = (1 + e) * (-vRel) * m2 / (m1 + m2);
+            vMs += j * 0.6;
+            vLat += dir * 1.6;
+            yawRate += dir * 0.22;
+            shake = Math.max(shake, 11);
+            flash('後ろから接触!', '#ff8f4d', 0.9);
+          } else {
+            net.hitCd = 0.1;
+          }
+          if (net.hitCd !== 0.1) {
+            sfxCrashSound();
+            net.hitCd = 0.5;
+            for (let i = 0; i < 5; i++) smoke.push({ x: (Math.random() - .5) * 1.5, t: 0.5, spark: true });
+          }
+        }
+      }
+    }
 
     // ---- 工事規制のパイロン ----
     if (seg.cone && hitCooldown <= 0) {
@@ -3322,7 +3373,7 @@
       case 'pong': net.rtt = Math.min(999, performance.now() - m.ts); break;
       case 'car':
         net.opp = Object.assign(net.opp || {}, {
-          type: m.type, color: m.color, wing: !!m.wing, name: m.name,
+          type: m.type, color: m.color, wing: !!m.wing, name: m.name, mass: m.mass || 1400,
         });
         if (net.opp.z === undefined) Object.assign(net.opp, { z: 0, x: 0, hd: 0, v: 0, state: 'countdown', total: null, dnf: false });
         break;
@@ -3525,6 +3576,7 @@
   window.__mhSet = o => {
     if (o.posZ !== undefined) posZ = o.posZ;
     if (o.vMs !== undefined) vMs = o.vMs;
+    if (o.posX !== undefined) posX = o.posX;
   };
 
   // 初期プレビュー
