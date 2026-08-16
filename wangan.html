@@ -47,6 +47,7 @@
     padding: max(16px, env(safe-area-inset-top)) 16px max(24px, env(safe-area-inset-bottom));
   }
   .screen.hidden { display: none; }
+  .hidden { display: none !important; }
   .logo {
     font-size: clamp(26px, 7vw, 44px);
     font-weight: bold; font-style: italic; letter-spacing: 3px;
@@ -145,32 +146,51 @@
   <div class="wrapcol">
     <div class="logo" style="font-size:22px;margin:8px 0 0;">ONLINE BATTLE</div>
     <div class="desc" style="text-align:left;margin-top:8px;">
-      サーバー不要のP2P直接対戦。コードをLINEなどで交換して接続します。<br>
-      ① どちらかが「部屋を作る」→ 招待コードを友達に送る<br>
-      ② 友達は「部屋に入る」→ コードを貼り付け → 返信コードを送り返す<br>
-      ③ 部屋を作った側が返信コードを貼り付けたら接続完了!
+      4桁の部屋番号だけで友達と対戦!<br>
+      ① どちらかが「部屋を作る」→ 出てきた4桁を友達に伝える<br>
+      ② 友達は「部屋に入る」→ 4桁を入力して接続!
     </div>
     <div id="vsRole" class="btnrow" style="justify-content:flex-start;">
       <button class="main" style="margin-top:0;" id="btn-host">部屋を作る (ホスト)</button>
       <button class="main" style="margin-top:0;background:linear-gradient(135deg,#1fa463,#3d8bff);" id="btn-join">部屋に入る (ゲスト)</button>
     </div>
-    <div id="vsHostFlow" class="hidden" style="width:100%;">
-      <h2 class="sec">1. この招待コードを友達に送る</h2>
-      <textarea id="taOffer" readonly rows="3" style="width:100%;background:#0d1226;color:#9fe8ff;border:1px solid #2c3354;border-radius:8px;font-size:11px;padding:8px;word-break:break-all;"></textarea>
-      <div class="btnrow" style="justify-content:flex-start;margin-top:8px;"><button class="sub" id="btn-copy-offer">📋 コードをコピー</button></div>
-      <h2 class="sec">2. 友達からの返信コードを貼り付け</h2>
-      <textarea id="taAnswerIn" rows="3" placeholder="返信コードをここに貼り付け" style="width:100%;background:#0d1226;color:#e8eaf6;border:1px solid #2c3354;border-radius:8px;font-size:11px;padding:8px;"></textarea>
-      <div class="btnrow" style="justify-content:flex-start;margin-top:8px;"><button class="main" style="margin-top:0;" id="btn-connect">接続する</button></div>
+    <div id="vsHostFlow" class="hidden" style="width:100%;text-align:center;">
+      <h2 class="sec" style="align-self:center;">あなたの部屋番号</h2>
+      <div id="roomCode" style="font-size:52px;font-weight:bold;font-style:italic;letter-spacing:14px;color:#3de8ff;text-shadow:0 0 24px rgba(61,232,255,.5);">----</div>
+      <div class="desc">この4桁を友達に伝えて、そのまま待ってください</div>
     </div>
-    <div id="vsGuestFlow" class="hidden" style="width:100%;">
-      <h2 class="sec">1. 友達の招待コードを貼り付け</h2>
-      <textarea id="taOfferIn" rows="3" placeholder="招待コードをここに貼り付け" style="width:100%;background:#0d1226;color:#e8eaf6;border:1px solid #2c3354;border-radius:8px;font-size:11px;padding:8px;"></textarea>
-      <div class="btnrow" style="justify-content:flex-start;margin-top:8px;"><button class="main" style="margin-top:0;" id="btn-make-answer">返信コードを作る</button></div>
-      <h2 class="sec">2. この返信コードを友達に送り返す</h2>
-      <textarea id="taAnswer" readonly rows="3" style="width:100%;background:#0d1226;color:#9fe8ff;border:1px solid #2c3354;border-radius:8px;font-size:11px;padding:8px;"></textarea>
-      <div class="btnrow" style="justify-content:flex-start;margin-top:8px;"><button class="sub" id="btn-copy-answer">📋 コードをコピー</button></div>
+    <div id="vsGuestFlow" class="hidden" style="width:100%;text-align:center;">
+      <h2 class="sec" style="align-self:center;">友達の部屋番号を入力</h2>
+      <input id="joinCode" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="0000"
+             style="width:200px;font-size:40px;text-align:center;letter-spacing:12px;background:#0d1226;color:#e8eaf6;border:1px solid #2c3354;border-radius:10px;padding:8px;font-family:inherit;">
+      <div class="btnrow" style="justify-content:center;margin-top:10px;">
+        <button class="main" style="margin-top:0;" id="btn-join-go">接続する</button>
+      </div>
     </div>
     <div class="desc" id="netStatus" style="margin-top:12px;color:#f2d048;"></div>
+    <details style="width:100%;margin-top:14px;color:#8b93b8;font-size:12px;">
+      <summary style="cursor:pointer;">部屋番号で繋がらない時 → 手動コード交換モード</summary>
+      <div class="btnrow" style="justify-content:flex-start;margin-top:10px;">
+        <button class="sub" id="btn-mhost">手動で部屋を作る</button>
+        <button class="sub" id="btn-mjoin">手動で部屋に入る</button>
+      </div>
+      <div id="vsMHostFlow" class="hidden" style="width:100%;">
+        <h2 class="sec">1. この招待コードを友達に送る</h2>
+        <textarea id="taOffer" readonly rows="3" style="width:100%;background:#0d1226;color:#9fe8ff;border:1px solid #2c3354;border-radius:8px;font-size:11px;padding:8px;word-break:break-all;"></textarea>
+        <div class="btnrow" style="justify-content:flex-start;margin-top:8px;"><button class="sub" id="btn-copy-offer">📋 コードをコピー</button></div>
+        <h2 class="sec">2. 友達からの返信コードを貼り付け</h2>
+        <textarea id="taAnswerIn" rows="3" placeholder="返信コードをここに貼り付け" style="width:100%;background:#0d1226;color:#e8eaf6;border:1px solid #2c3354;border-radius:8px;font-size:11px;padding:8px;"></textarea>
+        <div class="btnrow" style="justify-content:flex-start;margin-top:8px;"><button class="main" style="margin-top:0;" id="btn-connect">接続する</button></div>
+      </div>
+      <div id="vsMGuestFlow" class="hidden" style="width:100%;">
+        <h2 class="sec">1. 友達の招待コードを貼り付け</h2>
+        <textarea id="taOfferIn" rows="3" placeholder="招待コードをここに貼り付け" style="width:100%;background:#0d1226;color:#e8eaf6;border:1px solid #2c3354;border-radius:8px;font-size:11px;padding:8px;"></textarea>
+        <div class="btnrow" style="justify-content:flex-start;margin-top:8px;"><button class="main" style="margin-top:0;" id="btn-make-answer">返信コードを作る</button></div>
+        <h2 class="sec">2. この返信コードを友達に送り返す</h2>
+        <textarea id="taAnswer" readonly rows="3" style="width:100%;background:#0d1226;color:#9fe8ff;border:1px solid #2c3354;border-radius:8px;font-size:11px;padding:8px;"></textarea>
+        <div class="btnrow" style="justify-content:flex-start;margin-top:8px;"><button class="sub" id="btn-copy-answer">📋 コードをコピー</button></div>
+      </div>
+    </details>
     <div class="btnrow">
       <button class="sub" id="btn-versus-back">← タイトル</button>
     </div>
@@ -3285,9 +3305,122 @@
   // ================= オンライン対戦 (P2P / WebRTC) =================
   // サーバー不要。SDPを圧縮した「コード」をチャットアプリ等で交換して直接接続する。
   const net = {
-    on: false, isHost: false, pc: null, dc: null,
-    connected: false, rtt: 0, opp: null, sendAcc: 0, pingT: 0,
+    on: false, isHost: false, pc: null, dc: null, ws: null, beat: null,
+    connected: false, rtt: 0, opp: null, sendAcc: 0, pingT: 0, hitCd: 0,
   };
+  // ---- 部屋番号方式のシグナリング ----
+  // 公開のPeerJSクラウドをSDPの受け渡し(合図)にだけ使い、
+  // 接続後のゲーム通信はすべてP2P(WebRTC DataChannel)で行う。
+  function sigUrl(id) {
+    const base = window.__mhSignalUrl || 'wss://0.peerjs.com/peerjs?key=peerjs';
+    return base + '&id=' + encodeURIComponent(id) + '&token=' + Math.random().toString(36).slice(2, 10);
+  }
+  function sigOpen(id) {
+    return new Promise((res, rej) => {
+      let ws;
+      try { ws = new WebSocket(sigUrl(id)); } catch (e) { return rej(e); }
+      const to = setTimeout(() => { try { ws.close(); } catch (e) {} rej(new Error('timeout')); }, 9000);
+      ws.onmessage = e => {
+        let m; try { m = JSON.parse(e.data); } catch (err) { return; }
+        if (m.type === 'OPEN') { clearTimeout(to); ws.onclose = null; ws.onerror = null; res(ws); }
+        else if (m.type === 'ID-TAKEN') { clearTimeout(to); rej(new Error('taken')); }
+      };
+      ws.onerror = () => { clearTimeout(to); rej(new Error('error')); };
+      ws.onclose = () => { clearTimeout(to); rej(new Error('closed')); };
+    });
+  }
+  function sigSend(ws, type, dst, payload) {
+    try { ws.send(JSON.stringify({ type, dst, payload })); } catch (e) {}
+  }
+  function sigClose() {
+    if (net.beat) { clearInterval(net.beat); net.beat = null; }
+    if (net.ws) { try { net.ws.onclose = null; net.ws.onmessage = null; net.ws.close(); } catch (e) {} net.ws = null; }
+  }
+  async function hostRoom() {
+    netReset(); net.on = true; net.isHost = true;
+    el('vsHostFlow').classList.remove('hidden');
+    el('vsGuestFlow').classList.add('hidden');
+    el('roomCode').textContent = '----';
+    netStatus('部屋を準備中…');
+    try {
+      let ws = null, code = '';
+      for (let i = 0; i < 6 && !ws; i++) {
+        code = String(1000 + Math.floor(Math.random() * 9000));
+        try { ws = await sigOpen('mh-wangan-' + code); }
+        catch (e) { if (e.message !== 'taken') throw e; }
+      }
+      if (!ws) throw new Error('no room');
+      net.ws = ws;
+      net.beat = setInterval(() => { try { ws.send('{"type":"HEARTBEAT"}'); } catch (e) {} }, 20000);
+      el('roomCode').textContent = code;
+      netStatus('友達の入室を待っています…');
+      // SDP準備が終わる前に届いたノックは取り置き、準備後に返す
+      let offerReady = false, pendingKnock = null;
+      const sendOffer = to => {
+        netStatus('友達が入室! 接続しています…');
+        sigSend(ws, 'OFFER', to, { mh: 'offer', sdp: net.pc.localDescription.sdp });
+      };
+      ws.onmessage = async e => {
+        let m; try { m = JSON.parse(e.data); } catch (err) { return; }
+        const pl = m.payload || {};
+        if (pl.mh === 'knock' && pl.from) {
+          if (offerReady) sendOffer(pl.from); else pendingKnock = pl.from;
+        } else if (pl.mh === 'answer' && pl.sdp) {
+          try { await net.pc.setRemoteDescription({ type: 'answer', sdp: pl.sdp }); } catch (err) {}
+        }
+      };
+      // P2Pの招待状(SDP)を作る
+      net.pc = newPeer();
+      bindChannel(net.pc.createDataChannel('race'));
+      await net.pc.setLocalDescription(await net.pc.createOffer());
+      await iceDone(net.pc);
+      offerReady = true;
+      if (pendingKnock) { sendOffer(pendingKnock); pendingKnock = null; }
+    } catch (e) {
+      netStatus('⚠ 部屋を作れませんでした。回線を確認するか、下の手動コード交換モードを試してください', '#ff8f4d');
+    }
+  }
+  async function joinRoom(code) {
+    netReset(); net.on = true; net.isHost = false;
+    netStatus('部屋 ' + code + ' に接続中…');
+    try {
+      const myId = 'mh-guest-' + Math.random().toString(36).slice(2, 10);
+      const ws = await sigOpen(myId);
+      net.ws = ws;
+      net.beat = setInterval(() => { try { ws.send('{"type":"HEARTBEAT"}'); } catch (e) {} }, 20000);
+      const hostId = 'mh-wangan-' + code;
+      let gotOffer = false;
+      // ホストがSDP準備中の場合に備え、オファーが来るまで3秒おきに再ノック
+      const knock = () => sigSend(ws, 'OFFER', hostId, { mh: 'knock', from: myId });
+      const knocker = setInterval(() => { if (!gotOffer) knock(); }, 3000);
+      const fail = setTimeout(() => {
+        clearInterval(knocker);
+        if (!net.connected && !gotOffer) netStatus('⚠ 部屋が見つかりません。番号を確認してください', '#ff8f4d');
+      }, 15000);
+      ws.onmessage = async e => {
+        let m; try { m = JSON.parse(e.data); } catch (err) { return; }
+        if (m.type === 'EXPIRE' || m.type === 'LEAVE') {
+          clearTimeout(fail); clearInterval(knocker);
+          netStatus('⚠ その部屋番号は見つかりません', '#ff8f4d');
+          return;
+        }
+        const pl = m.payload || {};
+        if (pl.mh === 'offer' && pl.sdp && !gotOffer) {
+          gotOffer = true; clearTimeout(fail); clearInterval(knocker);
+          netStatus('接続しています…');
+          net.pc = newPeer();
+          net.pc.ondatachannel = ev => bindChannel(ev.channel);
+          await net.pc.setRemoteDescription({ type: 'offer', sdp: pl.sdp });
+          await net.pc.setLocalDescription(await net.pc.createAnswer());
+          await iceDone(net.pc);
+          sigSend(ws, 'ANSWER', hostId, { mh: 'answer', sdp: net.pc.localDescription.sdp });
+        }
+      };
+      knock();
+    } catch (e) {
+      netStatus('⚠ 接続サーバーに繋がりません。下の手動コード交換モードを試してください', '#ff8f4d');
+    }
+  }
   function netStatus(msg, color) {
     const e = el('netStatus');
     if (e) { e.textContent = msg; e.style.color = color || '#f2d048'; }
@@ -3344,6 +3477,7 @@
       net.connected = true;
       netStatus('✅ 接続完了! クルマ選択へ進みます…', '#5ee08a');
       netSend({ t: 'hi' });
+      setTimeout(sigClose, 1200);   // 合図用サーバーはもう不要
       setTimeout(() => { if (net.connected && !running) openGarage(); }, 900);
     };
     dc.onclose = () => netDrop('相手が切断しました');
@@ -3357,6 +3491,7 @@
     net.opp = null;
   }
   function netReset() {
+    sigClose();
     try { if (net.dc) net.dc.close(); } catch (e) {}
     try { if (net.pc) net.pc.close(); } catch (e) {}
     net.on = false; net.isHost = false; net.pc = null; net.dc = null;
@@ -3441,9 +3576,9 @@
   }
   el('btn-versus').onclick = () => {
     netReset();
-    el('vsHostFlow').classList.add('hidden');
-    el('vsGuestFlow').classList.add('hidden');
-    for (const id of ['taOffer', 'taAnswer', 'taOfferIn', 'taAnswerIn']) el(id).value = '';
+    for (const id of ['vsHostFlow', 'vsGuestFlow', 'vsMHostFlow', 'vsMGuestFlow']) el(id).classList.add('hidden');
+    for (const id of ['taOffer', 'taAnswer', 'taOfferIn', 'taAnswerIn', 'joinCode']) el(id).value = '';
+    el('roomCode').textContent = '----';
     if (!window.RTCPeerConnection) {
       netStatus('⚠ このページでは対戦機能が使えません。公開URL版で開いてください', '#ff8f4d');
     } else {
@@ -3453,11 +3588,31 @@
     showScreen('versus');
   };
   el('btn-versus-back').onclick = () => { netReset(); showScreen('title'); };
-  el('btn-host').onclick = async () => {
+  el('btn-host').onclick = () => {
+    if (!window.RTCPeerConnection) return;
+    for (const id of ['vsMHostFlow', 'vsMGuestFlow']) el(id).classList.add('hidden');
+    hostRoom();
+  };
+  el('btn-join').onclick = () => {
+    if (!window.RTCPeerConnection) return;
+    netReset(); net.on = true;
+    for (const id of ['vsHostFlow', 'vsMHostFlow', 'vsMGuestFlow']) el(id).classList.add('hidden');
+    el('vsGuestFlow').classList.remove('hidden');
+    netStatus('4桁の部屋番号を入力してください');
+    el('joinCode').focus();
+  };
+  el('btn-join-go').onclick = () => {
+    const code = (el('joinCode').value || '').trim();
+    if (!/^\d{4}$/.test(code)) { netStatus('⚠ 部屋番号は4桁の数字です', '#ff8f4d'); return; }
+    joinRoom(code);
+  };
+  el('joinCode').addEventListener('keydown', e => { if (e.key === 'Enter') el('btn-join-go').onclick(); });
+  // ---- 手動コード交換モード(部屋番号サーバーが使えない時の保険) ----
+  el('btn-mhost').onclick = async () => {
     if (!window.RTCPeerConnection) return;
     netReset(); net.on = true; net.isHost = true;
-    el('vsHostFlow').classList.remove('hidden');
-    el('vsGuestFlow').classList.add('hidden');
+    el('vsMHostFlow').classList.remove('hidden');
+    for (const id of ['vsMGuestFlow', 'vsHostFlow', 'vsGuestFlow']) el(id).classList.add('hidden');
     netStatus('コードを生成中…');
     try {
       net.pc = newPeer();
@@ -3468,11 +3623,11 @@
       netStatus('① 招待コードを友達に送ってください');
     } catch (e) { netStatus('⚠ コード生成に失敗しました: ' + e.message, '#ff8f4d'); }
   };
-  el('btn-join').onclick = () => {
+  el('btn-mjoin').onclick = () => {
     if (!window.RTCPeerConnection) return;
     netReset(); net.on = true; net.isHost = false;
-    el('vsGuestFlow').classList.remove('hidden');
-    el('vsHostFlow').classList.add('hidden');
+    el('vsMGuestFlow').classList.remove('hidden');
+    for (const id of ['vsMHostFlow', 'vsHostFlow', 'vsGuestFlow']) el(id).classList.add('hidden');
     netStatus('友達の招待コードを貼り付けてください');
   };
   el('btn-make-answer').onclick = async () => {
