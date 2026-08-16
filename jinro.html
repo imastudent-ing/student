@@ -263,6 +263,7 @@ function derive(R,E){
   const mornings={};             // day -> {victims:[], bread}
   const execs={};                // day -> pid | null
   const voteCnt={};              // day -> {tgt: count}
+  const voteDet={};              // day -> {voter: tgt} 誰が誰に投票したか
   const log=[];
   let winner=null, day=1;
 
@@ -286,28 +287,29 @@ function derive(R,E){
     const gotV=needV.filter(p=>p in dv);
     const forcedV=forces[day]&&forces[day].vote;
     if(gotV.length<needV.length&&!forcedV){
-      Object.assign(st,{stage:'day',day,phaseTs,alive,dead,mornings,seerRes,medRes,execs,voteCnt,log,
+      Object.assign(st,{stage:'day',day,phaseTs,alive,dead,mornings,seerRes,medRes,execs,voteCnt,voteDet,log,
         votesIn:gotV.length,votesNeed:needV.length,lastGuard,
         confusionLifted:day>2||false});
       return st;
     }
-    const cnt={};
-    for(const p of needV){ const t=(p in dv)?dv[p].tgt:'none'; cnt[t]=(cnt[t]||0)+1; }
-    voteCnt[day]=cnt;
+    const cnt={}; const det={};
+    for(const p of needV){ const t=(p in dv)?dv[p].tgt:'none'; cnt[t]=(cnt[t]||0)+1; det[p]=t; }
+    voteCnt[day]=cnt; voteDet[day]=det;
     let executed=null;
     { const mx=Math.max(...Object.values(cnt));
       const top=Object.keys(cnt).filter(k=>cnt[k]===mx);
       if(!top.includes('none')){ const r2=seededRng(seed+':vote'+day); executed=top[Math.floor(r2()*top.length)]; }
     }
     execs[day]=executed;
+    const detTxt=needV.map(p=>`${names[p]||'?'}→${det[p]==='none'?'なし':(names[det[p]]||'?')}`).join(' / ');
     if(executed){
       alive.delete(executed);
       dead[executed]={day,cause:'exec'};
       medRes[day]={tgt:executed,res:divine(executed)};
-      log.push({day,txt:`${day}日目の投票で <b>${names[executed]||'?'}</b> が処刑された`});
+      log.push({day,txt:`${day}日目の投票で <b>${names[executed]||'?'}</b> が処刑された 〔${detTxt}〕`});
     }else{
       medRes[day]=null;
-      log.push({day,txt:`${day}日目の投票では処刑が行われなかった`});
+      log.push({day,txt:`${day}日目の投票では処刑が行われなかった 〔${detTxt}〕`});
     }
     winner=checkWin(); if(winner) break;
 
@@ -318,7 +320,7 @@ function derive(R,E){
     const forcedA=forces[day]&&forces[day].night;
     const confActive=confused&&day<2;   // 混乱は2日目の夜開始時に解ける
     if(gotA.length<needA.length&&!forcedA){
-      Object.assign(st,{stage:'night',day,alive,dead,mornings,seerRes,medRes,execs,voteCnt,log,
+      Object.assign(st,{stage:'night',day,alive,dead,mornings,seerRes,medRes,execs,voteCnt,voteDet,log,
         actsIn:gotA.length,actsNeed:needA.length,lastGuard,confActive,
         confusionLifted:day>=2});
       return st;
@@ -387,7 +389,7 @@ function derive(R,E){
     day++;
   }
 
-  Object.assign(st,{stage:'end',day,winner,alive,dead,mornings,seerRes,medRes,execs,voteCnt,log,confusionLifted:true});
+  Object.assign(st,{stage:'end',day,winner,alive,dead,mornings,seerRes,medRes,execs,voteCnt,voteDet,log,confusionLifted:true});
   return st;
 }
 
@@ -1084,7 +1086,15 @@ function voteCntHtml(st){
   const c=st.voteCnt[st.day];
   if(!c)return '';
   const parts=Object.keys(c).sort((a,b)=>c[b]-c[a]).map(k=>`${k==='none'?'処刑なし':nm(st,k)}: ${c[k]}票`);
-  return `<div class="note" style="margin-top:4px;">${parts.join(' / ')}</div>`;
+  let h=`<div class="note" style="margin-top:4px;">${parts.join(' / ')}</div>`;
+  // 誰が誰に投票したかの内訳
+  const det=st.voteDet&&st.voteDet[st.day];
+  if(det){
+    const lines=st.members.filter(p=>p in det)
+      .map(p=>`${nm(st,p)} → <b>${det[p]==='none'?'処刑なし':nm(st,det[p])}</b>`);
+    h+=`<div class="note" style="margin-top:6px;"><span class="lbl" style="font-size:11px;color:var(--dim);display:block;">投票内訳</span>${lines.join('<br>')}</div>`;
+  }
+  return h;
 }
 function sendAct(day){ if(!sel.act)return; pubEv({t:'act',day,tgt:sel.act,conf:!!sel.conf}); sel.act=null; sel.conf=false; }
 
