@@ -1,0 +1,1162 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>ワードウルフ</title>
+<style>
+  :root{
+    --bg:#0e1116; --panel:#171c24; --panel2:#1f2631; --line:#2c3542;
+    --tx:#e8ecf1; --dim:#8b96a5; --acc:#4ec9a8; --red:#e05b5b; --blu:#5b9de0;
+    --grn:#5bc98a; --pur:#a98be0; --yel:#e0c04a;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0; padding:0; background:var(--bg); color:var(--tx);
+    font-family:'Hiragino Kaku Gothic ProN','Noto Sans JP',system-ui,sans-serif; min-height:100%;}
+  body{display:flex; justify-content:center;}
+  #app{width:100%; max-width:520px; padding:14px 14px 90px; min-height:100vh;}
+  h1{font-size:26px; text-align:center; margin:18px 0 4px; letter-spacing:4px;}
+  .sub{text-align:center; color:var(--dim); font-size:12px; margin-bottom:20px;}
+  .card{background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:14px; margin:12px 0;}
+  .card h2{font-size:15px; margin:0 0 10px; color:var(--acc);}
+  .btn{display:block; width:100%; padding:14px; margin:8px 0; border:none; border-radius:12px;
+    background:var(--acc); color:#08201a; font-size:16px; font-weight:700; cursor:pointer;}
+  .btn:disabled{opacity:.35;}
+  .btn.gray{background:var(--panel2); color:var(--tx); border:1px solid var(--line);}
+  .btn.red{background:var(--red); color:#fff;}
+  .btn.small{width:auto; display:inline-block; padding:8px 14px; font-size:13px; margin:4px;}
+  input[type=text],input[type=tel]{width:100%; padding:12px; font-size:18px; border-radius:10px;
+    border:1px solid var(--line); background:var(--panel2); color:var(--tx); text-align:center;}
+  .rowbtns{display:flex; gap:8px;}
+  .rowbtns .btn{flex:1;}
+  .code-big{font-size:44px; letter-spacing:12px; text-align:center; font-weight:800; color:var(--acc); margin:6px 0;}
+  .plist{list-style:none; padding:0; margin:0;}
+  .plist li{padding:9px 10px; border-bottom:1px solid var(--line); display:flex; justify-content:space-between; align-items:center; font-size:15px;}
+  .plist li:last-child{border-bottom:none;}
+  .tag{font-size:11px; color:var(--dim);}
+  .tag.host{color:var(--acc);}
+  .toggle-row{display:flex; justify-content:space-between; align-items:center; padding:10px 2px; border-bottom:1px solid var(--line); gap:10px;}
+  .toggle-row:last-child{border-bottom:none;}
+  .toggle-row .tt{font-size:14px; font-weight:700;}
+  .toggle-row .td{font-size:11px; color:var(--dim); margin-top:3px; line-height:1.5;}
+  .sw{position:relative; width:52px; height:30px; flex:none;}
+  .sw input{display:none;}
+  .sw span{position:absolute; inset:0; background:var(--panel2); border:1px solid var(--line); border-radius:20px; transition:.15s;}
+  .sw span::after{content:''; position:absolute; top:3px; left:3px; width:22px; height:22px; border-radius:50%; background:var(--dim); transition:.15s;}
+  .sw input:checked+span{background:var(--acc); border-color:var(--acc);}
+  .sw input:checked+span::after{left:25px; background:#08201a;}
+  .stepper{display:flex; justify-content:space-between; align-items:center; padding:7px 2px; border-bottom:1px solid var(--line);}
+  .stepper:last-child{border-bottom:none;}
+  .stepper .nm{font-size:14px;}
+  .stepper .nm small{color:var(--dim); font-size:10px; margin-left:6px;}
+  .stepctl{display:flex; align-items:center; gap:10px;}
+  .stepctl button{width:34px; height:34px; border-radius:50%; border:1px solid var(--line); background:var(--panel2); color:var(--tx); font-size:18px; cursor:pointer;}
+  .stepctl b{min-width:22px; text-align:center; font-size:17px;}
+  .chips{display:flex; flex-wrap:wrap; gap:6px;}
+  .chip{padding:8px 13px; border-radius:18px; border:1px solid var(--line); background:var(--panel2);
+    font-size:13px; color:var(--dim); cursor:pointer;}
+  .chip.on{background:var(--acc); color:#08201a; border-color:var(--acc); font-weight:700;}
+  .timer{font-size:52px; text-align:center; font-weight:800; font-variant-numeric:tabular-nums; margin:6px 0;}
+  .timer.low{color:var(--red);}
+  .phase-head{text-align:center; margin:10px 0 2px;}
+  .phase-head .day{font-size:13px; color:var(--dim); letter-spacing:2px;}
+  .phase-head .ph{font-size:24px; font-weight:800; letter-spacing:4px; color:var(--acc);}
+  .phase-head.hot .ph{color:var(--red);}
+  .ann{background:var(--panel2); border-radius:10px; padding:10px 12px; margin:8px 0; font-size:14px; line-height:1.7;}
+  .ann.priv{border:1px dashed var(--blu);}
+  .ann .lbl{font-size:11px; color:var(--dim); display:block; margin-bottom:2px;}
+  .pick{display:grid; grid-template-columns:1fr 1fr; gap:8px; margin:10px 0;}
+  .pick button{padding:13px 6px; border-radius:10px; border:1px solid var(--line); background:var(--panel2); color:var(--tx); font-size:15px; cursor:pointer;}
+  .pick button.sel{background:var(--acc); color:#08201a; border-color:var(--acc); font-weight:700;}
+  .pick button.sel *{color:#08201a !important;}
+  .pick button:disabled{opacity:.3;}
+  .pick button.wide{grid-column:1/-1;}
+  .rolecard{text-align:center; padding:22px 14px;}
+  .rolecard .rn{font-size:34px; font-weight:800; margin:8px 0; color:var(--acc);}
+  .rolecard .rn.white{color:var(--pur);}
+  .roledesc{text-align:left; font-size:13px; line-height:1.8; color:var(--tx); background:var(--panel2); border-radius:10px; padding:12px;}
+  .extra{margin-top:10px; text-align:left; font-size:13px; background:#1e2a2a; border:1px solid var(--acc); border-radius:10px; padding:10px 12px; line-height:1.8;}
+  .waiting{text-align:center; color:var(--dim); padding:26px 0; font-size:15px;}
+  .waiting .cnt{font-size:26px; color:var(--tx); font-weight:800; margin-top:6px;}
+  .clist{max-height:250px; overflow-y:auto; background:var(--panel2); border-radius:10px; padding:8px 10px; font-size:14px; line-height:1.8;}
+  .cmsg{margin:3px 0; word-break:break-word;}
+  .cwho{font-weight:700; margin-right:6px;}
+  .chatrow{display:flex; gap:8px; margin-top:8px;}
+  .chatrow input{flex:1; text-align:left; font-size:15px;}
+  .chatrow .btn{width:auto; margin:0; padding:10px 16px; font-size:14px;}
+  #mybar{position:fixed; left:0; right:0; bottom:0; display:flex; justify-content:center; pointer-events:none;}
+  #mybar .inner{pointer-events:auto; width:100%; max-width:520px; background:var(--panel); border-top:1px solid var(--line);
+    padding:9px 14px; display:flex; justify-content:space-between; align-items:center; font-size:13px;}
+  #mybar button{border:1px solid var(--line); background:var(--panel2); color:var(--tx); border-radius:8px; padding:6px 10px; font-size:12px; cursor:pointer;}
+  #connDot{width:9px; height:9px; border-radius:50%; background:var(--red); display:inline-block; margin-right:6px;}
+  #connDot.ok{background:var(--grn);}
+  .modal{position:fixed; inset:0; background:rgba(0,0,0,.72); display:flex; justify-content:center; align-items:flex-start; overflow-y:auto; z-index:50; padding:20px 14px;}
+  .modal .mbox{background:var(--panel); border:1px solid var(--line); border-radius:14px; width:100%; max-width:520px; padding:16px;}
+  .hidden{display:none !important;}
+  .err{color:var(--red); font-size:13px; text-align:center; margin:8px 0;}
+  #reconnBar{position:fixed; top:0; left:0; right:0; z-index:60; background:var(--red); color:#fff;
+    text-align:center; font-size:12px; font-weight:700; padding:5px;}
+  .note{font-size:11px; color:var(--dim); line-height:1.7;}
+  .winbig{font-size:30px; font-weight:800; text-align:center; margin:14px 0; line-height:1.4;}
+  .win-cit{color:var(--grn);} .win-min{color:var(--red);} .win-white{color:var(--pur);}
+  .win-all{color:var(--yel);} .win-draw{color:var(--dim);}
+  table.rev{width:100%; border-collapse:collapse; font-size:13px;}
+  table.rev td{padding:7px 4px; border-bottom:1px solid var(--line);}
+  .bg-cit{color:var(--grn); font-weight:700;} .bg-wolf{color:var(--red); font-weight:700;} .bg-white{color:var(--pur); font-weight:700;}
+  .wordbox{display:flex; gap:8px; margin:8px 0;}
+  .wordbox>div{flex:1; background:var(--panel2); border-radius:10px; padding:10px; text-align:center;}
+  .wordbox .wl{font-size:11px; color:var(--dim);}
+  .wordbox .wv{font-size:18px; font-weight:800; margin-top:4px;}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="mybar" class="hidden"><div class="inner">
+  <span><span id="connDot"></span><span id="myNameLbl"></span></span>
+  <span>
+  <button onclick="UI.wordModal()">お題</button>
+  <button onclick="UI.helpModal()">ルール</button>
+  </span>
+</div></div>
+<div id="modalWrap" class="hidden"></div>
+<div id="reconnBar" class="hidden">⚡ 再接続中…</div>
+
+<script id="wwlogic">
+'use strict';
+/* =====================================================================
+   ワードウルフ — ホストなし分散方式 (jinro.html と同じ仕組み)
+   ・通信: 公開MQTTブローカー(WebSocket) 3系統に同時接続
+   ・全イベントを retained メッセージとして部屋トピックに記録
+   ・各端末は同じイベント集合+同じシードから状態を決定的に再計算する
+   ルール:
+   ・全員にお題が配られるが、少数派(ウルフ)だけ微妙に違うお題
+   ・議論のあと投票で1人を処刑。少数派を処刑できたら市民の勝ち
+   ・逆転チャンス(設定): 処刑された少数派が市民のお題を当てたら逆転勝利
+   ・ホワイトの可能性(設定): 50%でお題を知らない「ホワイト」が1人混ざる
+   ・ウルフ人数不定(設定): ウルフが0〜設定人数でランダム(0人=平和村 約20%)
+   ・匿名チャットモード(設定): 全員に動物の匿名ネーム。議論はアプリ内の
+     匿名チャットで行い、投票も匿名ネームに対して行う。終了時に正体公開
+   ===================================================================== */
+
+/* ---------------- 決定的乱数 ---------------- */
+function strHash(s){ let h=1779033703^s.length; for(let i=0;i<s.length;i++){h=Math.imul(h^s.charCodeAt(i),3432918353);h=h<<13|h>>>19;} return h>>>0; }
+function seededRng(key){ let a=strHash(key); return function(){ a|=0; a=a+0x6D2B79F5|0; let t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
+function shuffle(arr,rng){ for(let i=arr.length-1;i>0;i--){ const j=Math.floor(rng()*(i+1)); [arr[i],arr[j]]=[arr[j],arr[i]]; } return arr; }
+
+/* ---------------- お題データ ---------------- */
+const GENRES=[
+  {k:'food', n:'🍔 たべもの'},
+  {k:'play', n:'🎮 あそび'},
+  {k:'place',n:'🗺 ばしょ'},
+  {k:'item', n:'🧰 もの'},
+  {k:'life', n:'🌤 せいかつ'},
+  {k:'love', n:'💘 れんあい'},
+];
+const GENRE_NAME={}; GENRES.forEach(g=>GENRE_NAME[g.k]=g.n);
+const PAIRS=[
+  ['food','きのこの山','たけのこの里'],['food','ラーメン','うどん'],['food','寿司','刺身'],
+  ['food','カレーライス','ハヤシライス'],['food','おにぎり','サンドイッチ'],['food','たこ焼き','お好み焼き'],
+  ['food','プリン','ゼリー'],['food','ショートケーキ','チーズケーキ'],['food','コーラ','サイダー'],
+  ['food','コーヒー','紅茶'],['food','唐揚げ','フライドチキン'],['food','餃子','シュウマイ'],
+  ['food','パスタ','焼きそば'],['food','食パン','フランスパン'],['food','アイスクリーム','かき氷'],
+  ['food','チョコレート','キャラメル'],['food','ポテトチップス','ポップコーン'],['food','ハンバーグ','ステーキ'],
+  ['food','味噌汁','豚汁'],['food','オムライス','チャーハン'],['food','メロンパン','クリームパン'],
+  ['food','ソフトクリーム','ヨーグルト'],
+  ['play','遊園地','動物園'],['play','映画館','カラオケ'],['play','ゲームセンター','ボウリング'],
+  ['play','トランプ','UNO'],['play','かくれんぼ','鬼ごっこ'],['play','ジェットコースター','観覧車'],
+  ['play','野球','サッカー'],['play','水泳','マラソン'],['play','花火大会','夏祭り'],
+  ['play','キャンプ','バーベキュー'],['play','釣り','登山'],['play','温泉','サウナ'],
+  ['play','YouTube','テレビ'],['play','アニメ','マンガ'],['play','ピアノ','ギター'],
+  ['play','将棋','オセロ'],['play','ダンス','ヨガ'],['play','卓球','バドミントン'],
+  ['play','スキー','スケート'],['play','ディズニーランド','USJ'],
+  ['place','学校','塾'],['place','コンビニ','スーパー'],['place','図書館','本屋'],
+  ['place','病院','歯医者'],['place','海','プール'],['place','山','川'],
+  ['place','東京','大阪'],['place','北海道','沖縄'],['place','電車','バス'],
+  ['place','飛行機','新幹線'],['place','ホテル','旅館'],['place','公園','校庭'],
+  ['place','神社','お寺'],['place','美容院','床屋'],['place','カフェ','ファミレス'],
+  ['place','交番','消防署'],['place','空港','駅'],['place','富士山','エベレスト'],
+  ['place','無人島','ジャングル'],['place','月','火星'],
+  ['item','スマホ','タブレット'],['item','鉛筆','シャーペン'],['item','消しゴム','修正テープ'],
+  ['item','リュック','トートバッグ'],['item','メガネ','コンタクトレンズ'],['item','傘','レインコート'],
+  ['item','エアコン','扇風機'],['item','こたつ','ストーブ'],['item','枕','クッション'],
+  ['item','布団','ベッド'],['item','腕時計','掛け時計'],['item','冷蔵庫','電子レンジ'],
+  ['item','自転車','バイク'],['item','財布','ポーチ'],['item','マスク','絆創膏'],
+  ['item','ティッシュ','ハンカチ'],['item','はさみ','カッター'],['item','のり','セロハンテープ'],
+  ['item','歯ブラシ','綿棒'],['item','シャンプー','リンス'],
+  ['life','寝坊','夜更かし'],['life','掃除','洗濯'],['life','料理','皿洗い'],
+  ['life','散歩','ジョギング'],['life','昼寝','二度寝'],['life','歯磨き','洗顔'],
+  ['life','買い物','ウィンドウショッピング'],['life','貯金','節約'],['life','ダイエット','筋トレ'],
+  ['life','引っ越し','模様替え'],['life','誕生日','クリスマス'],['life','お正月','ゴールデンウィーク'],
+  ['life','遅刻','ドタキャン'],['life','テスト勉強','一夜漬け'],['life','アルバイト','ボランティア'],
+  ['life','自撮り','プリクラ'],['life','お年玉','お小遣い'],['life','くしゃみ','しゃっくり'],
+  ['life','あくび','ため息'],['life','拍手','ハイタッチ'],
+  ['love','初恋','片思い'],['love','告白','プロポーズ'],['love','デート','合コン'],
+  ['love','手をつなぐ','腕を組む'],['love','ラブレター','交換日記'],['love','遠距離恋愛','同棲'],
+  ['love','元恋人','幼なじみ'],['love','結婚式','成人式'],['love','イケメン','美人'],
+  ['love','浮気','二股'],['love','倦怠期','マンネリ'],['love','親友','ライバル'],
+  ['love','先輩','後輩'],['love','お見合い','マッチングアプリ'],['love','ハグ','おんぶ'],
+  ['love','嫉妬','独占欲'],['love','記念日','サプライズ'],['love','壁ドン','お姫様抱っこ'],
+  ['love','夫婦喧嘩','兄弟喧嘩'],['love','相合傘','おそろいコーデ'],
+];
+function pairPool(genres){
+  const gs=(genres&&genres.length)?genres:null;
+  const l=PAIRS.filter(p=>!gs||gs.includes(p[0]));
+  return (l.length?l:PAIRS).map(p=>({g:p[0],a:p[1],b:p[2]}));
+}
+
+/* ---------------- 匿名ネーム ---------------- */
+const ALIASES=[
+  {e:'🦊',n:'キツネ',c:'#ef8a3c'},{e:'🐰',n:'ウサギ',c:'#f27ca4'},{e:'🐱',n:'ネコ',c:'#e6c34e'},
+  {e:'🐶',n:'イヌ',c:'#b3a06a'},{e:'🐻',n:'クマ',c:'#c98a5b'},{e:'🐼',n:'パンダ',c:'#cfd6dd'},
+  {e:'🦉',n:'フクロウ',c:'#a98be0'},{e:'🐸',n:'カエル',c:'#5bc98a'},{e:'🐧',n:'ペンギン',c:'#5b9de0'},
+  {e:'🐹',n:'ハムスター',c:'#f2b04c'},{e:'🦁',n:'ライオン',c:'#e0a33c'},{e:'🐢',n:'カメ',c:'#7ac26b'},
+  {e:'🐙',n:'タコ',c:'#e06a5b'},{e:'🐴',n:'ウマ',c:'#c9a05b'},{e:'🐦',n:'ハト',c:'#9ab8d6'},
+  {e:'🦄',n:'ユニコーン',c:'#d69ae0'},{e:'🐟',n:'サカナ',c:'#6bd6c0'},{e:'🐝',n:'ハチ',c:'#e6d24e'},
+  {e:'🦖',n:'ティラノ',c:'#8ac95b'},{e:'🐮',n:'ウシ',c:'#d6b8a0'},
+];
+
+/* ---------------- お題当ての判定 (表記ゆれ吸収) ---------------- */
+function normWord(s){
+  s=String(s||'').normalize('NFKC').toLowerCase();
+  s=s.replace(/[\s・･、。，．,.\-ー〜~!?！？「」『』()（）]/g,'');
+  s=s.replace(/[\u30a1-\u30f6]/g,c=>String.fromCharCode(c.charCodeAt(0)-0x60));
+  return s;
+}
+function guessMatch(guess,answer){ const a=normWord(guess), b=normWord(answer); return !!a&&a===b; }
+
+function topKeys(cnt){
+  const ks=Object.keys(cnt);
+  if(!ks.length)return [];
+  const mx=Math.max(...ks.map(k=>cnt[k]));
+  return ks.filter(k=>cnt[k]===mx);
+}
+
+/* ---------------- 状態導出 (イベント集合 → ゲーム状態) ----------------
+   R: 部屋定義 {nonce, host, n, wolves, talkMin, genres, rules, ts}
+   E: {pid: {seq: event}}  イベントは不変・retainedで全端末に共有される
+   同じ R と E からは必ず同じ状態が計算される。 */
+function derive(R,E){
+  if(!R) return {stage:'none'};
+  const all=[];
+  for(const p in E) for(const s in E[p]){ const e=E[p][s]; if(e&&e.t) all.push(Object.assign({pid:p,seq:+s},e)); }
+  all.sort((a,b)=>(a.ts-b.ts)||(a.pid<b.pid?-1:a.pid>b.pid?1:0)||(a.seq-b.seq));
+
+  const joins=[]; const names={};
+  let startEv=null;
+  for(const e of all){
+    if(e.t==='join'&&!joins.includes(e.pid)){ joins.push(e.pid); if(e.name)names[e.pid]=String(e.name).slice(0,12); }
+    else if(e.t==='name'&&e.name&&!startEv) names[e.pid]=String(e.name).slice(0,12);
+    else if(e.t==='start'&&e.pid===R.host&&!startEv) startEv=e;
+  }
+  const st={stage:'lobby', joins, names, R, anon:!!(R.rules&&R.rules.anon)};
+  if(!startEv) return st;
+
+  const M=startEv.members.slice();
+  const seed=String(startEv.seed);
+
+  /* ---- 配役 (シードから決定的に計算・全端末で同じ結果になる) ---- */
+  const rng=seededRng(seed+':deal');
+  const maxW=Math.max(1,Math.floor((M.length-1)/2));
+  const baseW=Math.min(Math.max(1,R.wolves||1),maxW);
+  let wolfN=baseW;
+  if(R.rules.unstable){
+    if(rng()<0.2) wolfN=0;                       // 約20%で平和村
+    else wolfN=1+Math.floor(rng()*baseW);        // 1〜設定人数でランダム
+  }
+  let hasWhite=false;
+  if(R.rules.white){
+    const roll=rng();
+    if(M.length-wolfN-1>=2 && roll<0.5) hasWhite=true;  // 市民のお題持ちが2人以上残る時だけ
+  }
+  const pool=pairPool(R.genres);
+  const pair=pool[Math.floor(rng()*pool.length)];
+  const flip=rng()<0.5;
+  const majorWord=flip?pair.b:pair.a, wolfWord=flip?pair.a:pair.b;
+  const order=M.slice(); shuffle(order,rng);
+  const role={}; M.forEach(p=>role[p]='citizen');
+  for(let i=0;i<wolfN;i++) role[order[i]]='wolf';
+  if(hasWhite) role[order[wolfN]]='white';
+  const word={}; M.forEach(p=>word[p]= role[p]==='wolf'?wolfWord : role[p]==='white'?null : majorWord);
+  const alias={};
+  { const arng=seededRng(seed+':alias');
+    const idx=ALIASES.map((_,i)=>i); shuffle(idx,arng);
+    M.forEach((p,i)=>{ const k=idx[i%ALIASES.length]; alias[p]=Object.assign({i:k},ALIASES[k]); }); }
+  const minority=M.filter(p=>role[p]!=='citizen');
+  Object.assign(st,{members:M, seed, role, word, majorWord, wolfWord, wolfN, baseW, hasWhite, alias, pair, minority});
+
+  /* ---- 開始後イベント収集 ---- */
+  const oks={}; const votes=[{},{}]; let timeAdj=0, tovoteTs=null; const forces={}; const guessBy={}; const chats=[];
+  for(const e of all){
+    switch(e.t){
+      case 'ok': if(M.includes(e.pid)&&!(e.pid in oks)) oks[e.pid]=e.ts; break;
+      case 'vote': if(M.includes(e.pid)){ const r=e.r?1:0; if(!(e.pid in votes[r])) votes[r][e.pid]=e; } break;
+      case 'time': if(e.pid===R.host) timeAdj+=e.d; break;
+      case 'tovote': if(e.pid===R.host&&tovoteTs==null) tovoteTs=e.ts; break;
+      case 'force': if(e.pid===R.host&&e.phase&&!forces[e.phase]) forces[e.phase]=e.ts; break;
+      case 'guess': if(M.includes(e.pid)&&!(e.pid in guessBy)) guessBy[e.pid]=e; break;
+      case 'chat': if(M.includes(e.pid)&&e.text) chats.push({pid:e.pid,text:String(e.text).slice(0,120),ts:e.ts}); break;
+    }
+  }
+  st.chats=chats; st.oks=oks; st.timeAdj=timeAdj; st.tovoteTs=tovoteTs;
+
+  if(M.some(p=>!(p in oks))){ st.stage='reveal'; st.okCnt=Object.keys(oks).length; return st; }
+  st.talkTs=Math.max(...M.map(p=>oks[p]));
+
+  /* ---- 投票 ---- */
+  const canNone=!!R.rules.unstable;   // 「ウルフはいない」は平和村がありえる時だけ
+  st.canNone=canNone;
+  const tally=(vmap,cand)=>{
+    const cnt={}, det={};
+    for(const p of M){
+      const e=vmap[p]; if(!e)continue;
+      const t=e.tgt;
+      if(t==null)continue;
+      if(t==='none'){ if(!canNone)continue; }
+      else{ if(!M.includes(t)||t===p)continue; }
+      if(cand&&!cand.includes(t))continue;
+      cnt[t]=(cnt[t]||0)+1; det[p]=t;
+    }
+    return {cnt,det};
+  };
+
+  const got0=M.filter(p=>p in votes[0]);
+  if(got0.length<M.length && !forces.vote){
+    st.stage='talk'; st.votesIn=got0.length; st.votesNeed=M.length; return st;
+  }
+  const v1=tally(votes[0],null);
+  st.vote1=v1;
+  let executed=null, revote=null;
+  const top0=topKeys(v1.cnt);
+  if(top0.length===0) executed='none';
+  else if(top0.length===1) executed=top0[0];
+  else{
+    /* 同数トップ → 決選投票 (それでも同数ならシードで抽選) */
+    const cand=top0.slice().sort();
+    const got1=M.filter(p=>p in votes[1]);
+    if(got1.length<M.length && !forces.revote){
+      st.stage='revote'; st.cand=cand; st.votesIn=got1.length; st.votesNeed=M.length; return st;
+    }
+    const v2=tally(votes[1],cand);
+    revote={cand, cnt:v2.cnt, det:v2.det};
+    const top1=topKeys(v2.cnt);
+    const trng=seededRng(seed+':tie');
+    if(top1.length===1) executed=top1[0];
+    else if(top1.length===0) executed=cand[Math.floor(trng()*cand.length)];
+    else executed=top1[Math.floor(trng()*top1.length)];
+  }
+  st.vote2=revote; st.executed=executed;
+
+  /* ---- 勝敗判定 ----
+     ・処刑なし: 少数派がいれば少数派勝利 / 本当に平和村なら全員勝利
+     ・市民を処刑: 少数派がいれば少数派勝利 / 平和村なら全員敗北
+     ・少数派を処刑: 市民勝利。ただし逆転チャンスONなら、処刑された
+       少数派が市民のお題を当てれば少数派の逆転勝利 */
+  let outcome, guess=null;
+  if(executed==='none'){
+    outcome = minority.length ? 'minority' : 'peace';
+  }else if(role[executed]==='citizen'){
+    outcome = minority.length ? 'minority' : 'chaos';
+  }else{
+    if(R.rules.reversal){
+      const g=guessBy[executed]||null;   // 処刑された本人の回答だけが有効
+      if(!g && !forces.guess){ st.stage='guess'; return st; }
+      if(g && !g.giveup && guessMatch(g.text,majorWord)){ outcome='reversal'; guess={text:String(g.text||''),hit:true}; }
+      else{ outcome='citizen'; guess={text:(g&&!g.giveup)?String(g.text||''):null,hit:false}; }
+    }else outcome='citizen';
+  }
+  st.guess=guess; st.outcome=outcome; st.stage='end';
+  return st;
+}
+</script>
+
+<script>
+'use strict';
+/* =====================================================================
+   通信層: MQTT 3.1.1 最小クライアント (jinro.html と同方式)
+   公開ブローカー3系統へ同時接続し、retainedメッセージでイベントを共有
+   ===================================================================== */
+const BROKERS = window.__wwBrokers || [
+  'wss://broker.emqx.io:8084/mqtt',
+  'wss://broker.hivemq.com:8884/mqtt',
+  'wss://test.mosquitto.org:8081',
+];
+const TOPIC_NS='ww1';
+
+function mqttOpen(url,onMsg,onDown){
+  return new Promise((res,rej)=>{
+    let ws;
+    try{ ws=new WebSocket(url,'mqtt'); }catch(e){ return rej(e); }
+    ws.binaryType='arraybuffer';
+    const enc=new TextEncoder(), dec=new TextDecoder();
+    const cat=a=>{ const r=new Uint8Array(a.reduce((n,x)=>n+x.length,0)); let o=0; for(const x of a){r.set(x,o);o+=x.length;} return r; };
+    const mstr=s=>{ const b=enc.encode(s); return cat([Uint8Array.of(b.length>>8,b.length&255),b]); };
+    const vlen=n=>{ const o=[]; do{ let d=n&127; n>>=7; if(n)d|=128; o.push(d);}while(n); return Uint8Array.from(o); };
+    const pkt=(h,body)=>{ try{ ws.send(cat([Uint8Array.of(h),vlen(body.length),body])); }catch(e){} };
+    let opened=false, pktId=1, ping=null;
+    const to=setTimeout(()=>{ try{ws.close();}catch(e){} rej(new Error('timeout')); },8000);
+    const client={
+      url, alive:true,
+      sub(t){ pkt(0x82,cat([Uint8Array.of(pktId>>8,pktId&255),mstr(t),Uint8Array.of(0)])); pktId=(pktId+1)&0xffff||1; },
+      pub(t,s,retain){ pkt(retain?0x31:0x30,cat([mstr(t),enc.encode(s)])); },
+      close(){ this.alive=false; clearInterval(ping); try{ws.close();}catch(e){} },
+    };
+    ws.onopen=()=>{ const cid='ww'+Math.random().toString(36).slice(2,12); pkt(0x10,cat([mstr('MQTT'),Uint8Array.of(4,2,0,60),mstr(cid)])); };
+    let buf=new Uint8Array(0);
+    ws.onmessage=e=>{
+      buf=cat([buf,new Uint8Array(e.data)]);
+      for(;;){
+        if(buf.length<2)break;
+        let len=0,mul=1,i=1,done=false;
+        for(;i<Math.min(buf.length,5);i++){ len+=(buf[i]&127)*mul; mul*=128; if(!(buf[i]&128)){done=true;i++;break;} }
+        if(!done||buf.length<i+len)break;
+        const type=buf[0]>>4, flags=buf[0]&15;
+        const body=buf.subarray(i,i+len);
+        buf=buf.slice(i+len);
+        if(type===2){
+          clearTimeout(to);
+          if(body[1]===0){ opened=true; ping=setInterval(()=>{try{ws.send(Uint8Array.of(0xC0,0));}catch(e){}},40000); res(client); }
+          else rej(new Error('connack '+body[1]));
+        }else if(type===3){
+          const tl=(body[0]<<8)|body[1];
+          const topic=dec.decode(body.subarray(2,2+tl));
+          let off=2+tl;
+          if(flags&6)off+=2;
+          onMsg(topic,dec.decode(body.subarray(off)));
+        }
+      }
+    };
+    ws.onerror=()=>{ if(!opened){clearTimeout(to);rej(new Error('error'));} };
+    ws.onclose=()=>{ clearInterval(ping); client.alive=false; if(!opened){clearTimeout(to);rej(new Error('closed'));} else if(onDown)onDown(); };
+  });
+}
+
+const Net={
+  conns:[], code:'', ok:false, connecting:false,
+  async connect(code,onMsg){
+    this.close();
+    this.code=code;
+    const topic=TOPIC_NS+'/'+code+'/#';
+    return new Promise((res,rej)=>{
+      let got=false,fails=0;
+      for(const b of BROKERS){
+        mqttOpen(b,onMsg,()=>{ Net.conns=Net.conns.filter(c=>c.alive); Net.ok=Net.conns.length>0; UI&&UI.connDot&&UI.connDot(); })
+        .then(c=>{
+          if(Net.code!==code){c.close();return;}
+          Net.conns.push(c); c.sub(topic);
+          Net.ok=true; UI&&UI.connDot&&UI.connDot();
+          if(!got){got=true;res();}
+        })
+        .catch(()=>{ if(++fails===BROKERS.length&&!got) rej(new Error('接続できませんでした')); });
+      }
+    });
+  },
+  pub(topic,obj,retain){
+    const s=typeof obj==='string'?obj:JSON.stringify(obj);
+    for(const c of this.conns) if(c.alive) c.pub(topic,s,retain);
+  },
+  close(){ for(const c of this.conns)c.close(); this.conns=[]; this.ok=false; this.code=''; },
+};
+
+/* =====================================================================
+   アプリ本体
+   ===================================================================== */
+const LS={get(k,d){try{const v=localStorage.getItem(k);return v==null?d:v;}catch(e){return d;}},set(k,v){try{localStorage.setItem(k,v);}catch(e){}},del(k){try{localStorage.removeItem(k);}catch(e){}}};
+const me=(()=>{ let id=LS.get('ww_pid',''); if(!id){ id=Math.random().toString(36).slice(2,10); LS.set('ww_pid',id);} return id; })();
+
+let R=null;            // 部屋定義 (retained)
+let E={};              // イベント {pid:{seq:ev}}
+let code='', nonce='', mySeq=0;
+let joined=false;      // この端末が join 済みか
+let setupDraft=null;   // ホストの部屋設定下書き
+let sel={};            // 画面内の選択状態
+let lastStageKey='';
+
+function pubEv(ev){
+  ev.ts=Date.now();
+  Net.pub(`${TOPIC_NS}/${code}/${nonce}/e/${me}/${mySeq}`,ev,true);
+  // 自分のイベントは即ローカル反映 (ブローカーエコーを待たない)
+  E[me]=E[me]||{}; E[me][mySeq]=ev; mySeq++;
+  render();
+}
+function onNetMsg(topic,str){
+  if(!str)return;
+  const parts=topic.split('/');
+  if(parts[0]!==TOPIC_NS||parts[1]!==code)return;
+  let m; try{ m=JSON.parse(str); }catch(e){ return; }
+  if(parts[2]==='room'&&parts.length===3){
+    adoptRoom(m);
+  }else if(parts[2]==='sync'&&parts.length===3){
+    handleSync(m);
+  }else if(parts[2]===nonce&&parts[3]==='e'&&parts.length===6){
+    const p=parts[4], s=+parts[5];
+    if(!Number.isInteger(s))return;
+    E[p]=E[p]||{};
+    if(!(s in E[p])){ E[p][s]=m; if(p===me)mySeq=Math.max(mySeq,s+1); render(); }
+  }
+}
+function adoptRoom(m){
+  if(!m||!m.nonce)return;
+  if(R&&m.nonce===R.nonce){ R=m; render(); return; }
+  // 別ブローカーに残った古い部屋定義で巻き戻らないよう、新しいものだけ採用する
+  if(R&&(m.ts||0)<(R.ts||0))return;
+  const rejoin=joined;   // ゲーム中に部屋が作り直されたら自動で新ロビーへ
+  R=m; nonce=m.nonce; E={}; mySeq=0; sel={};
+  if(rejoin)sendJoin();
+  render();
+}
+
+/* ---- ピア同期 ----
+   公開ブローカーはretainedメッセージを消すことがある(再起動・保持期限)。
+   全端末がゲーム全履歴(E)をメモリに持っているので、復帰者は部屋にいる
+   仲間の端末から直接イベントを受け取れる。誰か1人でも残っていれば必ず復帰できる。 */
+let syncSeen={};
+function eventCount(){ let n=0; for(const p in E)n+=Object.keys(E[p]).length; return n; }
+function eventSig(){ let n=0,h=0; for(const p in E)for(const s in E[p]){n++; h=(h+strHash(p+'/'+s))>>>0;} return n+':'+h; }
+function sendSyncReq(){
+  if(!code)return;
+  if(Object.keys(syncSeen).length>300)syncSeen={};
+  Net.pub(`${TOPIC_NS}/${code}/sync`,
+    {k:'req',id:Math.random().toString(36).slice(2,8),from:me,nonce:nonce||null,
+     have:eventCount(),sig:eventSig(),rts:R?(R.ts||0):0});
+}
+function handleSync(m){
+  if(!m||!m.k||m.from===me)return;
+  if(m.k==='req'){
+    // 相手のほうが新しい部屋を持っていそうなら、こちらからも同期要求を出す
+    if(m.nonce&&m.nonce!==nonce&&(m.rts||0)>(R?(R.ts||0):0)){ setTimeout(sendSyncReq,300+Math.random()*500); return; }
+    if(syncSeen[m.id])return;
+    let should=false;
+    if(!m.nonce) should=!!R;
+    else if(R&&m.nonce!==nonce) should=(R.ts||0)>(m.rts||0);
+    else if(R&&m.nonce===nonce) should=((eventSig()!==m.sig)&&(eventCount()>=m.have))||((R.ts||0)>(m.rts||0));
+    if(!should)return;
+    // 複数人が同時に返さないよう、ランダム待機して誰かが返したら黙る
+    setTimeout(()=>{
+      if(syncSeen[m.id])return;
+      syncSeen[m.id]=1;
+      Net.pub(`${TOPIC_NS}/${code}/sync`,{k:'res',id:m.id,from:me,R,E});
+    },200+Math.random()*1200);
+  }else if(m.k==='res'){
+    syncSeen[m.id]=1;
+    mergeSync(m);
+  }
+}
+function mergeSync(m){
+  if(!m.R||!m.R.nonce)return;
+  if(!R||(m.R.nonce!==R.nonce&&(m.R.ts||0)>=(R.ts||0))){
+    R=m.R; nonce=R.nonce; E={}; mySeq=0; sel={};
+  }else if(m.R.nonce!==R.nonce)return; // 相手が古い部屋を見ている
+  let changed=false;
+  for(const p in (m.E||{})){
+    for(const s in m.E[p]){
+      const sn=+s; if(!Number.isInteger(sn)||!m.E[p][s])continue;
+      E[p]=E[p]||{};
+      if(!(s in E[p])){ E[p][s]=m.E[p][s]; changed=true; if(p===me)mySeq=Math.max(mySeq,sn+1); }
+    }
+  }
+  if(changed){
+    if(joined&&!Object.values(E[me]||{}).some(e=>e.t==='join'))sendJoin();
+    republishOwn();
+    render();
+  }
+}
+/* 自分のイベントと(ホストなら)部屋定義をretained再公開してブローカーを自己修復する */
+function republishOwn(){
+  if(!code||!nonce)return;
+  const evs=E[me]||{};
+  for(const s in evs)Net.pub(`${TOPIC_NS}/${code}/${nonce}/e/${me}/${s}`,evs[s],true);
+  if(R&&R.host===me)Net.pub(`${TOPIC_NS}/${code}/room`,R,true);
+}
+function sendJoin(){
+  joined=true;
+  LS.set('ww_room',code);
+  const nm=LS.get('ww_name','');
+  pubEv({t:'join',name:nm});
+}
+
+/* ---------------- 画面 ---------------- */
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function html(strings,...vals){ return strings.reduce((a,s,i)=>a+s+(vals[i]??''),''); }
+
+const RULE_DEFS=[
+  {k:'reversal', name:'逆転チャンス', d:'処刑された少数派(ウルフ/ホワイト)が市民のお題を言い当てたら逆転勝利。'},
+  {k:'white',    name:'ホワイトの可能性', d:'50%の確率で、お題を知らされない「ホワイト」が1人混ざる。ホワイトも少数派として勝敗判定される。'},
+  {k:'unstable', name:'ウルフ人数不定', d:'ウルフの人数が0〜設定人数のあいだでランダムになる(0人の平和村は約20%)。投票に「ウルフはいない」が追加される。'},
+  {k:'anon',     name:'匿名チャットモード', d:'全員に動物の匿名ネームが割り当てられ、議論はアプリ内の匿名チャットで行う。投票も匿名ネームに対して行い、終了時に正体を公開。'},
+];
+
+const UI={
+  screen:'home', err:'',
+  connDot(){
+    const d=$('#connDot'); if(d)d.className=Net.ok?'ok':'';
+    const rb=$('#reconnBar'); if(rb)rb.className=(UI.screen==='game'&&!Net.ok)?'':'hidden';
+  },
+  wordModal(){
+    const st=curState();
+    if(!st.word||!st.members||!st.members.includes(me))return;
+    openModal(wordCardHtml(st));
+  },
+  helpModal(){
+    let h='<h2 style="color:var(--acc);font-size:16px;">ルール設定</h2>';
+    if(R){
+      h+='<div class="ann">';
+      h+=`<div style="margin:4px 0;"><b>ウルフ人数</b>: ${R.rules.unstable?`0〜${R.wolves}人(不定)`:R.wolves+'人'}</div>`;
+      h+=`<div style="margin:4px 0;"><b>議論時間</b>: ${R.talkMin}分</div>`;
+      h+=`<div style="margin:4px 0;"><b>ジャンル</b>: ${(R.genres&&R.genres.length)?R.genres.map(k=>GENRE_NAME[k]||k).join(' / '):'ぜんぶ'}</div>`;
+      for(const rd of RULE_DEFS) h+=`<div style="margin:4px 0;"><b>${rd.name}</b>: ${R.rules[rd.k]?'<span style="color:var(--grn)">ON</span>':'<span style="color:var(--dim)">OFF</span>'}<div class="note">${rd.d}</div></div>`;
+      h+='</div>';
+    }
+    h+='<h2 style="color:var(--acc);font-size:16px;">あそびかた</h2>';
+    h+=`<div class="ann note" style="font-size:12px;">
+      ・全員にお題が配られますが、少数派(ウルフ)だけ微妙に違うお題です。誰がウルフかは誰にも分かりません(自分がウルフかも!)。<br>
+      ・議論でお互いのお題を探り合い、投票で1人を処刑します。<br>
+      ・<b>少数派を処刑できたら市民の勝ち</b>、<b>市民を処刑したら少数派の勝ち</b>。<br>
+      ・同数トップの場合は決選投票、それでも同数なら抽選です。<br>
+      ・逆転チャンスONの場合、処刑された少数派が市民のお題を当てれば逆転勝利。<br>
+      ・ウルフ人数不定ONの場合、ウルフ0人の平和村がありえます。「ウルフはいない」が最多票なら、本当に平和村だったとき全員勝利。誰かを処刑してしまうと全員敗北です。<br>
+      ・ホワイトはお題を知らないまま話を合わせる役。処刑されなければ少数派として勝利に乗れます。</div>`;
+    openModal(h);
+  },
+};
+function openModal(inner){
+  const w=$('#modalWrap');
+  w.className='modal';
+  w.innerHTML=`<div class="mbox">${inner}<button class="btn gray" onclick="closeModal()">閉じる</button></div>`;
+}
+function closeModal(){ const w=$('#modalWrap'); w.className='hidden'; w.innerHTML=''; }
+
+function curState(){ return derive(R,E); }
+function nm(st,p){ return esc(st.names[p]||'名無し'); }
+/* 表示名: 匿名モード中は動物ネーム */
+function disp(st,p){
+  if(p==='none')return '<b>ウルフはいない</b>';
+  if(st.anon&&st.alias&&st.alias[p]){ const a=st.alias[p]; return `<b style="color:${a.c}">${a.e}${a.n}</b>`; }
+  return `<b>${nm(st,p)}</b>`;
+}
+function dispBtn(st,p){
+  if(p==='none')return 'ウルフはいない!';
+  if(st.anon&&st.alias&&st.alias[p]){ const a=st.alias[p]; return `<span style="color:${a.c};font-weight:700;">${a.e}${a.n}</span>`; }
+  return nm(st,p);
+}
+/* 表示順: 匿名モードでは参加順から動物ネームが推測できないよう並べ替える */
+function dispOrder(st){
+  const l=st.members.slice();
+  if(st.anon&&st.alias) l.sort((a,b)=>st.alias[a].i-st.alias[b].i);
+  return l;
+}
+
+/* ---- ホーム ---- */
+function renderHome(){
+  const last=LS.get('ww_room','');
+  $('#app').innerHTML=html`
+    <h1>ワードウルフ</h1>
+    <div class="sub">少数派のお題を持つ「ウルフ」を探せ。4桁のコードでみんなの端末から参加</div>
+    <div class="card">
+      <h2>部屋を作る(ホスト)</h2>
+      <div class="note">人数とルールを決めて部屋を作ります。作った人もプレイヤーとして参加します。</div>
+      <button class="btn" onclick="goSetup()">部屋を作る</button>
+    </div>
+    <div class="card">
+      <h2>部屋に参加する</h2>
+      <input type="tel" id="joinCode" maxlength="4" placeholder="4桁のコード" inputmode="numeric">
+      <button class="btn" onclick="joinRoom()">参加する</button>
+      ${last?`<button class="btn gray" onclick="rejoinRoom('${esc(last)}')">前回の部屋(${esc(last)})に再入室</button>`:''}
+    </div>
+    ${UI.err?`<div class="err">${esc(UI.err)}</div>`:''}
+    <div class="note" style="text-align:center;margin-top:14px;">通信にはインターネット上の公開MQTT中継を使います。<br>サーバー・ホスト端末なし: 誰かが落ちても再入室すれば復帰できます。</div>`;
+  $('#mybar').className='hidden';
+}
+
+/* ---- 部屋設定 (作成者) ---- */
+function defWolves(n){ return Math.min(n<=6?1:n<=9?2:3, maxWolves(n)); }
+function maxWolves(n){ return Math.max(1,Math.floor((n-1)/2)); }
+function goSetup(){
+  UI.err='';
+  if(!setupDraft){
+    const n=5;
+    setupDraft={n, wolves:defWolves(n), talkMin:3, genres:[],
+      rules:{reversal:true, white:false, unstable:false, anon:true}};
+  }
+  UI.screen='setup'; render();
+}
+function renderSetup(){
+  const d=setupDraft;
+  let ruH='';
+  for(const rd of RULE_DEFS){
+    ruH+=html`<div class="toggle-row"><span><div class="tt">${rd.name}</div><div class="td">${rd.d}</div></span>
+      <label class="sw"><input type="checkbox" ${d.rules[rd.k]?'checked':''} onchange="setupDraft.rules['${rd.k}']=this.checked"><span></span></label></div>`;
+  }
+  let gH='<div class="chips">';
+  gH+=`<span class="chip ${d.genres.length?'':'on'}" onclick="setupDraft.genres=[];render()">ぜんぶ</span>`;
+  for(const g of GENRES)
+    gH+=`<span class="chip ${d.genres.includes(g.k)?'on':''}" onclick="toggleGenre('${g.k}')">${g.n}</span>`;
+  gH+='</div>';
+  $('#app').innerHTML=html`
+    <h1>部屋を作る</h1>
+    <div class="card"><h2>人数と時間</h2>
+      <div class="stepper"><span class="nm">プレイヤー人数 <small>3〜20</small></span>
+        <span class="stepctl"><button onclick="stepN(-1)">−</button><b>${d.n}</b><button onclick="stepN(1)">＋</button></span></div>
+      <div class="stepper"><span class="nm">ウルフ人数 <small>最大${maxWolves(d.n)}${d.rules.unstable?' / 不定ONなら0〜この人数':''}</small></span>
+        <span class="stepctl"><button onclick="stepW(-1)">−</button><b>${d.wolves}</b><button onclick="stepW(1)">＋</button></span></div>
+      <div class="stepper"><span class="nm">議論時間 <small>分</small></span>
+        <span class="stepctl"><button onclick="stepT(-1)">−</button><b>${d.talkMin}</b><button onclick="stepT(1)">＋</button></span></div>
+      <div class="note" style="margin-top:6px;">あなた(ホスト)もこの人数に含まれ、1人のプレイヤーとして参加します。</div>
+    </div>
+    <div class="card"><h2>お題ジャンル</h2>${gH}
+      <div class="note" style="margin-top:8px;">複数選択OK。何も選ばなければ全ジャンルから出題。</div></div>
+    <div class="card"><h2>ルール設定</h2>${ruH}</div>
+    <button class="btn" onclick="createRoom()">この設定で部屋を作る</button>
+    <button class="btn gray" onclick="UI.screen='home';render()">戻る</button>
+    ${UI.err?`<div class="err">${esc(UI.err)}</div>`:''}`;
+  $('#mybar').className='hidden';
+}
+function stepN(d){ const s=setupDraft; s.n=Math.min(20,Math.max(3,s.n+d)); s.wolves=Math.min(s.wolves,maxWolves(s.n)); render(); }
+function stepW(d){ const s=setupDraft; s.wolves=Math.min(maxWolves(s.n),Math.max(1,s.wolves+d)); render(); }
+function stepT(d){ const s=setupDraft; s.talkMin=Math.min(10,Math.max(1,s.talkMin+d)); render(); }
+function toggleGenre(k){
+  const g=setupDraft.genres;
+  const i=g.indexOf(k);
+  if(i>=0)g.splice(i,1); else g.push(k);
+  render();
+}
+
+async function createRoom(){
+  UI.err='';
+  const d=setupDraft;
+  const c=String(1000+Math.floor(Math.random()*9000));
+  UI.screen='connecting'; render();
+  try{
+    code=c; joined=false; R=null; E={}; mySeq=0;
+    await Net.connect(c,onNetMsg);
+    await new Promise(r=>setTimeout(r,900));
+    nonce=Math.random().toString(36).slice(2,10);
+    R={v:1,nonce,host:me,n:d.n,wolves:d.wolves,talkMin:d.talkMin,
+       genres:d.genres.slice(),rules:Object.assign({},d.rules),ts:Date.now()};
+    Net.pub(`${TOPIC_NS}/${code}/room`,R,true);
+    sendJoin();
+    UI.screen='game'; render();
+  }catch(e){ UI.err='接続できませんでした。通信環境を確認してください。'; UI.screen='setup'; render(); }
+}
+function joinRoom(){ const v=($('#joinCode').value||'').trim(); if(!/^\d{4}$/.test(v)){UI.err='4桁の数字を入力してください';render();return;} rejoinRoom(v); }
+async function rejoinRoom(c){
+  UI.err='';
+  UI.screen='connecting'; render();
+  try{
+    code=c; joined=false; R=null; E={}; mySeq=0; nonce='';
+    await Net.connect(c,onNetMsg);
+    // retained (部屋定義+イベント) の到着待ち。
+    // ブローカーからretainedが消えていても、部屋にいる仲間からピア同期で復元する
+    let waited=0;
+    while(!R&&waited<7000){
+      if(waited===1500||waited===3500)sendSyncReq();
+      await new Promise(r=>setTimeout(r,250)); waited+=250;
+    }
+    if(!R){ Net.close(); UI.err='部屋が見つかりませんでした。コードを確認してください。'; UI.screen='home'; render(); return; }
+    sendSyncReq();
+    await new Promise(r=>setTimeout(r,900));
+    republishOwn();
+    const st=curState();
+    const inGame=st.members?st.members.includes(me):st.joins.includes(me);
+    if(!inGame){
+      if(st.members){ Net.close(); LS.del('ww_room'); UI.err='この部屋はすでにゲームが始まっています。'; UI.screen='home'; render(); return; }
+      if(st.joins.length>=R.n){ Net.close(); LS.del('ww_room'); UI.err='この部屋は満員です。'; UI.screen='home'; render(); return; }
+    }
+    if(!st.joins.includes(me)) sendJoin(); else { joined=true; LS.set('ww_room',code); }
+    UI.screen='game'; render();
+  }catch(e){ Net.close(); UI.err='接続できませんでした。通信環境を確認してください。'; UI.screen='home'; render(); }
+}
+function leaveRoom(){ Net.close(); R=null; E={}; joined=false; LS.del('ww_room'); UI.screen='home'; UI.err=''; render(); }
+
+/* ---- 自動復帰・自動再接続 (jinro.html と同方式) ---- */
+let reconLast=0;
+async function ensureConnected(){
+  if(UI.screen!=='game'||!code||Net.connecting)return;
+  if(Net.conns.some(c=>c.alive))return;
+  if(Date.now()-reconLast<4000)return;
+  reconLast=Date.now();
+  Net.connecting=true;
+  try{
+    await Net.connect(code,onNetMsg);
+    republishOwn();   // 再接続先のブローカーのretainedを自己修復
+    sendSyncReq();    // 切断中の差分を仲間からもらう
+  }catch(e){}
+  Net.connecting=false;
+  render();
+}
+document.addEventListener('visibilitychange',()=>{ if(!document.hidden)ensureConnected(); });
+window.addEventListener('focus',()=>ensureConnected());
+window.addEventListener('pageshow',()=>ensureConnected());
+
+/* ---- ロビー ---- */
+function renderLobby(st){
+  const isHost=R.host===me;
+  const memberPids=st.joins.slice(0,R.n);
+  let list='';
+  memberPids.forEach((p,i)=>{
+    list+=`<li><span>${i+1}. ${st.names[p]?nm(st,p):'<span class="tag">(名前を設定中…)</span>'}${p===me?' <span class="tag">あなた</span>':''}</span>${p===R.host?'<span class="tag host">ホスト</span>':''}</li>`;
+  });
+  for(let i=memberPids.length;i<R.n;i++) list+=`<li><span class="tag">${i+1}. 参加待ち…</span></li>`;
+  const myName=st.names[me]||'';
+  const full=memberPids.length>=R.n;
+  const allNamed=full&&memberPids.every(p=>st.names[p]);
+  const setL=[];
+  setL.push(R.rules.unstable?`ウルフ0〜${R.wolves}人(不定)`:`ウルフ${R.wolves}人`);
+  setL.push(`議論${R.talkMin}分`);
+  if(R.rules.reversal)setL.push('逆転チャンス');
+  if(R.rules.white)setL.push('ホワイトの可能性');
+  if(R.rules.anon)setL.push('匿名チャット');
+  $('#app').innerHTML=html`
+    <h1>ロビー</h1>
+    <div class="card" style="text-align:center;"><h2>部屋コード</h2>
+      <div class="code-big">${esc(code)}</div>
+      <div class="note">このコードを友達に伝えてね (${memberPids.length}/${R.n}人)</div>
+    </div>
+    <div class="card"><h2>自分の名前</h2>
+      <input type="text" id="nameIn" maxlength="12" placeholder="名前を入力" value="${esc(myName)}">
+      <button class="btn" onclick="setMyName()">${myName?'名前を変更':'この名前で決定'}</button>
+    </div>
+    <div class="card"><h2>参加者</h2><ul class="plist">${list}</ul></div>
+    <div class="card"><h2>この部屋のルール</h2><div class="note">${setL.join(' / ')} / ジャンル: ${(R.genres&&R.genres.length)?R.genres.map(k=>GENRE_NAME[k]||k).join('、'):'ぜんぶ'}</div></div>
+    ${isHost?html`<button class="btn" ${allNamed?'':'disabled'} onclick="startGame()">ゲーム開始</button>
+      <div class="note" style="text-align:center;">全員が揃って名前を設定すると開始できます</div>`:
+      '<div class="waiting">ホストの開始を待っています…</div>'}
+    <button class="btn gray" onclick="leaveRoom()">退出</button>`;
+  $('#mybar').className='hidden';
+}
+function setMyName(){
+  const v=($('#nameIn').value||'').trim().slice(0,12);
+  if(!v)return;
+  LS.set('ww_name',v);
+  pubEv({t:'name',name:v});
+}
+function startGame(){
+  const st=curState();
+  if(st.stage!=='lobby')return;
+  const memberPids=st.joins.slice(0,R.n);
+  if(memberPids.length<R.n||!memberPids.every(p=>st.names[p]))return;
+  pubEv({t:'start',members:memberPids,seed:Math.random().toString(36).slice(2,12)+Date.now().toString(36)});
+}
+
+/* ---- お題カード ---- */
+function wordCardHtml(st){
+  const w=st.word[me];
+  const isWhite=st.role[me]==='white';
+  let h='<div class="rolecard">';
+  h+=`<div class="tag">ジャンル: ${GENRE_NAME[st.pair.g]||''}</div>`;
+  if(isWhite){
+    h+=`<div class="rn white">ホワイト</div>
+      <div class="roledesc">あなたには<b>お題がありません</b>。<br>
+      まわりの会話から多数派のお題を推理して、知っているフリで話を合わせましょう。<br>
+      バレずに市民が処刑されればあなた(少数派)の勝ち。${R.rules.reversal?'処刑されても、市民のお題を言い当てれば逆転勝利です。':''}</div>`;
+  }else{
+    h+=`<div class="tag">あなたのお題</div><div class="rn">${esc(w)}</div>
+      <div class="roledesc">このお題について話しましょう。ただし——<br>
+      <b>自分が多数派(市民)か少数派(ウルフ)かは分かりません。</b><br>
+      お題をそのまま口にすると正体がバレます。うまくぼかしながら、周りと話が噛み合っているか探りましょう。</div>`;
+  }
+  h+=`<div class="extra">この村の設定:<br>
+    🐺 ウルフ: ${R.rules.unstable?`0〜${R.wolves}人(人数不定! いないかも)`:`${R.wolves}人`}<br>
+    ${R.rules.white?'⬜ ホワイト: いるかも(50%)<br>':''}
+    ${R.rules.reversal?'🔄 逆転チャンス: あり':'🔄 逆転チャンス: なし'}</div>`;
+  if(st.anon){
+    const a=st.alias[me];
+    h+=`<div class="extra">🎭 あなたの匿名ネーム: <b style="color:${a.c}">${a.e}${a.n}</b><br>
+      チャットと投票ではこの名前で表示されます。誰にも教えないように!</div>`;
+  }
+  h+='</div>';
+  return h;
+}
+function renderReveal(st){
+  if(!sel.shown){
+    $('#app').innerHTML=html`
+      <div class="phase-head"><div class="day">お題確認</div><div class="ph">お題が配られました</div></div>
+      <div class="card" style="text-align:center;padding:34px 14px;">
+        <div class="note" style="margin-bottom:14px;">まわりに見られないように確認してね</div>
+        <button class="btn" onclick="sel.shown=true;render()">タップしてお題を見る</button>
+      </div>`;
+  }else{
+    const okd=me in st.oks;
+    $('#app').innerHTML=html`
+      <div class="phase-head"><div class="day">お題確認</div></div>
+      <div class="card">${wordCardHtml(st)}</div>
+      ${okd?`<div class="waiting">他のプレイヤーの確認を待っています<div class="cnt">${st.okCnt} / ${st.members.length}</div></div>`
+           :'<button class="btn" onclick="pubEv({t:\'ok\'})">確認しました</button>'}`;
+  }
+  showBar(st);
+}
+
+/* ---- チャット ---- */
+function chatHtml(st){
+  if(!st.anon)return '';
+  const msgs=st.chats.slice(-200);
+  const items=msgs.map(c=>{
+    const a=st.alias[c.pid]||{e:'❓',n:'?',c:'var(--dim)'};
+    return `<div class="cmsg"><span class="cwho" style="color:${a.c}">${a.e}${a.n}</span>${esc(c.text)}</div>`;
+  }).join('');
+  return `<div class="card"><h2>💬 匿名チャット</h2>
+    <div class="clist" id="chatList" data-n="${msgs.length}">${items||'<div class="note">まだ発言なし。ここで議論しよう…</div>'}</div>
+    <div class="chatrow"><input type="text" id="chatIn" maxlength="100" placeholder="匿名で発言…"
+      onkeydown="if(event.key==='Enter'){sendChat();event.preventDefault();}">
+      <button class="btn" onclick="sendChat()">送信</button></div>
+    <div class="note" style="margin-top:6px;">誰の発言かは表示されません。自分の匿名ネームは下の「お題」ボタンから確認できます。</div></div>`;
+}
+function sendChat(){
+  const el=$('#chatIn'); if(!el)return;
+  const v=el.value.trim().slice(0,100);
+  if(!v)return;
+  el.value='';
+  pubEv({t:'chat',text:v});
+  const el2=$('#chatIn'); if(el2)el2.focus();
+}
+
+/* ---- 議論 → 投票 ---- */
+function fmtT(s){ s=Math.max(0,Math.ceil(s)); return Math.floor(s/60)+':'+String(s%60).padStart(2,'0'); }
+function talkRemain(st){
+  const base=(st.R.talkMin||3)*60+st.timeAdj*60;
+  return base-(Date.now()-st.talkTs)/1000;
+}
+function myVoteSent(r){
+  const evs=E[me]||{};
+  for(const s in evs){ const e=evs[s]; if(e.t==='vote'&&(e.r?1:0)===r)return true; }
+  return false;
+}
+function playerListHtml(st){
+  let h='<div class="card"><h2>プレイヤー</h2><ul class="plist">';
+  for(const p of dispOrder(st)){
+    if(st.anon) h+=`<li><span>${dispBtn(st,p)}</span></li>`;
+    else h+=`<li><span>${nm(st,p)}${p===me?' <span class="tag">あなた</span>':''}</span>${p===R.host?'<span class="tag host">ホスト</span>':''}</li>`;
+  }
+  return h+'</ul></div>';
+}
+function renderTalk(st){
+  const isHost=R.host===me;
+  const remain=talkRemain(st);
+  const voteOpen=st.tovoteTs!=null||remain<=0;
+  let h=html`<div class="phase-head ${voteOpen?'hot':''}"><div class="day">ワードウルフ</div><div class="ph">${voteOpen?'🗳 投票':'🗣 議論タイム'}</div></div>`;
+  h+=`<div class="ann"><span class="lbl">ジャンル</span>${GENRE_NAME[st.pair.g]||''} のお題が配られています。少数派(ウルフ)は誰だ?</div>`;
+
+  if(!voteOpen){
+    h+=html`<div class="card" style="text-align:center;">
+      <div class="timer ${remain<=30?'low':''}">${fmtT(remain)}</div>
+      <div class="note">議論の残り時間</div>
+      ${isHost?html`<div class="rowbtns" style="margin-top:10px;">
+        <button class="btn gray" onclick="pubEv({t:'time',d:1})">＋1分</button>
+        <button class="btn gray" ${remain>60?'':'disabled'} onclick="pubEv({t:'time',d:-1})">−1分</button>
+      </div>
+      <button class="btn" onclick="pubEv({t:'tovote'})">投票へ</button>`:
+      '<div class="note" style="margin-top:8px;">時間の調整・投票開始はホストが行います</div>'}
+    </div>`;
+    h+=chatHtml(st);
+  }else{
+    if(!myVoteSent(0)){
+      let pk='<div class="pick">';
+      for(const p of dispOrder(st)) if(p!==me)
+        pk+=`<button class="${sel.vote===p?'sel':''}" onclick="sel.vote='${p}';render()">${dispBtn(st,p)}</button>`;
+      if(st.canNone)
+        pk+=`<button class="wide ${sel.vote==='none'?'sel':''}" onclick="sel.vote='none';render()">ウルフはいない!(平和村だと思う)</button>`;
+      pk+='</div>';
+      h+=html`<div class="card"><h2>🗳 投票</h2>
+        <div class="note">ウルフだと思う${st.anon?'匿名ネーム':'人'}を選んでください。${st.canNone?'平和村だと思うなら「ウルフはいない」もアリ。':''}</div>${pk}
+        <button class="btn red" ${sel.vote?'':'disabled'} onclick="sendVote(0)">これに投票する</button></div>`;
+    }else{
+      h+=`<div class="card"><div class="waiting">投票しました。全員の投票を待っています<div class="cnt">${st.votesIn} / ${st.votesNeed}</div></div>
+        ${isHost?`<button class="btn gray small" onclick="if(confirm('未投票の人を棄権扱いにして進めます。いいですか?'))pubEv({t:'force',phase:'vote'})">⚠ 未投票をスキップして進行</button>`:''}</div>`;
+    }
+    h+=chatHtml(st);
+  }
+  h+=playerListHtml(st);
+  $('#app').innerHTML=h;
+  showBar(st);
+}
+function sendVote(r){ if(!sel.vote)return; pubEv({t:'vote',r,tgt:sel.vote}); sel.vote=null; }
+
+/* ---- 決選投票 ---- */
+function renderRevote(st){
+  const isHost=R.host===me;
+  let h=html`<div class="phase-head hot"><div class="day">同数トップ!</div><div class="ph">⚖ 決選投票</div></div>`;
+  h+=`<div class="ann"><span class="lbl">1回目の投票</span>${voteLinesHtml(st,st.vote1)}</div>`;
+  if(!myVoteSent(1)){
+    let pk='<div class="pick">';
+    for(const p of st.cand){
+      if(p===me)continue;
+      if(p==='none') pk+=`<button class="wide ${sel.vote==='none'?'sel':''}" onclick="sel.vote='none';render()">ウルフはいない!(平和村だと思う)</button>`;
+      else pk+=`<button class="${sel.vote===p?'sel':''}" onclick="sel.vote='${p}';render()">${dispBtn(st,p)}</button>`;
+    }
+    pk+='</div>';
+    h+=html`<div class="card"><h2>決選投票</h2>
+      <div class="note">同数トップの候補から選んでください。それでも同数なら抽選になります。</div>${pk}
+      <button class="btn red" ${sel.vote?'':'disabled'} onclick="sendVote(1)">これに投票する</button></div>`;
+  }else{
+    h+=`<div class="card"><div class="waiting">投票しました。全員の投票を待っています<div class="cnt">${st.votesIn} / ${st.votesNeed}</div></div>
+      ${isHost?`<button class="btn gray small" onclick="if(confirm('未投票の人を棄権扱いにして進めます。いいですか?'))pubEv({t:'force',phase:'revote'})">⚠ 未投票をスキップして進行</button>`:''}</div>`;
+  }
+  h+=chatHtml(st);
+  $('#app').innerHTML=h;
+  showBar(st);
+}
+
+/* ---- 逆転チャンス ---- */
+function myGuessSent(){
+  const evs=E[me]||{};
+  for(const s in evs) if(evs[s].t==='guess')return true;
+  return false;
+}
+function renderGuess(st){
+  const isHost=R.host===me;
+  const ex=st.executed;
+  const exRole=st.role[ex];
+  let h=html`<div class="phase-head hot"><div class="day">処刑</div><div class="ph">🔄 逆転チャンス</div></div>`;
+  h+=`<div class="ann">投票の結果、${disp(st,ex)} が処刑された!<br>
+    正体は <b class="${exRole==='wolf'?'bg-wolf':'bg-white'}">${exRole==='wolf'?'ウルフ':'ホワイト'}</b> だった!<br>
+    しかし——市民のお題を言い当てれば逆転勝利のチャンスが残っている…!</div>`;
+  h+=`<div class="ann">${voteLinesHtml(st,st.vote1)}${st.vote2?'<div style="margin-top:6px;"><span class="lbl">決選投票</span>'+voteLinesHtml(st,st.vote2)+'</div>':''}</div>`;
+  if(ex===me){
+    if(!myGuessSent()){
+      h+=html`<div class="card"><h2>市民のお題はなんだ!?</h2>
+        <div class="note">議論を思い出して、市民(多数派)に配られていたお題を当ててください。ひらがな/カタカナ/スペースの違いはOK。チャンスは1回!</div>
+        <input type="text" id="guessIn" maxlength="30" placeholder="市民のお題を入力…" style="margin:10px 0;">
+        <button class="btn red" onclick="sendGuess()">これで勝負!</button>
+        <button class="btn gray" onclick="if(confirm('あきらめますか? 市民の勝利が確定します。'))pubEv({t:'guess',giveup:true})">わからない…(あきらめる)</button></div>`;
+    }else{
+      h+='<div class="waiting">判定中…</div>';
+    }
+  }else{
+    h+=`<div class="waiting">${disp(st,ex)} が市民のお題を推理中…<br>逆転なるか!?</div>`;
+    if(isHost)h+=`<div style="text-align:center;"><button class="btn gray small" onclick="if(confirm('逆転チャンスをスキップします(不正解扱い)。処刑された人が離脱した時だけ使ってください。'))pubEv({t:'force',phase:'guess'})">⚠ 応答がないのでスキップ</button></div>`;
+  }
+  h+=chatHtml(st);
+  $('#app').innerHTML=h;
+  showBar(st);
+}
+function sendGuess(){
+  const el=$('#guessIn'); if(!el)return;
+  const v=el.value.trim().slice(0,30);
+  if(!v)return;
+  pubEv({t:'guess',text:v});
+}
+
+/* ---- 結果 ---- */
+function voteLinesHtml(st,v){
+  if(!v)return '';
+  const parts=Object.keys(v.cnt).sort((a,b)=>v.cnt[b]-v.cnt[a])
+    .map(k=>`${k==='none'?'ウルフはいない':(st.anon?dispBtn(st,k):nm(st,k))}: ${v.cnt[k]}票`);
+  let h=`<div class="note">${parts.join(' / ')||'有効票なし'}</div>`;
+  const lines=dispOrder(st).filter(p=>p in v.det)
+    .map(p=>`${st.anon?dispBtn(st,p):nm(st,p)} → ${v.det[p]==='none'?'ウルフはいない':(st.anon?dispBtn(st,v.det[p]):nm(st,v.det[p]))}`);
+  if(lines.length)h+=`<div class="note" style="margin-top:4px;">${lines.join('<br>')}</div>`;
+  return h;
+}
+function outcomeView(st){
+  const roles=st.minority.map(p=>st.role[p]);
+  const hasW=roles.includes('wolf'), hasWh=roles.includes('white');
+  const minName=hasW&&hasWh?'少数派(ウルフ&ホワイト)':(hasWh&&!hasW?'ホワイト':'ウルフ');
+  const minCls=(hasWh&&!hasW)?'win-white':'win-min';
+  switch(st.outcome){
+    case 'citizen': return {cls:'win-cit', big:'市民の勝利!',
+      sub: st.guess? (st.guess.text!=null?`逆転ならず! 「${esc(st.guess.text)}」は不正解…`:'少数派は逆転をあきらめた…'):'少数派を見事に処刑した!'};
+    case 'minority': return {cls:minCls, big:minName+'の勝利!',
+      sub: st.executed==='none'?'処刑なし。少数派はまんまと生き延びた…':'市民を処刑してしまった…'};
+    case 'reversal': return {cls:minCls, big:'大逆転! '+minName+'の勝利!',
+      sub:`処刑された${st.anon?'':''}少数派が市民のお題「${esc(st.majorWord)}」を言い当てた!`};
+    case 'peace': return {cls:'win-all', big:'平和村! 全員の勝利!',
+      sub:'この村にウルフはいなかった。全員が見抜いた!'};
+    case 'chaos': return {cls:'win-draw', big:'全員の敗北…',
+      sub:'ウルフのいない平和村で、処刑をしてしまった…'};
+  }
+  return {cls:'win-draw', big:'?', sub:''};
+}
+function renderEnd(st){
+  const isHost=R.host===me;
+  const o=outcomeView(st);
+  let h=html`
+    <div class="phase-head"><div class="day">ゲーム終了</div></div>
+    <div class="winbig ${o.cls}">${o.big}</div>
+    <div class="sub">${o.sub}</div>`;
+  h+=`<div class="card"><h2>お題公開</h2>
+    <div class="wordbox">
+      <div><div class="wl">市民のお題</div><div class="wv" style="color:var(--grn)">${esc(st.majorWord)}</div></div>
+      <div><div class="wl">ウルフのお題</div><div class="wv" style="color:var(--red)">${esc(st.wolfWord)}</div></div>
+    </div>
+    ${st.wolfN===0?'<div class="note">今回はウルフ不在の平和村でした。</div>':''}
+    ${st.hasWhite?'<div class="note">ホワイト(お題なし)が1人混ざっていました。</div>':''}
+    ${st.executed&&st.executed!=='none'?`<div class="note" style="margin-top:6px;">処刑: ${disp(st,st.executed)}${st.anon?`(${nm(st,st.executed)})`:''}</div>`:'<div class="note" style="margin-top:6px;">処刑は行われませんでした。</div>'}
+    ${st.guess&&st.guess.text!=null?`<div class="note">逆転チャンスの回答: 「${esc(st.guess.text)}」→ ${st.guess.hit?'<b style="color:var(--red)">正解!</b>':'不正解'}</div>`:''}
+  </div>`;
+  let table='<table class="rev">';
+  for(const p of dispOrder(st)){
+    const r=st.role[p];
+    const badge=r==='wolf'?'<span class="bg-wolf">ウルフ</span>':r==='white'?'<span class="bg-white">ホワイト</span>':'<span class="bg-cit">市民</span>';
+    table+=`<tr><td>${st.anon?`${dispBtn(st,p)}<br><span class="tag">${nm(st,p)}${p===me?' (あなた)':''}</span>`:`${nm(st,p)}${p===me?' <span class="tag">あなた</span>':''}`}</td>
+      <td>${badge}</td>
+      <td style="text-align:right;">${r==='white'?'<span class="tag">お題なし</span>':esc(st.word[p])}</td></tr>`;
+  }
+  table+='</table>';
+  h+=`<div class="card"><h2>正体公開</h2>${table}</div>`;
+  h+=`<div class="card"><h2>投票の内訳</h2>${voteLinesHtml(st,st.vote1)}
+    ${st.vote2?'<div style="margin-top:8px;"><span class="lbl" style="font-size:11px;color:var(--dim);">決選投票</span>'+voteLinesHtml(st,st.vote2)+'</div>':''}</div>`;
+  h+= isHost?'<button class="btn" onclick="playAgain()">同じメンバー・設定でもう一度</button>':'<div class="note" style="text-align:center;">ホストが「もう一度」を押すと同じ部屋で再戦できます</div>';
+  h+='<button class="btn gray" onclick="leaveRoom()">退出する</button>';
+  $('#app').innerHTML=h;
+  showBar(st);
+}
+function playAgain(){
+  // 新しいゲームID(nonce)で同じ部屋を作り直す → 全員自動で新ロビーへ
+  const newR=Object.assign({},R,{nonce:Math.random().toString(36).slice(2,10),ts:Date.now()});
+  Net.pub(`${TOPIC_NS}/${code}/room`,newR,true);
+  onNetMsg(`${TOPIC_NS}/${code}/room`,JSON.stringify(newR));
+}
+
+/* ---- 共通 ---- */
+function showBar(st){
+  $('#mybar').className='';
+  $('#myNameLbl').textContent=(st.names&&st.names[me])||'';
+  UI.connDot();
+}
+
+let chatKeep={n:0,pos:0};
+function render(){
+  // 再描画で入力中のテキストが消えないように、フォーカス中の入力欄を保存/復元する
+  const ae=document.activeElement;
+  let keep=null;
+  if(ae&&ae.tagName==='INPUT'&&ae.id&&(ae.type==='text'||ae.type==='tel'))
+    keep={id:ae.id,value:ae.value,ss:ae.selectionStart,se:ae.selectionEnd};
+  const cl0=document.getElementById('chatList');
+  if(cl0)chatKeep.pos=cl0.scrollTop;
+  renderInner();
+  if(keep){
+    const el=document.getElementById(keep.id);
+    if(el){ el.value=keep.value; el.focus(); try{el.setSelectionRange(keep.ss,keep.se);}catch(e){} }
+  }
+  const cl=document.getElementById('chatList');
+  if(cl){
+    const n=+(cl.dataset.n||0);
+    if(n!==chatKeep.n){ cl.scrollTop=cl.scrollHeight; chatKeep.n=n; }
+    else cl.scrollTop=chatKeep.pos;
+  }
+}
+function renderInner(){
+  if(UI.screen==='home')return renderHome();
+  if(UI.screen==='setup')return renderSetup();
+  if(UI.screen==='connecting'){ $('#app').innerHTML='<div class="waiting" style="padding-top:120px;">接続中…</div>'; return; }
+  if(!R)return renderHome();
+  const st=curState();
+  // ステージ切替時に画面内選択をリセット
+  const key=st.stage;
+  if(key!==lastStageKey){ lastStageKey=key; sel={shown:sel.shown&&st.stage==='reveal'}; }
+  if(st.stage==='lobby')return renderLobby(st);
+  if(!st.members.includes(me)){ $('#app').innerHTML='<div class="waiting" style="padding-top:120px;">この部屋はゲーム進行中です</div><button class="btn gray" onclick="leaveRoom()">戻る</button>'; return; }
+  if(st.stage==='reveal')return renderReveal(st);
+  if(st.stage==='talk')return renderTalk(st);
+  if(st.stage==='revote')return renderRevote(st);
+  if(st.stage==='guess')return renderGuess(st);
+  if(st.stage==='end')return renderEnd(st);
+}
+let tickN=0;
+setInterval(()=>{ if(UI.screen==='game'){ tickN++; ensureConnected(); if(tickN%10===0)sendSyncReq(); render(); } },1000);
+render();
+// 前回の部屋が記録されていれば自動で再入室 (「退出する」を押した時だけ記録が消える)
+{ const last=LS.get('ww_room',''); if(/^\d{4}$/.test(last)) rejoinRoom(last); }
+</script>
+</body>
+</html>
