@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSettingsStore } from '../stores/settingsStore';
 import { useUiStore } from '../stores/uiStore';
@@ -7,7 +7,7 @@ import { ConfirmDialog } from '../components/ConfirmDialog';
 import { getAllWords, resetAllHistory, deleteAllData } from '../db/repositories';
 import { wordsToCsv } from '../importExport/csvExport';
 import { createBackupJson, downloadFile, restoreFromJson } from '../importExport/jsonBackup';
-import { getEnglishVoices } from '../audio/speech';
+import { getEnglishVoices, onVoicesChanged, resolveVoice, speakWord } from '../audio/speech';
 import { todayStr } from '../utils/dates';
 import type { AppSettings } from '../domain/types';
 
@@ -18,7 +18,15 @@ export function SettingsPage() {
   const showToast = useUiStore((s) => s.showToast);
   const [confirmReset, setConfirmReset] = useState(false);
   const [confirmDeleteAll, setConfirmDeleteAll] = useState(false);
-  const voices = getEnglishVoices();
+  const [voices, setVoices] = useState<SpeechSynthesisVoice[]>(() => getEnglishVoices());
+
+  // iOS Safari では音声リストが遅れて読み込まれるため監視する
+  useEffect(() => {
+    setVoices(getEnglishVoices());
+    return onVoicesChanged(() => setVoices(getEnglishVoices()));
+  }, []);
+
+  const autoVoice = resolveVoice(settings);
 
   const num = (key: keyof AppSettings, min: number, max: number) => ({
     type: 'number' as const,
@@ -189,7 +197,7 @@ export function SettingsPage() {
             onChange={(e) => void update({ speechVolume: Number(e.target.value) })}
           />
         </label>
-        {voices.length > 0 && (
+        {voices.length > 0 ? (
           <label className="setting-row">
             音声
             <select
@@ -197,15 +205,37 @@ export function SettingsPage() {
               value={settings.speechVoiceURI ?? ''}
               onChange={(e) => void update({ speechVoiceURI: e.target.value || null })}
             >
-              <option value="">自動選択</option>
+              <option value="">
+                自動選択{autoVoice ? `（${autoVoice.name}）` : ''}
+              </option>
               {voices.map((v) => (
                 <option key={v.voiceURI} value={v.voiceURI}>
-                  {v.name}
+                  {v.name}（{v.lang}）
                 </option>
               ))}
             </select>
           </label>
+        ) : (
+          <p className="hint">
+            英語音声が見つかりません。一度「試聴」を押すと読み込まれる場合があります。
+          </p>
         )}
+        <button
+          className="btn btn-secondary"
+          onClick={() => {
+            if (!speakWord('vocabulary', settings)) {
+              showToast('音声を再生できませんでした。', 'error');
+            }
+          }}
+        >
+          🔊 試聴（vocabulary）
+        </button>
+        <p className="hint">
+          発音が機械的な場合は、上のリストから「Enhanced / Premium」付きの音声を選んでください。
+          iPhoneでは「設定 → アクセシビリティ → 読み上げコンテンツ → 声 → 英語」から
+          高品質な音声（SamanthaのEnhanced版やSiriの声など）を無料でダウンロードでき、
+          追加するとこのアプリでも選べるようになります。再生速度を0.8〜0.9にすると聞き取りやすくなります。
+        </p>
       </section>
 
       <section className="card">
