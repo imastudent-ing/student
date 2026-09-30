@@ -176,6 +176,7 @@
   .ctk{flex:1; min-width:0; height:26px; overflow:hidden; display:flex; justify-content:flex-end; align-items:center;}
   .ctk-in{display:inline-flex; align-items:center; gap:5px; max-width:100%; font-size:12.5px; font-weight:700; color:#555; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; animation:ctkIn .5s ease both;}
   .ctk-in .av{flex-shrink:0;}
+  .ctk-in.still{animation:none;}
   @keyframes ctkIn{from{transform:translateY(110%); opacity:0} to{transform:none; opacity:1}}
   @media (prefers-reduced-motion: reduce){ .ctk-in{animation:none;} }
   .rxpick{display:flex; gap:6px; padding:0 12px 12px;}
@@ -599,7 +600,7 @@ function byDayTodayFirst(list){
 /* ============================================================
    画面: きょう
    ============================================================ */
-let tab = 'today', viewWeek = 0;
+let tab = (() => { try{ const t = sessionStorage.getItem('komalog.tab'); return ['today','week','feed'].includes(t) ? t : 'today'; }catch(e){ return 'today'; } })(), viewWeek = 0;
 function header(){
   const dm = S.settings.demo;
   return `<div class="hd"><div class="logo">KOMALOG</div>
@@ -754,18 +755,23 @@ function postBar(f, r){
   const list = rxList(f, r), cs = postComments(f, r), MAX = 5;
   const chips = list.slice(0, MAX).map(x => x.mine && f ? `<button class="rxe on" data-act="rx" data-v="${r.id}|${x.e}" aria-label="${x.e} を取り消す">${x.e}</button>` : `<span class="rxe">${x.e}</span>`).join('')
     + (list.length > MAX ? '<span class="rxmore" aria-label="ほかにもリアクション">+</span>' : '');
-  const last = cs[cs.length-1], lf = last && (last.from==='me' ? null : fById(last.from));
-  const tick = last ? `<span class="ctk" data-cm="${r.id}" data-i="${cs.length-1}"><span class="ctk-in">${lf ? avatar(lf.emoji, lf.bg, 18) : meAv(18)}${esc(last.text)}</span></span>` : '<span class="ctk"></span>';
+  // 一巡したら最新のコメントで止める(描き直しても最初からやり直さない)
+  const n = cs.length, pos = TICK[r.id]; const idx = n ? (pos==null ? 0 : Math.min(pos, n-1)) : -1;
+  const m0 = cs[idx], f0 = m0 && (m0.from==='me' ? null : fById(m0.from));
+  const tick = m0 ? `<span class="ctk" data-cm="${r.id}"><span class="ctk-in ${pos!=null && pos>=n-1 ? 'still' : ''}">${f0 ? avatar(f0.emoji, f0.bg, 18) : meAv(18)}${esc(m0.text)}</span></span>` : '<span class="ctk"></span>';
+  if(pos==null && n) TICK[r.id] = 0;
   return `<div class="pbar">${chips}${f ? `<button class="rxc add" data-act="rxpick" data-v="${r.id}" aria-label="リアクション">☺︎＋</button>` : ''}
     ${tick}<button class="rxc cmb" data-act="cmts" data-v="${r.id}" aria-label="コメント${cs.length ? cs.length+'件' : ''}">💬</button></div>
     <div class="rxpick" id="rp-${r.id}" hidden>${RX.map(e => `<button data-act="rx" data-v="${r.id}|${e}">${e}</button>`).join('')}</div>`;
 }
 // コメントは 💬 の横で、ひとつずつ下から流れるように表示
+const TICK = {}; // 投稿ごとに、いま何件目のコメントを出しているか
 setInterval(() => {
   document.querySelectorAll('.ctk[data-cm]').forEach(el => {
-    const p = findPost(el.dataset.cm); if(!p) return; const cs = postComments(p.f, p.r); if(cs.length < 2) return;
-    const i = (+el.dataset.i + 1) % cs.length, m = cs[i], f = m.from==='me' ? null : fById(m.from);
-    el.dataset.i = i; el.innerHTML = `<span class="ctk-in">${f ? avatar(f.emoji, f.bg, 18) : meAv(18)}${esc(m.text)}</span>`;
+    const id = el.dataset.cm, p = findPost(id); if(!p) return; const cs = postComments(p.f, p.r);
+    const i = TICK[id] ?? 0; if(i >= cs.length-1) return; // 最後まで来たら止まる
+    const m = cs[i+1], f = m.from==='me' ? null : fById(m.from); TICK[id] = i+1;
+    el.innerHTML = `<span class="ctk-in">${f ? avatar(f.emoji, f.bg, 18) : meAv(18)}${esc(m.text)}</span>`;
   });
 }, 3500);
 function postCard({f, c, r}, clickable=true, bar=true){
@@ -796,6 +802,7 @@ function renderComments(){
   $('sheetIn').innerHTML = h; $('pcIn').value = draft;
   $('cmForm').onsubmit = e => { e.preventDefault(); const t = $('pcIn').value.trim(); if(!t) return;
     const id = CMV; (S.pcm[id] = S.pcm[id] || []).push({from:'me', text:t, ts:nowTs()}); if(!save()) return;
+    { const pp = findPost(id); if(pp) TICK[id] = Math.max(0, postComments(pp.f, pp.r).length - 2); }
     $('pcIn').value = ''; $('pcIn').blur();
     const back = CM_BACK; CM_BACK = null;
     if(back && back.fpv) openFriendPost(back.fpv); else if(back && back.cs) openClass(back.cs.cid, back.cs.date); else if(back && back.fsid) openFriend(back.fsid); else closeSheet();
@@ -1361,7 +1368,7 @@ $('ask').onclick = e => { if(e.target===$('ask') && askDone) askDone(false); };
    操作(クリックはまとめて委譲)
    ============================================================ */
 const ACT = {
-  tab: v => { tab = v; closeSheet(); render(); if(v==='today') scrollToNow(); else window.scrollTo(0,0); },
+  tab: v => { tab = v; try{ sessionStorage.setItem('komalog.tab', v); }catch(e){} closeSheet(); render(); if(v==='today') scrollToNow(); else window.scrollTo(0,0); },
   wk: v => { viewWeek = Math.min(0, Math.max(minWeek(), viewWeek + +v)); render(); },
   cls: v => { const [cid, date] = v.split('|'); openClass(cid, date); },
   here: v => {
