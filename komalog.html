@@ -618,9 +618,9 @@ function gridHTML(classes, wd, owner){
       const bg = r && r.photo ? `background-image:url('${r.photo}')` : r && r.ph ? `background:${r.ph.bg}` : `background:${c.color}`;
       const got = isMe ? c.got : c.shareGot;
       const same = !isMe && sameUniv(owner) && S.classes.some(x => key(x)===key(c));
-      const mk = r && (isMe || isToday); // 友だちの ✓ は今日だけ(過去の出欠表にしない)
+      const mk = !!r; // 表示するのは今週だけ(前の週は出さない)
       const came = isMe && isToday ? friendsIn(c).filter(x => fHere(x.f, x.fc, wd[d])).map(x => x.f) : [];
-      const act = isMe ? `data-act="cls" data-v="${c.id}|${wd[d]}"` : sameUniv(owner) ? `data-act="fadd" data-v="${esc(key(c))}"` : '';
+      const act = isMe ? `data-act="cls" data-v="${c.id}|${wd[d]}"` : `data-act="fpost" data-v="${owner.id}|${c.id}|${wd[d]}"`;
       h += `<button class="cell ${r&&(r.photo||r.ph)?'ph':''} ${isToday&&p===curP?'now':''}" style="${bg}" ${act}
           aria-label="${DAYS[d]}${p}限 ${esc(c.name)}${mk?(isSkip(r)?' 飛んだ':' 来た'):''}${came.length?` ${names(came)}が来た`:''}${got?' 単位GET':''}${same?' 同じ授業':''}">
         <span>${esc(c.name)}</span><span class="rm">${esc(c.room||'')}</span>
@@ -653,16 +653,20 @@ function feedItems(){
   return items.sort((a,b) => b.r.ts-a.r.ts).slice(0,80);
 }
 const feedNew = () => feedItems().filter(x => x.f && x.r.ts > (S.feedSeen||0)).length;
+function postCard({f, c, r}, clickable=true){
+  const ph = r.photo ? `<div class="pp" style="background-image:url('${r.photo}')"></div>` : r.ph ? `<div class="pp" style="background:${r.ph.bg}">${r.ph.emo}</div>` : '';
+  const who = f ? `${avatar(f.emoji,f.bg,38)}<span class="t"><b>${f.name}</b>` : `${meAv(38)}<span class="t"><b>あなた${r.aud==='private' ? ' 🔒' : ''}</b>`;
+  const act = !clickable ? '' : f ? `data-act="friend" data-v="${f.id}"` : `data-act="cls" data-v="${c.id}|${r.date}"`;
+  const mark = isSkip(r) ? `🏃 ${hm(r.ts)}` : `☺︎ ${r.late ? 'あとから' : hm(r.ts)}`;
+  const tag = clickable ? 'button' : 'div';
+  return `<${tag} class="post" ${act}>${ph}<span class="pm">${who}<span>${c.period}限 ${esc(c.name)}</span></span><time>${mark}</time></span>${r.comment ? `<span class="cm">${esc(r.comment)}</span>` : ''}</${tag}>`;
+}
 function feedView(){
   const items = feedItems(); let h = header(), last = '';
   if(!items.length) h += '<div class="empty">📷 まだ投稿はありません</div>';
-  items.forEach(({f, c, r}) => {
-    if(r.date!==last){ h += `<div class="sec-t">${r.date===todayStr() ? 'きょう' : `${md(r.date)}(${DAYS[c.day]})`}</div>`; last = r.date; }
-    const ph = r.photo ? `<div class="pp" style="background-image:url('${r.photo}')"></div>` : r.ph ? `<div class="pp" style="background:${r.ph.bg}">${r.ph.emo}</div>` : '';
-    const who = f ? `${avatar(f.emoji,f.bg,38)}<span class="t"><b>${f.name}</b>` : `${meAv(38)}<span class="t"><b>あなた${r.aud==='private' ? ' 🔒' : ''}</b>`;
-    const act = f ? `data-act="friend" data-v="${f.id}"` : `data-act="cls" data-v="${c.id}|${r.date}"`;
-    const mark = isSkip(r) ? `🏃 ${hm(r.ts)}` : `☺︎ ${r.late ? 'あとから' : hm(r.ts)}`;
-    h += `<button class="post" ${act}>${ph}<span class="pm">${who}<span>${c.period}限 ${esc(c.name)}</span></span><time>${mark}</time></span>${r.comment ? `<span class="cm">${esc(r.comment)}</span>` : ''}</button>`;
+  items.forEach(it => {
+    if(it.r.date!==last){ h += `<div class="sec-t">${it.r.date===todayStr() ? 'きょう' : `${md(it.r.date)}(${DAYS[it.c.day]})`}</div>`; last = it.r.date; }
+    h += postCard(it);
   });
   return h;
 }
@@ -724,6 +728,8 @@ function paintClass(){
       <div class="phrow"><button data-act="pick">選び直す</button><button data-act="unphoto">写真を外す</button></div>`;
   } else if(r || can) h += `<button class="phline" data-act="pick">📷 写真を1枚</button>`;
   if(r || can) h += `<div class="f">👀 見える人</div><div class="chips">${audOptions().map(([v,l]) => `<button data-act="aud" data-v="${v}" class="${CS.aud===v?'on':''}" aria-pressed="${CS.aud===v}">${esc(l)}</button>`).join('')}</div>`;
+  { const posts = date >= weekDates(0)[0] ? fr.map(({f,fc}) => ({f, c:fc, r:fRec(f, fc, date)})).filter(x => x.r) : [];
+    if(posts.length) h += `<div class="f">👥 みんな</div>` + posts.map(x => postCard(x, false)).join(''); }
   if(c.got || isSemEnd()) h += `<div id="semBox">${semHTML(c)}</div>`;
   h += `<button class="btn ghost" data-act="edit" data-v="${c.id}">✏️ 編集</button>`;
   document.getElementById('sheetIn').innerHTML = h;
@@ -835,7 +841,7 @@ function friendSheetHTML(f){
       + `<p class="rule">☺︎ = 自己申告 ・ 押してない ≠ 欠席</p>`;
   }
   h += `<div class="f">時間割</div><div class="card ttc">${gridHTML(f.classes, weekDates(0), f)}</div>
-    ${sameUniv(f) ? '<p class="rule">🤝 = 同じ授業 ・ ほかのマスはタップで自分にも追加</p>' : ''}
+    ${sameUniv(f) ? '<p class="rule">🤝 = 同じ授業 ・ マスをタップで投稿を見る</p>' : ''}
     <button class="btn quiet" data-act="unfriend" data-v="${f.id}">友だちをやめる</button>`;
   return h;
 }
@@ -843,6 +849,18 @@ function openFriend(id){
   const f = fById(id); if(!f || S.friendState[id]!=='friend') return;
   CS = null; ADD = null; FSID = id;
   document.getElementById('sheetIn').innerHTML = friendSheetHTML(f); openSheet();
+}
+function openFriendPost(v){
+  const [fid, cid, date] = v.split('|'); const f = fById(fid); const c = f && f.classes.find(x => x.id===cid); if(!c) return;
+  const r = fRec(f, c, date), k = key(c);
+  const canAdd = sameUniv(f) && !S.classes.some(m => key(m)===k) && !S.classes.some(m => m.day===c.day && m.period===c.period);
+  let h = `<button class="lnk" style="margin:0 0 12px" data-act="friend" data-v="${f.id}">‹ ${f.name}</button>
+    <h3>${esc(c.name)}</h3><div class="sub">${md(date)}(${DAYS[c.day]}) ${c.period}限 ${timeText(c)}</div><div style="margin-top:14px">`;
+  h += r ? postCard({f, c, r}, false) : `<div class="empty">${date > todayStr() ? '⏳' : '—'}</div>`;
+  h += '</div>';
+  if(canAdd) h += `<button class="btn" data-act="fadd" data-v="${esc(k)}">＋ 自分の時間割にも追加</button>`;
+  else if(sameUniv(f) && S.classes.some(m => key(m)===k)) h += `<p class="rule" style="text-align:center">🤝 同じ授業</p>`;
+  const b = document.querySelector('#sheet .body'); $('sheetIn').innerHTML = h; b.scrollTop = 0;
 }
 function refreshFriendSheet(){
   const f = fById(FSID); if(!f) return;
@@ -1213,12 +1231,13 @@ const ACT = {
     const ok = save(); refreshSem(v); if(ok) toast(c.shareGot ? '友だちに見せています' : '自分だけに戻しました'); },
   edit: v => openEdit(v),
   friend: v => openFriend(v),
+  fpost: v => openFriendPost(v),
   fadd: async v => {
     const [name, d, p] = v.split('|');
     if(S.classes.some(m => key(m)===v)){ toast('あなたも受けている授業です 🤝'); return; }
     const clash = S.classes.find(m => m.day===+d && m.period===+p);
     if(clash){ toast(`${DAYS[+d]}${p}限は「${clash.name}」が入っています`); return; }
-    if(await ask(`「${name}」(${DAYS[+d]}${p}限)を自分の時間割にも追加しますか？`, '追加する') && addFromKey(v)) refreshFriendSheet();
+    if(await ask(`「${name}」(${DAYS[+d]}${p}限)を自分の時間割にも追加しますか？`, '追加する') && addFromKey(v)) openFriend(FSID);
   },
   add: v => { if(v==='today') openAdd(dayIdx(), null); else if(v){ const [d,p] = v.split('-').map(Number); openAdd(d, p); } else openAdd(null, null); },
   amode: v => { ADD.mode = v; renderAdd(); },
