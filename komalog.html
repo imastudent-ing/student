@@ -33,7 +33,8 @@
   .av{border-radius:50%; display:grid; place-items:center; overflow:hidden; flex-shrink:0; line-height:1;}
   .hint{display:flex; align-items:center; gap:10px; margin:16px 12px 18px; color:var(--dim); font-weight:900; font-size:15px;}
   .hint .ic{width:26px; height:26px; border-radius:50%; background:var(--pink); display:grid; place-items:center; flex-shrink:0;}
-  .demo-chip{margin-left:auto; font-size:11px; font-weight:900; color:var(--pink); background:var(--pink3); padding:5px 10px; border-radius:20px; white-space:nowrap;}
+  .hint .ht{white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0;}
+  .demo-chip{margin-left:auto; flex-shrink:0; font-size:11px; font-weight:900; color:var(--pink); background:var(--pink3); padding:9px 12px; border-radius:20px; white-space:nowrap;}
 
   /* cards */
   .card{background:var(--card); border:1px solid var(--line); border-radius:var(--r); padding:22px 24px; margin-bottom:12px;}
@@ -51,7 +52,7 @@
     display:grid; place-items:center; padding:0 5px; border:2px solid #fff; font-style:normal; white-space:nowrap;}
 
   /* class rows (reference style) */
-  .row{display:flex; align-items:center; gap:14px; padding:14px 12px 14px 14px; background:var(--card); border:1px solid var(--line); border-radius:var(--r);
+  .row{display:flex; align-items:center; gap:14px; padding:14px 14px; background:var(--card); border:1px solid var(--line); border-radius:var(--r);
     margin-bottom:12px; width:100%; text-align:left; cursor:pointer; transition:box-shadow .2s;}
   .row.now{box-shadow:0 0 0 2.5px var(--pink);}
   .thumb{width:68px; height:68px; border-radius:18px; flex-shrink:0; border:2px solid #fff; box-shadow:0 1px 4px rgba(0,0,0,.08); position:relative;
@@ -59,30 +60,32 @@
   .pn{font-family:'Anton',Impact,sans-serif; font-size:30px; color:rgba(0,0,0,.32); line-height:1;}
   .pn small{font-family:'Zen Maru Gothic',sans-serif; font-size:11px; font-weight:900; margin-left:1px;}
   .phe{font-size:30px;}
-  .getb{position:absolute; left:3px; bottom:3px; font-family:'Anton',Impact,sans-serif; font-size:10px; color:var(--pink); background:#fff; border:1.5px solid var(--pink);
-    border-radius:6px; padding:0 4px; transform:rotate(-8deg); letter-spacing:.3px; line-height:1.4;}
+  .getb{position:absolute; right:3px; top:3px; font-family:'Anton',Impact,sans-serif; font-size:9.5px; color:var(--pink); background:#fff; border:1.5px solid var(--pink);
+    border-radius:6px; padding:0 3px; transform:rotate(-8deg); letter-spacing:.3px; line-height:1.4;}
   .row .mid{flex:1; min-width:0;}
-  .row .tm{font-size:12px; font-weight:900; color:var(--dim); display:flex; align-items:center; gap:6px; white-space:nowrap;}
-  .nowtag{background:var(--pink); color:#fff; border-radius:10px; padding:1px 8px; font-size:11px;}
-  .row .name{font-size:18px; font-weight:900; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-top:2px;}
-  .row .who{display:flex; align-items:center; gap:6px; margin-top:5px; font-size:13px; font-weight:900; color:var(--pink); min-width:0;}
+  .row .tm{font-size:12px; font-weight:900; color:var(--dim); display:flex; align-items:center; flex-wrap:wrap; gap:2px 6px; white-space:nowrap;}
+  .nowtag{background:var(--pink); color:#fff; border-radius:10px; padding:1px 8px; font-size:11px; white-space:nowrap;}
+  .row .name{font-size:18px; font-weight:900; margin-top:2px; line-height:1.3; line-break:strict;
+    display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;}
+  .row .who{display:flex; align-items:center; gap:4px; margin-top:4px; font-size:13px; font-weight:900; color:var(--pink); min-width:0;}
   .row .who.gray{color:var(--dim);}
-  .row .who span.t{white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .row .who .t{white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0;}
+  .row .who .v{flex-shrink:0; white-space:nowrap;}
   .stk{display:flex; padding-left:6px; flex-shrink:0;}
   .stk .av{margin-left:-6px; border:1.5px solid #fff;}
-  .stk.ok .av{border-color:var(--pink);}
   .smile{width:48px; height:48px; border-radius:50%; background:var(--pink2); border:1.5px solid var(--rose); display:grid; place-items:center; flex-shrink:0; transition:transform .15s;}
   .smile.done{background:var(--pink); border-color:var(--pink);}
   .smile.done svg *{stroke:#fff;} .smile.done svg circle{fill:#fff;}
+  .smile.past{background:#fff; border-color:var(--pink2);}
   .smile.wait{background:#fff; border-color:#d6d6d6; opacity:.6;}
   .smile:active{transform:scale(.88);}
   .pop{animation:pop .45s ease;}
   @keyframes pop{0%{transform:scale(1)}40%{transform:scale(1.28) rotate(-10deg)}100%{transform:scale(1)}}
-  .chev{flex-shrink:0;}
+  @media (max-width:400px){ .row{gap:10px; padding:12px;} .row .thumb{width:56px; height:56px; border-radius:16px;} .row .pn{font-size:24px;} }
   .empty{text-align:center; color:var(--dim); font-weight:900; padding:26px 10px; font-size:14px; line-height:1.7;}
   .note{font-size:12px; color:var(--dim); font-weight:700; margin:8px 4px 0; line-height:1.6;}
   .foot{text-align:center; margin-top:26px; color:var(--dim2);}
-  .lnk{font-size:13px; font-weight:900; color:var(--pink); background:#fff; padding:8px 14px; border-radius:18px; display:inline-block; margin-top:6px;}
+  .lnk{font-size:13px; font-weight:900; color:var(--pink); background:#fff; padding:11px 16px; border-radius:20px; display:inline-block; margin-top:6px;}
 
   /* bottom nav */
   .nav{position:fixed; left:0; right:0; bottom:0; padding:0 16px calc(20px + env(safe-area-inset-bottom)); display:flex; justify-content:center; z-index:20; pointer-events:none;}
@@ -95,9 +98,9 @@
 
   /* timetable grid */
   .ttc{padding:14px 12px 14px;}
-  .wkbar{display:flex; align-items:center; justify-content:space-between; margin:0 4px 12px;}
+  .wkbar{display:flex; align-items:center; justify-content:space-between; margin:0 2px 12px;}
   .wkbar b{font-size:17px; font-weight:900;}
-  .wkbar button{width:36px; height:36px; border-radius:50%; background:#fff; font-size:19px; font-weight:900; color:#333;}
+  .wkbar button{width:44px; height:44px; border-radius:50%; background:#fff; font-size:20px; font-weight:900; color:#333;}
   .wkbar button:disabled{opacity:.25;}
   .tt{display:grid; grid-template-columns:22px repeat(5,minmax(0,1fr)); gap:5px;}
   .tt .h{font-size:13px; font-weight:900; color:var(--dim); text-align:center; padding:2px 0 3px; line-height:1.2;}
@@ -105,19 +108,22 @@
   .tt .h.today{color:var(--pink);}
   .tt .p{font-size:12px; font-weight:900; color:var(--dim2); display:grid; place-items:center;}
   .cell{min-height:70px; border-radius:14px; background:#fff; padding:6px 5px; font-size:11px; font-weight:900; line-height:1.25; display:flex; flex-direction:column; justify-content:space-between;
-    position:relative; text-align:left; overflow:hidden; word-break:break-all; background-size:cover; background-position:center;}
+    position:relative; text-align:left; overflow:hidden; word-break:normal; overflow-wrap:anywhere; line-break:strict; background-size:cover; background-position:center;}
   .cell > *{position:relative; z-index:1;}
+  .cell:has(.mk,.same){padding-top:19px;}
+  .cell:has(.gt,.fr){padding-bottom:18px;}
   .cell .rm{font-size:9.5px; font-weight:700; opacity:.6;}
   .cell.ph{color:#fff; text-shadow:0 1px 3px rgba(0,0,0,.5);}
   .cell.ph::before{content:""; position:absolute; inset:0; z-index:0; background:linear-gradient(180deg,rgba(0,0,0,.45),rgba(0,0,0,.05) 60%,rgba(0,0,0,.25));}
   .cell.ph .rm{opacity:.9;}
-  .cell .phe{position:absolute; right:3px; bottom:1px; font-size:20px; z-index:0; text-shadow:none;}
   .cell .mk{position:absolute; top:3px; right:3px; width:15px; height:15px; border-radius:50%; background:var(--pink); color:#fff; font-size:8px; display:grid; place-items:center; border:1.5px solid #fff; text-shadow:none; z-index:2;}
+  .cell .same{position:absolute; top:2px; left:3px; font-size:11px; z-index:2; text-shadow:none;}
   .cell .gt{position:absolute; bottom:3px; left:3px; font-size:8.5px; font-family:'Anton',Impact,sans-serif; color:var(--pink); border:1.5px solid var(--pink); border-radius:5px; padding:0 3px;
     transform:rotate(-8deg); background:#fff; letter-spacing:.3px; text-shadow:none; z-index:2;}
-  .cell .same{position:absolute; top:2px; right:3px; font-size:11px; z-index:2; text-shadow:none;}
+  .cell .fr{position:absolute; right:3px; bottom:3px; z-index:2;}
+  .cell .fr .stk .av{border-width:1px;}
   .cell.now{box-shadow:0 0 0 2.5px var(--pink);}
-  .cell.add{border:1.5px dashed #dedede; background:transparent; color:#cfcfcf; font-size:18px; align-items:center; justify-content:center;}
+  .cell.add{background:rgba(255,255,255,.4); color:#d6d6d6; font-size:16px; align-items:center; justify-content:center;}
   .cell.blank{background:rgba(255,255,255,.35);}
 
   /* screens / sheets */
@@ -132,58 +138,54 @@
   .shade.open{opacity:1; pointer-events:auto;}
   .sheet{position:fixed; left:0; right:0; bottom:0; z-index:41; transform:translateY(105%); transition:transform .28s cubic-bezier(.2,.8,.2,1); display:flex; justify-content:center; visibility:hidden;}
   .sheet.open{transform:none; visibility:visible;}
-  .sheet .body{width:100%; max-width:480px; background:var(--bg); border-radius:32px 32px 0 0; padding:12px 20px calc(24px + env(safe-area-inset-bottom)); max-height:90vh; overflow-y:auto;}
+  .sheet .body{width:100%; max-width:480px; background:var(--bg); border-radius:32px 32px 0 0; padding:12px 20px calc(24px + env(safe-area-inset-bottom)); max-height:90vh; overflow-y:auto; outline:none;}
   .grab{width:44px; height:5px; border-radius:3px; background:#d0d0d0; margin:0 auto 16px;}
   .sheet h3{margin:0 0 4px; font-size:22px; font-weight:900;}
-  .sub{font-weight:700; color:var(--dim); font-size:13.5px;}
+  .sub{font-weight:700; color:var(--dim); font-size:13.5px; line-height:1.6;}
   label.f,.f{display:block; font-size:13px; font-weight:900; color:var(--dim); margin:18px 4px 8px;}
   input.tx,select.tx{width:100%; padding:14px 16px; border-radius:18px; border:1.5px solid var(--line); background:#fff; font-size:16px; font-family:inherit; font-weight:700; color:var(--tx); outline:none;}
   input.tx:focus,select.tx:focus{border-color:var(--pink);}
   select.tx:disabled,input.tx:disabled{opacity:.5;}
   .chips{display:flex; gap:8px; flex-wrap:wrap;}
-  .chips button{padding:10px 14px; border-radius:18px; background:#fff; font-size:13.5px; font-weight:900; color:#555; border:1.5px solid #e6e6e6;}
+  .chips button{padding:11px 14px; border-radius:18px; background:#fff; font-size:13.5px; font-weight:900; color:#555; border:1.5px solid #e6e6e6;}
   .chips button.on{background:var(--pink3); color:var(--pink); border-color:var(--pink2);}
   .seg{display:flex; background:#fff; border-radius:20px; padding:5px; gap:4px; margin-top:14px;}
   .seg button{flex:1; padding:11px 4px; border-radius:16px; font-size:14px; font-weight:900; color:var(--dim);}
   .seg button.on{background:var(--tx); color:#fff;}
   .colors{display:flex; gap:10px; flex-wrap:wrap;}
-  .colors button{width:36px; height:36px; border-radius:50%; border:3px solid #fff; box-shadow:0 0 0 1.5px #ddd;}
+  .colors button{width:40px; height:40px; border-radius:50%; border:3px solid #fff; box-shadow:0 0 0 1.5px #ddd;}
   .colors button.on{box-shadow:0 0 0 3px var(--tx);}
   .btn{display:block; width:100%; padding:17px; border-radius:24px; background:var(--tx); color:#fff; font-size:17px; font-weight:900; margin-top:20px; text-align:center;}
   .btn.pk{background:var(--pink);}
   .btn.ghost{background:#fff; color:var(--tx);}
-  .btn.danger{background:none; color:var(--red); font-size:14px; margin-top:6px; padding:10px;}
+  .btn.danger{background:none; color:var(--red); font-size:14px; margin-top:6px; padding:13px;}
+  .btn.quiet{background:none; color:var(--dim); font-size:14px; margin-top:6px; padding:13px;}
   .herebtn{display:flex; align-items:center; justify-content:center; gap:10px; width:100%; padding:18px; border-radius:28px; background:var(--pink); color:#fff; font-size:21px; font-weight:900; margin-top:18px;}
   .herebtn svg *{stroke:#fff;} .herebtn svg circle{fill:#fff;}
   .herest{display:flex; align-items:center; gap:10px; width:100%; padding:12px 14px; border-radius:24px; background:#fff; font-size:16px; font-weight:900; margin-top:18px;}
   .herest .smile{width:40px; height:40px;}
   .herest small{color:var(--dim); font-weight:700; font-size:13px;}
-  .herest .undo{margin-left:auto; font-size:12px; color:var(--dim); font-weight:900; padding:8px 10px;}
+  .herest .undo{margin-left:auto; font-size:12px; color:var(--dim); font-weight:900; padding:12px;}
   .herest.wait{color:var(--dim); justify-content:center; padding:16px;}
   .fline{display:flex; flex-wrap:wrap; gap:6px; margin-top:12px;}
-  .fchip{display:flex; align-items:center; gap:6px; background:#fff; border-radius:20px; padding:4px 12px 4px 4px; font-size:13px; font-weight:900; border:1.5px solid transparent;}
+  .fchip{display:flex; align-items:center; gap:6px; background:#fff; border-radius:22px; padding:5px 12px 5px 5px; min-height:40px; font-size:13px; font-weight:900; border:1.5px solid transparent;}
   .fchip.ok{border-color:var(--pink); color:var(--pink);}
   .fchip small{color:var(--dim); font-weight:700;}
-  .shot{width:100%; aspect-ratio:4/3; border-radius:24px; background:#fff; border:2px dashed var(--pink2); display:grid; place-items:center; overflow:hidden;
-    background-size:cover; background-position:center; text-align:center; color:var(--pink); font-weight:900;}
-  .shot .big{font-size:34px; display:block; margin-bottom:4px;}
-  .shot small{display:block; font-size:12px; color:var(--dim); margin-top:2px;}
-  .shot.has{border:none;}
-  .phrow{display:flex; gap:8px; margin-top:8px;}
-  .phrow button{flex:1; padding:12px; border-radius:16px; background:#fff; font-weight:900; font-size:13px;}
+  .phline{display:flex; align-items:center; justify-content:center; gap:8px; width:100%; margin-top:12px; padding:15px; border-radius:22px; background:#fff; border:1.5px dashed var(--pink2); color:var(--pink); font-weight:900; font-size:14px;}
+  .shot{display:block; width:100%; max-width:270px; margin:0 auto; aspect-ratio:3/4; border-radius:24px; overflow:hidden; background-size:cover; background-position:center;}
+  .phrow{display:flex; gap:8px; margin-top:10px;}
+  .phrow button{flex:1; padding:13px; border-radius:16px; background:#fff; font-weight:900; font-size:13px;}
   .rule{font-size:11.5px; font-weight:700; color:var(--dim); line-height:1.6; margin:8px 4px 0;}
-  .sem{display:flex; align-items:center; gap:8px; background:#fff; border-radius:22px; padding:12px 12px 12px 16px;}
-  .sem > span{flex:1; font-size:13px; font-weight:900; color:var(--dim); line-height:1.4;}
-  .tog{font-weight:900; font-size:12.5px; padding:9px 12px; border-radius:14px; background:var(--bg); color:var(--dim); white-space:nowrap; flex-shrink:0; border:1.5px solid #e2e2e2;}
+  .sem{display:flex; align-items:center; flex-wrap:wrap; gap:8px; background:#fff; border-radius:22px; padding:12px 12px 12px 16px;}
+  .sem > span{flex:1 1 120px; font-size:13px; font-weight:900; color:var(--dim); line-height:1.4;}
+  .tog{font-weight:900; font-size:12.5px; padding:10px 12px; min-height:40px; border-radius:14px; background:var(--bg); color:var(--dim); white-space:nowrap; flex-shrink:0; border:1.5px solid #e2e2e2;}
   .tog.on{background:var(--pink3); color:var(--pink); border-color:var(--pink2);}
   .tog:disabled{opacity:.35;}
   .together{font-size:13px; font-weight:900; color:var(--pink); margin:8px 6px 0;}
-  .crop{position:relative; width:100%; aspect-ratio:4/3; border-radius:24px; overflow:hidden; background:#222; touch-action:none; margin-top:12px;}
+  .crop{position:relative; width:100%; max-width:270px; aspect-ratio:3/4; border-radius:24px; overflow:hidden; background:#222; touch-action:none; margin:14px auto 0;}
   .crop canvas{width:100%; height:100%; display:block; cursor:grab;}
-  .crop .grid{position:absolute; inset:0; pointer-events:none; background:
-    linear-gradient(90deg,transparent calc(33.3% - 1px),rgba(255,255,255,.4) calc(33.3% - 1px) 33.3%,transparent 33.3% calc(66.6% - 1px),rgba(255,255,255,.4) calc(66.6% - 1px) 66.6%,transparent 66.6%),
-    linear-gradient(180deg,transparent calc(33.3% - 1px),rgba(255,255,255,.4) calc(33.3% - 1px) 33.3%,transparent 33.3% calc(66.6% - 1px),rgba(255,255,255,.4) calc(66.6% - 1px) 66.6%,transparent 66.6%);}
-  input[type=range]{width:100%; accent-color:var(--pink); margin-top:14px;}
+  .crop .sq{position:absolute; left:0; right:0; top:12.5%; bottom:12.5%; outline:1.5px dashed rgba(255,255,255,.75); pointer-events:none;}
+  input[type=range]{width:100%; accent-color:var(--pink); margin-top:14px; height:28px;}
   .li{display:flex; align-items:center; gap:12px; padding:12px 2px; border-bottom:1px solid #dcdcdc; width:100%; text-align:left;}
   .li:last-child{border-bottom:none;}
   .li .sw{width:10px; height:38px; border-radius:6px; flex-shrink:0;}
@@ -195,14 +197,17 @@
   .li .thumb{width:48px; height:48px; border-radius:14px;}
   .li .thumb .pn{font-size:20px;}
   .li .thumb .phe{font-size:22px;}
-  .addb{background:var(--tx); color:#fff; font-weight:900; font-size:13px; padding:9px 13px; border-radius:16px; white-space:nowrap; flex-shrink:0;}
-  .addb:disabled{background:#ddd; color:#999;}
+  .addb{background:#fff; color:var(--tx); border:1.5px solid #dcdcdc; font-weight:900; font-size:13px; padding:9px 13px; min-height:40px; border-radius:16px; white-space:nowrap; flex-shrink:0;}
+  .addb.pk{background:var(--pink); color:#fff; border-color:var(--pink);}
+  .addb:disabled{background:transparent; color:#aaa; border-color:#e6e6e6;}
   .fac{font-size:11px; font-weight:900; color:var(--dim); background:#fff; padding:2px 8px; border-radius:10px; vertical-align:3px;}
   .fhead{display:flex; align-items:center; gap:14px;}
   .fhead h3{margin:0 0 4px;}
-  .req{display:flex; gap:12px; align-items:center; background:#fff; border-radius:24px; padding:12px 14px; margin-bottom:10px;}
-  .req p{margin:0; flex:1; font-size:14px; font-weight:900;}
+  .req{display:flex; flex-wrap:wrap; gap:10px 12px; align-items:center; background:#fff; border-radius:24px; padding:12px 14px; margin-bottom:10px;}
+  .req p{margin:0; flex:1 1 calc(100% - 60px); font-size:14px; font-weight:900; line-height:1.5;}
+  .req p b{white-space:nowrap;}
   .req p small{display:block; font-weight:700; color:var(--dim); font-size:12px;}
+  .req .acts{display:flex; gap:8px; width:100%; padding-left:56px;}
   .emoji-pick{display:flex; gap:8px; flex-wrap:wrap;}
   .emoji-pick button{width:46px; height:46px; border-radius:50%; background:#fff; font-size:24px; border:2px solid transparent;}
   .emoji-pick button.on{border-color:var(--pink);}
@@ -235,12 +240,12 @@
 
 <div class="screen" id="scr" role="dialog" aria-modal="true"><div class="wrap" id="scrIn"></div></div>
 <div class="shade" id="shade" data-act="sclose"></div>
-<div class="sheet" id="sheet" role="dialog" aria-modal="true"><div class="body"><div class="grab"></div><div id="sheetIn"></div></div></div>
+<div class="sheet" id="sheet" role="dialog" aria-modal="true"><div class="body" tabindex="-1"><div class="grab"></div><div id="sheetIn"></div></div></div>
 <div class="onb" id="onb" hidden><div class="wrap" id="onbIn"></div></div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <input type="file" id="fileIn" accept="image/*" hidden>
 
-<nav class="nav"><div class="nav-in">
+<nav class="nav" id="nav"><div class="nav-in">
   <button class="circ" data-act="friends" aria-label="友だち">
     <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.6-3.6 3.2-5.6 6.5-5.6s5.9 2 6.5 5.6"/><path d="M16 4.8a3.3 3.3 0 0 1 0 6.4M18.2 14.6c1.8.8 3 2.6 3.3 5.4"/></svg>
     <span class="badge" id="frBadge" hidden></span>
@@ -258,7 +263,7 @@
 'use strict';
 /* ============================================================
    KOMALOG — ただの時間割なのに、友だちの気配がする。
-   できること: 時間割 / 着いたら☺︎(来た) / マスに写真を一枚 / 学期末の単位GET印 / 見せる相手を選ぶ
+   できること: 時間割 / 着いたら☺︎(来た) / マスに写真を一枚 / 学期末の単位GET印 / 見える人を選ぶ
    ============================================================ */
 
 /* ---------- 定数 ---------- */
@@ -312,31 +317,37 @@ const ymd = d => d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+
 const dateMs = s => { const [y,m,d] = s.split('-').map(Number); return new Date(y,m-1,d).getTime(); };
 const md = s => { const [,m,d] = s.split('-').map(Number); return `${m}/${d}`; };
 function names(list){ const n = list.map(f => f.name); return n.length<=2 ? n.join('・') : `${n.slice(0,2).join('・')} ほか${n.length-2}人`; }
+const isWeekdayDaytime = r => { const w = r.getDay(), m = r.getHours()*60 + r.getMinutes(); return w>=1 && w<=5 && m>=8*60+30 && m<=18*60; };
 
 /* ---------- 状態(この端末に保存) ---------- */
 const KEY = 'komalog.v3';
 let demoAnchor = Date.now(); // デモ時刻は「設定した時刻 + 経過時間」で進む
+let lastSaved = null;
 let S = load();
 function fresh(){
-  const r = new Date(); const w = r.getDay(); const m = r.getHours()*60 + r.getMinutes();
-  const realOk = w>=1 && w<=5 && m>=8*60+30 && m<=18*60;
   return {
     v:3, onboarded:false,
     me:{name:'', emoji:'🐣', bg:0, fac:'', handle:uid().slice(0,6)},
     classes:[], recs:[],
     groups:[{id:'g1', name:'統計のメンバー', members:['f2','f4']}],
-    friendState:{f1:'friend', f2:'friend', f3:'friend', f4:'friend', f5:'request'},
+    // 友だちは承認してはじめてつながる
+    friendState:{f1:'request', f2:'request', f3:'request', f4:'request', f5:'request'},
     sentReq:[],
-    settings:{aud:'friends', preset:90, demo:{on:!realOk, day:(w>=1&&w<=5) ? w-1 : 2, min:11*60+20}},
+    settings:{aud:'friends', preset:90, demo:{on:false, day:2, min:11*60+20}},
   };
 }
 function load(){
-  try{ const j = JSON.parse(localStorage.getItem(KEY)); if(j && j.v===3) return Object.assign(fresh(), j); }catch(e){}
-  return fresh();
+  try{ lastSaved = localStorage.getItem(KEY); const j = JSON.parse(lastSaved); if(j && j.v===3) return Object.assign(fresh(), j); }catch(e){}
+  lastSaved = null; return fresh();
 }
-function save(){
-  try{ localStorage.setItem(KEY, JSON.stringify(S)); return true; }
-  catch(e){ toast('端末の保存容量がいっぱいです。古い写真を外してね'); return false; }
+// 保存できなかったときは、画面の状態も最後に保存できた状態へ戻す(保存されていない変更が残らないように)
+function save(quiet){
+  try{ const j = JSON.stringify(S); localStorage.setItem(KEY, j); lastSaved = j; return true; }
+  catch(e){
+    if(!quiet) toast('端末の保存容量がいっぱいです。古い写真を外してね');
+    if(lastSaved){ try{ S = Object.assign(fresh(), JSON.parse(lastSaved)); }catch(_){} }
+    return false;
+  }
 }
 
 /* ---------- 時刻(1日は午前4時から。デモ時刻にも対応) ---------- */
@@ -356,6 +367,9 @@ function weekDates(off=0){
   const L = logical(); const w = L.getDay(); const diff = (w===0 ? -6 : 1-w) + off*7;
   return DAYS.map((_,i) => ymd(new Date(L.getFullYear(), L.getMonth(), L.getDate()+diff+i)));
 }
+// 学期末(前期: 7/10〜9/20、後期: 1/10〜3/31)
+function isSemEnd(){ const L = logical(), m = L.getMonth()+1, d = L.getDate();
+  return (m===7 && d>=10) || m===8 || (m===9 && d<=20) || (m===1 && d>=10) || m===2 || m===3; }
 const PER = () => PRESETS[S.settings.preset] || PRESETS[90];
 function nowLabel(){
   const m = nowMin(), P = PER();
@@ -376,7 +390,7 @@ function phaseOf(date, c){
   if(date < t) return 'past'; if(date > t) return 'future';
   const m = nowMin(), w = win(c); return m < w.s ? 'future' : m < w.e ? 'now' : 'past';
 }
-// 「来た」を押せるのは授業開始30分前から。今週の過ぎた日は、あとからでも押せる
+// ☺︎ を押せるのは授業開始30分前から。今週の過ぎた日は、あとからでも押せる
 function canRecord(date, c){
   const t = todayStr();
   if(date > t || date < weekDates(0)[0]) return false;
@@ -417,15 +431,17 @@ const fRec = (f, c, date) => f.recs.find(r => r.classId===c.id && r.date===date)
 // 同じ授業(授業名・曜日・時限が同じ)を受けている友だち
 const friendsIn = c => friends().map(f => ({f, fc:f.classes.find(x => key(x)===key(c))})).filter(x => x.fc);
 
-/* ---------- 見せる相手 ---------- */
+/* ---------- 見える人 ---------- */
 function audOptions(){ return [['friends','👥 友だち全員'], ...S.groups.map(g => ['g:'+g.id, '🏷 '+g.name]), ['private','🔒 自分だけ']]; }
+const audName = a => (audOptions().find(o => o[0]===a) || [0,'🔒 自分だけ'])[1];
+const audFor = (c, date) => (CS && CS.cid===c.id && CS.date===date) ? CS.aud : (c.aud || S.settings.aud);
 
 /* ---------- 部品 ---------- */
 const avatar = (emoji, bg, size=42) => `<span class="av" style="width:${size}px;height:${size}px;font-size:${Math.round(size*.52)}px;background:${BGS[bg]||BGS[0]}">${emoji}</span>`;
-const faces = (list, size, ok) => `<span class="stk ${ok?'ok':''}">${list.slice(0,3).map(f => avatar(f.emoji, f.bg, size)).join('')}</span>`;
+const faces = (list, size) => `<span class="stk">${list.slice(0,3).map(f => avatar(f.emoji, f.bg, size)).join('')}</span>`;
 const SMILE = `<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#222" stroke-width="1.4" stroke-linecap="round" aria-hidden="true"><circle cx="9.2" cy="10" r=".9" fill="#222"/><circle cx="14.8" cy="10" r=".9" fill="#222"/><path d="M7.5 13.6c1.1 1.9 2.7 2.8 4.5 2.8s3.4-.9 4.5-2.8"/></svg>`;
 const MINI_SMILE = `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="9" cy="10" r=".6" fill="#fff"/><circle cx="15" cy="10" r=".6" fill="#fff"/><path d="M7.5 14c1.1 1.8 2.7 2.7 4.5 2.7s3.4-.9 4.5-2.7"/></svg>`;
-const CHEV = `<svg class="chev" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 5 7 7-7 7"/></svg>`;
+const CHEV = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink:0"><path d="m9 5 7 7-7 7"/></svg>`;
 const BACK = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 5-7 7 7 7"/></svg>`;
 const STAR = w => `<svg viewBox="0 0 120 110" width="${w}" aria-hidden="true" style="flex-shrink:0"><g stroke="#222" stroke-width="3" stroke-linecap="round" fill="none">
   <path d="M60 14 72 42 101 44 79 63 86 92 60 76 34 92 41 63 19 44 48 42Z" fill="#fbeea8" stroke-linejoin="round"/>
@@ -437,6 +453,11 @@ function thumbHTML(c, rec, got){
   if(rec && rec.ph) return `<span class="thumb" style="background:${rec.ph.bg}"><span class="phe">${rec.ph.emo}</span>${g}</span>`;
   return `<span class="thumb" style="background:${c.color}"><span class="pn">${c.period}<small>限</small></span>${g}</span>`;
 }
+// 今日の曜日を先頭にして、曜日ごとに並べる
+function byDayTodayFirst(list){
+  const di = dayIdx(), order = [0,1,2,3,4].sort((a,b) => (b===di) - (a===di) || a-b);
+  return order.map(d => ({d, items:list.filter(x => x.c.day===d)})).filter(g => g.items.length);
+}
 
 /* ============================================================
    画面: きょう
@@ -446,8 +467,8 @@ function header(){
   const dm = S.settings.demo;
   return `<div class="hd"><div class="logo">KOMALOG</div>
     <button class="me-btn" data-act="me" aria-label="プロフィールと設定">${avatar(S.me.emoji,S.me.bg,42)}</button></div>
-    <div class="hint"><span class="ic">${MINI_SMILE}</span>着いたら ☺︎ をタップ
-      ${dm.on ? `<button class="demo-chip" data-act="me">デモ ${DAYS[dm.day]} ${fmtMin(dm.min)}〜</button>` : ''}</div>`;
+    <div class="hint"><span class="ic">${MINI_SMILE}</span><span class="ht">着いたら ☺︎ をタップ</span>
+      ${dm.on ? `<button class="demo-chip" data-act="me" aria-label="デモ時刻の設定">デモ ${DAYS[dm.day]}${fmtMin(dm.min)}</button>` : ''}</div>`;
 }
 function heroHTML(){
   const d = dayIdx(), t = todayStr(), fr = friends();
@@ -457,27 +478,29 @@ function heroHTML(){
     return {f, lc: last ? f.classes.find(c => c.id===last.classId) : null, has: f.classes.some(c => c.day===d)};
   }).filter(x => x.has || x.lc).sort((a,b) => (!!b.lc) - (!!a.lc));
   const came = list.filter(x => x.lc).length;
+  const inNow = list.filter(x => x.lc && phaseOf(t, x.lc)==='now').length;
   let line;
   if(d<0) line = `${md(t)} ・ 授業のない日。`;
   else if(!fr.length) line = `${md(t)} ・ いまは${nowLabel()}<br>友だちとつながると、ここに気配が出ます。`;
-  else line = `${md(t)} ・ いまは${nowLabel()}<br>${came ? `友だち${came}人が来てる。` : 'まだ誰も ☺︎ を押していません。'}`;
+  else line = `${md(t)} ・ いまは${nowLabel()}<br>${inNow ? `いま友だち${inNow}人が授業に来てる。` : came ? `きょうは友だち${came}人が来た。` : 'まだ誰も ☺︎ を押していません。'}`;
   const strip = list.length ? `<div class="fstrip">${list.map(x => `<button class="fp" data-act="friend" data-v="${x.f.id}" aria-label="${x.f.name}${x.lc ? `、${x.lc.period}限 ${esc(x.lc.name)}に来た` : ''}">
       <span class="ring ${x.lc?'ok':''}">${avatar(x.f.emoji,x.f.bg,46)}${x.lc ? `<i class="pb">${x.lc.period}限</i>` : ''}</span><b>${x.f.name}</b></button>`).join('')}</div>`
-    : (!fr.length ? `<button class="lnk" data-act="friends">友だちを招待する</button>` : '');
+    : (!fr.length ? `<button class="lnk" data-act="friends">友だちとつながる</button>` : '');
   return `<div class="card hero"><div class="top"><div style="flex:1;min-width:0"><h2>${d<0 ? '週末' : `${DAYS[d]}曜日`}</h2><p>${line}</p></div>${STAR(86)}</div>${strip}</div>`;
 }
-function classRow(c, date){
+function classRow(c, date, isNext){
   const r = recOf(c.id, date), ph = phaseOf(date, c), can = canRecord(date, c);
   const fr = friendsIn(c), came = fr.filter(x => fRec(x.f, x.fc, date));
   let who = '';
-  if(came.length) who = `<div class="who"><span class="t">${names(came.map(x=>x.f))} が来てる</span></div>`;
-  else if(fr.length) who = `<div class="who gray"><span class="t">${names(fr.map(x=>x.f))} も受けてる</span></div>`;
-  const label = r ? '来た(記録済み)' : can ? '来た を記録' : `${fmtMin(win(c).s-30)}から押せます`;
-  return `<div class="row ${ph==='now'?'now':''}" data-act="cls" data-v="${c.id}|${date}" role="button" tabindex="0" aria-label="${c.period}限 ${esc(c.name)}">
+  if(came.length) who = `<div class="who"><span class="t">${names(came.map(x=>x.f))}</span><span class="v">が${ph==='past'?'来てた':'来てる'}</span></div>`;
+  else if(fr.length) who = `<div class="who gray"><span class="t">${names(fr.map(x=>x.f))}</span><span class="v">も受けてる</span></div>`;
+  const label = r ? '来た(記録済み)' : can ? '来た を記録' : `${fmtMin(win(c).s-30)} から押せます`;
+  const sc = r ? 'done' : !can ? 'wait' : ph==='past' ? 'past' : '';
+  return `<div class="row ${ph==='now'?'now':''} ${isNext?'next':''}" data-act="cls" data-v="${c.id}|${date}" role="button" tabindex="0" aria-label="${c.period}限 ${esc(c.name)}">
     ${thumbHTML(c, r, c.got)}
     <div class="mid"><div class="tm">${c.period}限 ${timeText(c)}${ph==='now'?'<span class="nowtag">いま</span>':''}</div>
       <div class="name">${esc(c.name)}</div>${who}</div>
-    <button class="smile ${r?'done':''} ${!r&&!can?'wait':''}" data-act="here" data-v="${c.id}|${date}" aria-label="${label}" aria-pressed="${!!r}">${SMILE}</button>${CHEV}</div>`;
+    <button class="smile ${sc}" data-act="here" data-v="${c.id}|${date}" aria-label="${label}" aria-pressed="${!!r}">${SMILE}</button></div>`;
 }
 function todayView(){
   const d = dayIdx(), t = todayStr();
@@ -485,10 +508,17 @@ function todayView(){
   if(d<0) h += `<div class="empty">週末はおやすみ。<br><button class="lnk" data-act="tab" data-v="week">今週の時間割を見る</button></div>`;
   else {
     const cls = S.classes.filter(c => c.day===d).sort((a,b) => a.period-b.period);
-    if(cls.length) h += cls.map(c => classRow(c, t)).join('');
-    else h += `<div class="empty">${S.classes.length ? '今日は授業なし。' : 'まだ時間割がありません。<br>まずは1コマだけでOK。<br><button class="lnk" data-act="add">＋ 授業を追加</button>'}</div>`;
+    const next = cls.find(c => phaseOf(t, c)==='future');
+    if(cls.length) h += cls.map(c => classRow(c, t, c===next)).join('');
+    else if(S.classes.length) h += `<div class="empty">きょうは授業なし。<br><button class="lnk" data-act="add" data-v="today">＋ きょうの授業を追加</button></div>`;
+    else h += `<div class="empty">まだ時間割がありません。<br>まずは1コマだけでOK。<br><button class="lnk" data-act="add">＋ 授業を追加</button></div>`;
   }
-  return h + `<p class="note foot">「来た」は自己申告です。押していないことは欠席を意味しません。</p>`;
+  return h + `<p class="note foot">☺︎ は自己申告のしるしです。押していないことは欠席を意味しません。</p>`;
+}
+// 開いたとき、いまの授業(なければ次の授業)が見えるようにする
+function scrollToNow(){
+  const el = document.querySelector('#app .row.now') || document.querySelector('#app .row.next');
+  if(el && el.getBoundingClientRect().bottom > innerHeight - 120) el.scrollIntoView({block:'center'}); else window.scrollTo(0,0);
 }
 
 /* ============================================================
@@ -505,89 +535,111 @@ function gridHTML(classes, wd, owner){
     for(let d=0; d<5; d++){
       const c = classes.find(x => x.day===d && x.period===p);
       if(!c){ h += isMe ? `<button class="cell add" data-act="add" data-v="${d}-${p}" aria-label="${DAYS[d]}${p}限に授業を追加">+</button>` : '<div class="cell blank"></div>'; continue; }
+      const isToday = d===td;
       const r = isMe ? recOf(c.id, wd[d]) : fRec(owner, c, wd[d]);
       const bg = r && r.photo ? `background-image:url('${r.photo}')` : r && r.ph ? `background:${r.ph.bg}` : `background:${c.color}`;
       const got = isMe ? c.got : c.shareGot;
       const same = !isMe && S.classes.some(x => key(x)===key(c));
+      const mk = r && (isMe || isToday); // 友だちの ✓ は今日だけ(過去の出欠表にしない)
+      const came = isMe && isToday ? friendsIn(c).filter(x => fRec(x.f, x.fc, wd[d])).map(x => x.f) : [];
       const act = isMe ? `data-act="cls" data-v="${c.id}|${wd[d]}"` : `data-act="fadd" data-v="${esc(key(c))}"`;
-      h += `<button class="cell ${r&&(r.photo||r.ph)?'ph':''} ${d===td&&p===curP?'now':''}" style="${bg}" ${act}
-          aria-label="${DAYS[d]}${p}限 ${esc(c.name)}${r?' 来た':''}${got?' 単位GET':''}${same?' 同じ授業':''}">
+      h += `<button class="cell ${r&&(r.photo||r.ph)?'ph':''} ${isToday&&p===curP?'now':''}" style="${bg}" ${act}
+          aria-label="${DAYS[d]}${p}限 ${esc(c.name)}${mk?' 来た':''}${came.length?` ${names(came)}が来た`:''}${got?' 単位GET':''}${same?' 同じ授業':''}">
         <span>${esc(c.name)}</span><span class="rm">${esc(c.room||'')}</span>
-        ${r && r.ph ? `<span class="phe">${r.ph.emo}</span>` : ''}${r ? '<span class="mk">✓</span>' : same ? '<span class="same">🤝</span>' : ''}${got ? '<span class="gt">GET</span>' : ''}</button>`;
+        ${same ? '<span class="same">🤝</span>' : ''}${mk ? '<span class="mk">✓</span>' : ''}${got ? '<span class="gt">GET</span>' : ''}${came.length ? `<span class="fr">${faces(came,14)}</span>` : ''}</button>`;
     }
   }
   return h + '</div>';
 }
+// 前の週は、いちばん古い記録の週まで(最低8週)さかのぼれる
+function minWeek(){
+  if(!S.recs.length) return -8;
+  const oldest = Math.min(...S.recs.map(r => dateMs(r.date)));
+  return Math.min(-8, -Math.ceil((dateMs(weekDates(0)[0]) - oldest) / (7*864e5)));
+}
 function weekView(){
   const wd = weekDates(viewWeek);
   const title = viewWeek===0 ? '今週' : viewWeek===-1 ? '先週' : `${md(wd[0])}の週`;
-  return header() + `<div class="card ttc"><div class="wkbar"><button data-act="wk" data-v="-1" aria-label="前の週" ${viewWeek<=-8?'disabled':''}>‹</button><b>${title}</b>
+  return header() + `<div class="card ttc"><div class="wkbar"><button data-act="wk" data-v="-1" aria-label="前の週" ${viewWeek<=minWeek()?'disabled':''}>‹</button><b>${title}</b>
       <button data-act="wk" data-v="1" aria-label="次の週" ${viewWeek>=0?'disabled':''}>›</button></div>${gridHTML(S.classes, wd, 'me')}</div>
-    <p class="note" style="text-align:center">マスをタップで ☺︎ と写真。空いたマスの ＋ で授業を追加。</p>`;
+    <p class="note" style="text-align:center">マスをタップで ☺︎ と写真。空いたマスで授業を追加。</p>`;
 }
 
 function render(){
+  const a = document.activeElement, app = document.getElementById('app');
+  const refocus = a && app.contains(a) && a.dataset && a.dataset.act ? [a.dataset.act, a.dataset.v] : null;
   document.querySelectorAll('.pill button').forEach(b => { const on = b.dataset.v===tab; b.classList.toggle('on', on); b.setAttribute('aria-selected', on); });
-  document.getElementById('app').innerHTML = tab==='today' ? todayView() : weekView();
+  app.innerHTML = tab==='today' ? todayView() : weekView();
   document.getElementById('frBadge').hidden = !FDEF.some(f => S.friendState[f.id]==='request');
+  if(refocus){ const n = [...app.querySelectorAll(`[data-act="${refocus[0]}"]`)].find(x => x.dataset.v===refocus[1]); if(n) n.focus({preventScroll:true}); }
 }
 
 /* ============================================================
-   授業のシート(来た・写真・見せる相手・学期末の印)
+   授業のシート(来た・写真・見える人・学期末の印)
    ============================================================ */
 let CS = null; // 開いている授業シート {cid, date, aud}
 function openClass(cid, date){
   const c = S.classes.find(x => x.id===cid); if(!c) return;
   const r = recOf(cid, date);
-  CS = {cid, date, aud: r ? r.aud : S.settings.aud};
+  FSID = null; ADD = null;
+  CS = {cid, date, aud: r ? r.aud : (c.aud || S.settings.aud)};
   renderClass(); openSheet();
 }
 function renderClass(){
   const c = CS && S.classes.find(x => x.id===CS.cid); if(!c){ closeSheet(); return; }
-  const date = CS.date, r = recOf(c.id, date), ph = phaseOf(date, c), can = canRecord(date, c);
+  const date = CS.date, r = recOf(c.id, date), ph = phaseOf(date, c), can = canRecord(date, c), isToday = date===todayStr();
   const fr = friendsIn(c);
   let h = `<h3>${esc(c.name)}</h3><div class="sub">${md(date)}(${DAYS[c.day]}) ${c.period}限 ${timeText(c)}${c.room ? ' ・ 📍'+esc(c.room) : ''}</div>`;
-  if(fr.length) h += `<div class="fline">${fr.map(({f,fc}) => { const x = fRec(f, fc, date);
-    return `<button class="fchip ${x?'ok':''}" data-act="friend" data-v="${f.id}">${avatar(f.emoji,f.bg,26)}${f.name}${x ? ` <small>${hm(x.ts)} 来た</small>` : ''}</button>`; }).join('')}</div>`;
-  if(r) h += `<div class="herest"><span class="smile done">${SMILE}</span>来た <small>${hm(r.ts)}</small><button class="undo" data-act="undo">取り消す</button></div>`;
+  if(fr.length) h += `<div class="fline">${fr.map(({f,fc}) => { const x = isToday && fRec(f, fc, date);
+    return `<button class="fchip ${x?'ok':''}" data-act="friend" data-v="${f.id}">${avatar(f.emoji,f.bg,28)}${f.name}${x ? ' <small>来た</small>' : ''}</button>`; }).join('')}</div>`;
+  if(r) h += `<div class="herest"><span class="smile done">${SMILE}</span>来た <small>${r.late ? 'あとから記録' : hm(r.ts)}</small><button class="undo" data-act="undo">取り消す</button></div>`;
   else if(can) h += `<button class="herebtn" data-act="here" data-v="${c.id}|${date}">${SMILE}来た</button>`;
-  else h += `<div class="herest wait">${ph==='future' ? `${fmtMin(win(c).s-30)} から ☺︎ を押せます` : 'この日の記録はもう付けられません'}</div>`;
+  else h += `<div class="herest wait">${ph==='future' ? `${fmtMin(win(c).s-30)} から押せます` : 'この日の記録はもう付けられません'}</div>`;
   if(r && r.photo){
-    h += `<div class="f">この日の一枚</div><div class="shot has" style="background-image:url('${r.photo}')" role="img" aria-label="この日の写真"></div>
+    h += `<div class="f">この日の一枚</div><div class="shot" style="background-image:url('${r.photo}')" role="img" aria-label="この日の写真"></div>
       <div class="phrow"><button data-act="pick">選び直す</button><button data-act="unphoto">写真を外す</button></div>`;
-  } else if(r || can){
-    h += `<div class="f">この日の一枚(任意)</div><button class="shot" data-act="pick"><div><span class="big">📷</span>マスに写真を一枚<small>机の上や窓の外でOK ・ のせる前にトリミング</small></div></button>
-      <p class="rule">人の顔、スライド・配布資料・板書は写さないでね。授業中の撮影は先生の指示に従ってください。</p>`;
-  }
+  } else if(r || can) h += `<button class="phline" data-act="pick">📷 写真も一枚のせる(任意)</button>`;
   if(r || can) h += `<div class="f">見える人</div><div class="chips">${audOptions().map(([v,l]) => `<button data-act="aud" data-v="${v}" class="${CS.aud===v?'on':''}" aria-pressed="${CS.aud===v}">${esc(l)}</button>`).join('')}</div>`;
-  const tog = c.got ? fr.filter(x => x.fc.shareGot).map(x => x.f) : [];
-  h += `<div class="f">学期末</div><div class="sem"><span>単位が取れたら<br>印をつける</span>
-    <button class="tog ${c.got?'on':''}" data-act="got" aria-pressed="${!!c.got}">${c.got ? '✓ 単位GET' : '単位GET'}</button>
-    <button class="tog ${c.shareGot?'on':''}" data-act="share" ${c.got?'':'disabled'} aria-pressed="${!!c.shareGot}">${c.shareGot ? '👥 見せてる' : '🔒 自分だけ'}</button></div>
-    ${tog.length ? `<div class="together">🎉 ${names(tog)} と一緒に取れた！</div>` : ''}
-    <p class="rule">印は初期設定で自分だけ。取れなかった授業や成績は表示されません。</p>`;
+  if(c.got || isSemEnd()) h += `<div id="semBox">${semHTML(c)}</div>`;
   h += `<button class="btn ghost" data-act="edit" data-v="${c.id}">授業を編集</button>`;
   document.getElementById('sheetIn').innerHTML = h;
 }
-// 「来た」を記録(photo を渡すと写真も付ける)。保存できなければ元に戻す
+function semHTML(c){
+  const tog = c.got ? friendsIn(c).filter(x => x.fc.shareGot).map(x => x.f) : [];
+  return `<div class="f">学期末</div><div class="sem"><span>単位が取れたら印をつける</span>
+    <button class="tog ${c.got?'on':''}" data-act="got" data-v="${c.id}" aria-pressed="${!!c.got}">${c.got ? '✓ 単位GET' : '単位GET'}</button>
+    <button class="tog ${c.shareGot?'on':''}" data-act="share" data-v="${c.id}" ${c.got?'':'disabled'} aria-pressed="${!!c.shareGot}">${c.shareGot ? '✓ 友だちに見せてる' : '友だちにも見せる'}</button></div>
+    ${tog.length ? `<div class="together">🎉 ${names(tog)} と一緒に取れた！</div>` : ''}
+    <p class="rule">印はふだん自分だけ。見せると、友だちの画面であなたの時間割に GET が付きます。取れなかった授業や成績は出ません。</p>`;
+}
+function refreshSem(cid){
+  const c = S.classes.find(x => x.id===cid), box = document.getElementById('semBox');
+  if(c && box) box.innerHTML = semHTML(c);
+  render();
+}
+// ☺︎(来た)を記録。photo を渡すと写真も付ける。容量不足で写真が入らないときは「来た」だけ残す
 function checkIn(cid, date, photo){
-  const c = S.classes.find(x => x.id===cid); if(!c) return null;
-  let r = recOf(cid, date), created = false;
-  if(!r){
-    if(!canRecord(date, c)) return null;
-    r = {id:uid(), classId:cid, date, ts:nowTs(), photo:null, aud: CS && CS.cid===cid && CS.date===date ? CS.aud : S.settings.aud};
-    S.recs.push(r); created = true;
-  }
-  const prev = r.photo;
-  if(photo !== undefined) r.photo = photo;
-  if(!save()){
-    if(created) S.recs = S.recs.filter(x => x !== r); else r.photo = prev;
-    return null;
-  }
-  return r;
+  const c0 = S.classes.find(x => x.id===cid); if(!c0) return null;
+  const existed = !!recOf(cid, date);
+  if(!existed && !canRecord(date, c0)) return null;
+  const apply = withPhoto => {
+    const c = S.classes.find(x => x.id===cid); if(!c) return null;
+    let r = recOf(cid, date);
+    if(!r){
+      r = {id:uid(), classId:cid, date, ts:nowTs(), late: date < todayStr() || nowMin() >= win(c).e, photo:null, aud:audFor(c, date)};
+      S.recs.push(r);
+    }
+    if(withPhoto && photo !== undefined) r.photo = photo;
+    return save(true) ? r : null;
+  };
+  let r = apply(true);
+  if(r) return r;
+  if(photo && !existed){ r = apply(false); if(r){ r.dropped = true; return r; } }
+  toast('端末の保存容量がいっぱいです。古い写真を外してね');
+  return null;
 }
 
-/* ---------- 写真: 選ぶ → トリミング(4:3) → マスに一枚 ---------- */
+/* ---------- 写真: 選ぶ → トリミング(3:4) → マスに一枚 ---------- */
 let crop = null;
 document.getElementById('fileIn').onchange = e => {
   const file = e.target.files[0]; e.target.value = ''; if(!file || !CS) return;
@@ -597,10 +649,11 @@ document.getElementById('fileIn').onchange = e => {
   img.src = url;
 };
 function openCrop(img){
-  const W = 800, H = 600, base = Math.max(W/img.width, H/img.height);
+  const W = 600, H = 800, base = Math.max(W/img.width, H/img.height);
   crop = {img, W, H, base, zoom:1, x:(W - img.width*base)/2, y:(H - img.height*base)/2};
-  document.getElementById('sheetIn').innerHTML = `<h3>トリミング</h3><div class="sub">ドラッグで位置、スライダーで拡大。顔や資料が入らないように。</div>
-    <div class="crop"><canvas id="cv" width="${W}" height="${H}"></canvas><div class="grid"></div></div>
+  document.getElementById('sheetIn').innerHTML = `<h3>トリミング</h3>
+    <div class="sub">ドラッグで位置、スライダーで拡大。点線の内側が行の小さな写真になるよ。人の顔やスライド・資料は入れないでね。授業中に撮るときは先生のルールに従ってね。</div>
+    <div class="crop"><canvas id="cv" width="${W}" height="${H}"></canvas><div class="sq"></div></div>
     <input type="range" id="zm" min="1" max="3" step="0.01" value="1" aria-label="拡大">
     <div class="phrow"><button data-act="ccancel">やめる</button><button data-act="cok" style="background:var(--pink);color:#fff">この範囲でのせる</button></div>`;
   const cv = document.getElementById('cv');
@@ -627,9 +680,7 @@ function drawCrop(){
    友だちの時間割(シート)
    ============================================================ */
 let FSID = null;
-function openFriend(id){
-  const f = fById(id); if(!f || S.friendState[id]!=='friend') return;
-  CS = null; ADD = null; FSID = id;
+function friendSheetHTML(f){
   const d = dayIdx(), t = todayStr();
   const today = d<0 ? [] : f.classes.filter(c => c.day===d).sort((a,b) => a.period-b.period);
   let h = `<div class="fhead">${avatar(f.emoji,f.bg,60)}<div><h3>${f.name}</h3><span class="fac">${f.fac}</span></div></div>`;
@@ -637,12 +688,24 @@ function openFriend(id){
     h += `<div class="f">きょう</div><div class="card" style="padding:4px 16px">` + (today.length ? today.map(c => {
       const r = fRec(f, c, t), ph = phaseOf(t, c);
       return `<div class="li">${thumbHTML(c, r, c.shareGot)}<div class="t"><span>${c.period}限 ${timeText(c)}</span><b>${esc(c.name)}</b></div>
-        <span class="st ${r?'ok':''}">${r ? `来た ${hm(r.ts)}` : ph==='future' ? 'これから' : '記録なし'}</span></div>`; }).join('')
-      : '<div class="empty" style="padding:16px">今日は授業なし</div>') + '</div>';
+        <span class="st ${r?'ok':''}">${r ? '☺︎ 来た' : ph==='future' ? 'これから' : ''}</span></div>`; }).join('')
+      : '<div class="empty" style="padding:16px">きょうは授業なし</div>') + '</div>'
+      + `<p class="rule">☺︎ は本人が押すだけのしるし。押していなくても欠席とは限りません。</p>`;
   }
   h += `<div class="f">時間割</div><div class="card ttc">${gridHTML(f.classes, weekDates(0), f)}</div>
-    <p class="rule">🤝 は同じ授業。自分も受けている授業は、マスをタップすると自分の時間割に追加できます。</p>`;
-  document.getElementById('sheetIn').innerHTML = h; openSheet();
+    <p class="rule">🤝 はあなたの時間割にもある授業。ほかのマスも、受けている授業ならタップで自分の時間割に追加できます。</p>
+    <button class="btn quiet" data-act="unfriend" data-v="${f.id}">友だちをやめる</button>`;
+  return h;
+}
+function openFriend(id){
+  const f = fById(id); if(!f || S.friendState[id]!=='friend') return;
+  CS = null; ADD = null; FSID = id;
+  document.getElementById('sheetIn').innerHTML = friendSheetHTML(f); openSheet();
+}
+function refreshFriendSheet(){
+  const f = fById(FSID); if(!f) return;
+  const b = document.querySelector('#sheet .body'), y = b.scrollTop;
+  document.getElementById('sheetIn').innerHTML = friendSheetHTML(f); b.scrollTop = y;
 }
 function addFromKey(k){
   if(S.classes.some(m => key(m)===k)){ toast('もう時間割に入っています'); return false; }
@@ -650,7 +713,8 @@ function addFromKey(k){
   const clash = S.classes.find(m => m.day===src.day && m.period===src.period);
   if(clash){ toast(`${DAYS[src.day]}${src.period}限は「${clash.name}」が入っています`); return false; }
   S.classes.push({id:uid(), name:src.name, day:src.day, period:src.period, room:src.room, color:COLORS[S.classes.length % COLORS.length], got:false, shareGot:false});
-  save(); render(); toast(`✓ ${src.name}(${DAYS[src.day]}${src.period})を追加しました`); return true;
+  if(!save()){ render(); return false; }
+  render(); toast(`✓ ${src.name}(${DAYS[src.day]}${src.period}限)を追加しました`); return true;
 }
 
 /* ============================================================
@@ -663,25 +727,32 @@ function friendPool(){
   return [...map.values()].filter(x => !S.classes.some(m => key(m)===key(x.c)))
     .sort((a,b) => b.fr.length-a.fr.length || a.c.day-b.c.day || a.c.period-b.c.period);
 }
+function slotPool(){
+  const {d, p} = ADD; let pool = friendPool();
+  if(d!=null) pool = pool.filter(x => x.c.day===d && (p==null || x.c.period===p));
+  return pool;
+}
 function openAdd(d, p){
   CS = null; FSID = null;
-  ADD = {d, p, mode: friendPool().length ? 'friends' : 'manual'};
+  ADD = {d, p, mode:'friends'};
+  ADD.mode = slotPool().length ? 'friends' : 'manual';
   renderAdd(); openSheet();
 }
 function renderAdd(){
-  const {d, p} = ADD, slot = d!=null;
-  let pool = friendPool();
-  if(slot) pool = [...pool.filter(x => x.c.day===d && x.c.period===p), ...pool.filter(x => !(x.c.day===d && x.c.period===p))];
-  let h = `<h3>授業を追加</h3><div class="sub">${slot ? `${DAYS[d]}曜 ${p}限` : 'まずは1コマだけでもOK'}</div>
+  const {d, p} = ADD;
+  const pool = slotPool();
+  const b = document.querySelector('#sheet .body'), y = b.scrollTop;
+  let h = `<h3>授業を追加</h3><div class="sub">${d!=null ? `${d===dayIdx() && p==null ? 'きょう・' : ''}${DAYS[d]}曜${p!=null ? ` ${p}限` : ''}` : 'まずは1コマだけでもOK'}</div>
     <div class="seg"><button data-act="amode" data-v="friends" class="${ADD.mode==='friends'?'on':''}">友だちの授業から</button><button data-act="amode" data-v="manual" class="${ADD.mode==='manual'?'on':''}">自分で入力</button></div>`;
   if(ADD.mode==='friends'){
-    h += pool.length ? `<div class="card" style="padding:4px 16px;margin-top:14px">${pool.map(x => {
-      const clash = S.classes.some(m => m.day===x.c.day && m.period===x.c.period);
+    const row = x => { const clash = S.classes.some(m => m.day===x.c.day && m.period===x.c.period);
       return `<div class="li"><span class="sw" style="background:${x.c.color}"></span><div class="t"><b>${esc(x.c.name)}</b><span>${DAYS[x.c.day]}${x.c.period}限 ・ ${esc(x.c.room)}</span></div>
-        ${faces(x.fr, 24, false)}<button class="addb" data-act="addk" data-v="${esc(key(x.c))}" ${clash?'disabled':''}>${clash?'かぶり':'＋ 追加'}</button></div>`; }).join('')}</div>`
-      : `<div class="empty">友だちの授業はぜんぶ追加済みです</div>`;
-  } else h += classForm({day: slot ? d : 0, period: slot ? p : 1, name:'', room:'', color:COLORS[S.classes.length % COLORS.length]}, true);
-  document.getElementById('sheetIn').innerHTML = h;
+        ${faces(x.fr, 24)}<button class="addb" data-act="addk" data-v="${esc(key(x.c))}" ${clash?'disabled':''}>${clash?'かぶり':'＋ 追加'}</button></div>`; };
+    if(!pool.length) h += `<div class="empty">${d!=null ? 'このコマに友だちの授業はありません。<br>「自分で入力」から追加できます。' : '友だちの授業はぜんぶ追加済みです'}</div>`;
+    else if(d!=null) h += `<div class="card" style="padding:4px 16px;margin-top:14px">${pool.map(row).join('')}</div>`;
+    else h += byDayTodayFirst(pool).map(g => `<div class="f">${g.d===dayIdx() ? 'きょう・' : ''}${DAYS[g.d]}曜</div><div class="card" style="padding:4px 16px">${g.items.map(row).join('')}</div>`).join('');
+  } else h += classForm({day: d!=null ? d : Math.max(0, dayIdx()), period: p!=null ? p : 1, name:'', room:'', color:COLORS[S.classes.length % COLORS.length]}, true);
+  document.getElementById('sheetIn').innerHTML = h; b.scrollTop = y;
 }
 function classForm(c, isNew){
   editColor = c.color;
@@ -692,13 +763,13 @@ function classForm(c, isNew){
     </div>
     <label class="f" for="eRoom">教室(任意)</label><input class="tx" id="eRoom" value="${esc(c.room)}" placeholder="例:2-301" maxlength="20">
     <label class="f">色</label><div class="colors" id="eCol">${COLORS.map(x => `<button data-act="ecol" data-v="${x}" class="${x===c.color?'on':''}" style="background:${x}" aria-label="色"></button>`).join('')}</div>
-    <button class="btn" data-act="esave" data-v="${isNew ? '' : c.id}">${isNew ? '追加する' : '保存する'}</button>
-    ${isNew ? '' : `<button class="btn danger" data-act="edel" data-v="${c.id}">この授業を削除</button>`}`;
+    <button class="btn" data-act="esave" data-v="${isNew ? '' : c.id}">${isNew ? '追加する' : '保存する'}</button>`;
 }
 function openEdit(cid){
   const c = S.classes.find(x => x.id===cid); if(!c) return;
   CS = null; FSID = null; ADD = null;
-  document.getElementById('sheetIn').innerHTML = `<h3>授業を編集</h3>` + classForm(c, false);
+  document.getElementById('sheetIn').innerHTML = `<h3>授業を編集</h3>` + classForm(c, false)
+    + `<div id="semBox">${semHTML(c)}</div><button class="btn danger" data-act="edel" data-v="${c.id}">この授業を削除</button>`;
   openSheet();
 }
 function saveClass(id){
@@ -712,41 +783,43 @@ function saveClass(id){
   if(c){
     const moved = c.day!==nd.day || c.period!==nd.period;
     if(moved && S.recs.some(r => r.classId===c.id)){
-      if(!confirm('曜日・時限を変えると、この授業の「来た」と写真は消えます。変更しますか?')) return;
+      if(!confirm('曜日・時限を変えると、この授業の ☺︎ と写真は消えます。変更しますか？')) return;
       S.recs = S.recs.filter(r => r.classId!==c.id);
     }
     Object.assign(c, nd);
   } else S.classes.push({id:uid(), got:false, shareGot:false, ...nd});
-  save(); closeSheet(); render(); toast(c ? '保存しました' : `${name} を追加しました`);
+  if(!save()){ render(); return; }
+  closeSheet(); render(); toast(c ? '保存しました' : `${name} を追加しました`);
 }
 
 /* ============================================================
-   友だち(承認・招待・見せる相手)
+   友だち(承認・招待・見える人)
    ============================================================ */
 let grpDraft = {name:'', members:[]};
 function renderFriends(resetScroll){
-  const fr = friends(), reqs = FDEF.filter(f => S.friendState[f.id]==='request');
+  const fr = friends(), reqs = FDEF.filter(f => ['request','later'].includes(S.friendState[f.id]));
   let h = `<div class="back"><button data-act="close" aria-label="戻る">${BACK}</button><h3>友だち</h3></div>`;
-  h += reqs.map(f => `<div class="req">${avatar(f.emoji,f.bg,44)}<p>${f.name} から友だち申請<small>${f.fac} ・ 承認すると、お互いの時間割が見えます</small></p>
-    <button class="addb" data-act="approve" data-v="${f.id}">承認</button><button class="tog" data-act="decline" data-v="${f.id}">あとで</button></div>`).join('');
+  if(reqs.length) h += `<p class="note" style="margin:0 6px 10px">承認すると、お互いの時間割と ☺︎ が見えるようになります。</p>` + reqs.map(f => { const later = S.friendState[f.id]==='later';
+    return `<div class="req">${avatar(f.emoji,f.bg,44)}<p><b>${f.name}</b> から友だち申請<small>${f.fac}${later ? ' ・ 保留中' : ''}</small></p>
+      <div class="acts"><button class="addb pk" data-act="approve" data-v="${f.id}">承認</button>${later ? '' : `<button class="tog" data-act="decline" data-v="${f.id}">あとで</button>`}</div></div>`; }).join('');
   h += `<div class="card" style="padding:4px 16px">${fr.map(f => `<button class="li" data-act="friend" data-v="${f.id}">${avatar(f.emoji,f.bg,40)}<span class="t"><b>${f.name}</b><span>${f.fac}</span></span>${CHEV}</button>`).join('')
     || '<div class="empty">まだいません</div>'}</div>`;
   h += `<button class="btn pk" data-act="invite">友だちを招待する</button>
     <label class="f" for="addId">IDで申請(あなたのID: @${esc(S.me.handle)})</label>
     <div style="display:flex;gap:8px"><input class="tx" id="addId" placeholder="@ID" maxlength="20"><button class="addb" data-act="addfr" style="padding:0 18px">申請</button></div>
     ${S.sentReq.length ? `<p class="note">承認待ち: ${S.sentReq.map(x => '@'+esc(x)).join('、')}</p>` : ''}`;
-  h += `<div class="sec-t" style="margin-top:34px">見せる相手</div>
+  h += `<div class="sec-t" style="margin-top:34px">見える人</div>
     <div class="card" style="padding:16px 18px">
-      <label class="f" style="margin-top:0" for="audSel">時間割と「来た」を見せる相手(初期設定)</label>
+      <label class="f" style="margin-top:0" for="audSel">☺︎ と写真が見える人(いつもの設定)</label>
       <select class="tx" id="audSel">${audOptions().map(([k,l]) => `<option value="${k}" ${k===S.settings.aud?'selected':''}>${esc(l)}</option>`).join('')}</select>
-      <p class="note">見えるのは承認した友だちだけ。大学全体や知らない人には公開されません。授業ごと・日ごとに変えることもできます。</p></div>`;
-  h += `<div class="sec-t">グループ</div><div class="card" style="padding:4px 16px">${S.groups.map(g => `<div class="li"><span class="t"><b>🏷 ${esc(g.name)}</b><span>${g.members.map(id => fById(id)?.name).filter(Boolean).join('・') || 'メンバーなし'}</span></span><button class="tog" data-act="gdel" data-v="${g.id}">削除</button></div>`).join('')
+      <p class="note">時間割は承認した友だちに、☺︎ と写真はここで選んだ人にだけ見えます。大学全体や知らない人には公開されません。授業のシートで授業ごとに変えられます。</p></div>`;
+  h += `<div class="sec-t">グループ</div><div class="card" style="padding:4px 16px">${S.groups.map(g => `<div class="li"><span class="t"><b>🏷 ${esc(g.name)}</b><span>${g.members.map(id => S.friendState[id]==='friend' ? fById(id)?.name : null).filter(Boolean).join('・') || 'メンバーなし'}</span></span><button class="tog" data-act="gdel" data-v="${g.id}">削除</button></div>`).join('')
     || '<div class="empty">まだありません</div>'}</div>
     <div class="card" style="padding:14px 16px"><input class="tx" id="gName" placeholder="新しいグループ(例:ゼミ)" maxlength="16" value="${esc(grpDraft.name)}">
       ${fr.length ? `<div class="chips" style="margin-top:10px">${fr.map(f => `<button data-act="gmem" data-v="${f.id}" class="${grpDraft.members.includes(f.id)?'on':''}" aria-pressed="${grpDraft.members.includes(f.id)}">${f.emoji} ${f.name}</button>`).join('')}</div>` : ''}
       <button class="btn" data-act="gadd" style="margin-top:12px;padding:13px;font-size:15px">グループを作る</button></div>`;
   paintScreen(h, resetScroll);
-  document.getElementById('audSel').onchange = e => { S.settings.aud = e.target.value; save(); };
+  document.getElementById('audSel').onchange = e => { S.settings.aud = e.target.value; if(!save()) renderFriends(false); };
   document.getElementById('gName').oninput = e => { grpDraft.name = e.target.value; };
 }
 
@@ -756,12 +829,12 @@ function renderFriends(resetScroll){
 function renderMe(resetScroll){
   const st = S.settings, dm = st.demo;
   const h = `<div class="back"><button data-act="close" aria-label="戻る">${BACK}</button><h3>プロフィール</h3></div>
-    <div style="text-align:center;margin:4px 0 6px">${avatar(S.me.emoji,S.me.bg,88)}</div>
+    <div style="display:flex;justify-content:center;margin:4px 0 6px">${avatar(S.me.emoji,S.me.bg,88)}</div>
     <label class="f" for="mName">名前</label><input class="tx" id="mName" value="${esc(S.me.name)}" maxlength="16">
     <label class="f" for="mFac">学部</label><input class="tx" id="mFac" value="${esc(S.me.fac)}" list="facs" maxlength="16"><datalist id="facs">${FACULTIES.map(x => `<option value="${x}">`).join('')}</datalist>
     <label class="f">アイコン</label><div class="emoji-pick">${ME_EMOJI.map(e => `<button data-act="memo" data-v="${e}" class="${e===S.me.emoji?'on':''}">${e}</button>`).join('')}</div>
     <label class="f">背景</label><div class="colors">${BGS.map((b,i) => `<button data-act="mbg" data-v="${i}" class="${i===S.me.bg?'on':''}" style="background:${b}" aria-label="背景${i+1}"></button>`).join('')}</div>
-    <div class="sec-t" style="margin-top:34px">時限の時間</div>
+    <div class="sec-t" style="margin-top:34px">授業の時間</div>
     <div class="chips">${[90,100].map(v => `<button data-act="preset" data-v="${v}" class="${st.preset===v?'on':''}">${v}分授業(1限 ${PRESETS[v][0].join('–')})</button>`).join('')}</div>
     <div class="sec-t">デモ時刻(試すとき用)</div>
     <div class="card" style="padding:14px 16px">
@@ -770,11 +843,11 @@ function renderMe(resetScroll){
         <select class="tx" id="dDay" ${dm.on?'':'disabled'}>${DAYS.map((x,i) => `<option value="${i}" ${i===dm.day?'selected':''}>${x}曜</option>`).join('')}</select>
         <input class="tx" type="time" id="dTime" value="${String(Math.floor(dm.min/60)).padStart(2,'0')}:${String(dm.min%60).padStart(2,'0')}" ${dm.on?'':'disabled'}></div>
       <p class="note">夜や週末でも、授業中の様子を試せます。友だちはデモデータです。</p></div>
-    <div class="sec-t">記録について</div>
-    <div class="card" style="padding:14px 18px"><p class="note" style="margin:0">・「来た」は本人の自己申告です。大学の正式な出席記録ではありません。<br>・押していないことは欠席を意味しません。<br>・写真は任意。人の顔や授業の資料は写さず、授業中の撮影は先生の指示に従ってください。<br>・データはこの端末に保存されます(プロトタイプ)。</p></div>
+    <div class="sec-t">☺︎ について</div>
+    <div class="card" style="padding:14px 18px"><p class="note" style="margin:0">・☺︎(来た)は本人の自己申告です。大学の正式な出席記録ではありません。<br>・押していないことは欠席を意味しません。<br>・写真は任意。人の顔や授業の資料は写さず、授業中に撮るときは先生のルールに従ってね。<br>・データはこの端末に保存されます(プロトタイプ)。</p></div>
     <button class="btn danger" data-act="reset">データをリセット</button>`;
   paintScreen(h, resetScroll);
-  const bind = (id, fn) => { const el = document.getElementById(id); el.onchange = () => { fn(el.value); save(); }; };
+  const bind = (id, fn) => { const el = document.getElementById(id); el.onchange = () => { fn(el.value); if(!save()) renderMe(false); }; };
   bind('mName', v => { S.me.name = v.trim() || 'あなた'; });
   bind('mFac', v => { S.me.fac = v.trim(); });
   bind('dDay', v => { S.settings.demo.day = +v; applyTime(); });
@@ -783,7 +856,7 @@ function renderMe(resetScroll){
 function applyTime(){ demoAnchor = Date.now(); buildFriends(); viewWeek = 0; render(); }
 
 /* ============================================================
-   はじめて開いたとき(まずは1コマから)
+   はじめて開いたとき(招待を承認 → プロフィール → まずは1コマ)
    ============================================================ */
 let ONB = {step:0, pick:new Set()};
 function renderOnb(){
@@ -792,134 +865,182 @@ function renderOnb(){
   if(s===0){
     const inv = fById('f1');
     el.innerHTML = `${steps}<div class="logo" style="margin-top:34px">KOMALOG</div>
-      <h1>ただの時間割。<br>なのに、友だちの気配がする。</h1>
+      <h1>ただの時間割。<br>なのに、<br>友だちの気配がする。</h1>
       <p class="lead">開くと、友だちが今日どの授業に来ているか分かる。教室に着いたら ☺︎ を押すだけ。</p>
       <div style="text-align:center;margin-top:22px">${STAR(116)}</div>
       <div class="inv">${avatar(inv.emoji,inv.bg,44)}<div>${inv.name} から招待が届いています<div class="note" style="margin:2px 0 0">承認した友だちとだけつながります</div></div></div>
-      <div style="margin-top:auto;padding-top:26px"><button class="btn pk" data-act="onb-next">はじめる</button>
-      <button class="btn ghost" data-act="onb-demo" style="margin-top:10px">デモの時間割で見てみる</button></div>`;
+      <div style="margin-top:auto;padding-top:26px"><button class="btn pk" data-act="onb-accept">${inv.name} の招待を承認してはじめる</button>
+      <button class="btn ghost" data-act="onb-demo" style="margin-top:10px">デモの時間割で見てみる</button>
+      <p class="note" style="text-align:center">デモでは友だち4人とつながった状態で始まります</p></div>`;
   } else if(s===1){
     el.innerHTML = `${steps}<h1>プロフィール</h1><p class="lead">友だちに表示されます。</p>
       <label class="f" for="oName">名前</label><input class="tx" id="oName" maxlength="16" placeholder="例:たろう" value="${esc(S.me.name)}">
       <label class="f" for="oFac">学部</label><input class="tx" id="oFac" list="ofacs" maxlength="16" placeholder="例:文学部" value="${esc(S.me.fac)}"><datalist id="ofacs">${FACULTIES.map(x => `<option value="${x}">`).join('')}</datalist>
       <label class="f">アイコン</label><div class="emoji-pick">${ME_EMOJI.map(e => `<button data-act="onb-emo" data-v="${e}" class="${e===S.me.emoji?'on':''}">${e}</button>`).join('')}</div>
-      <div style="margin-top:auto;padding-top:26px"><button class="btn pk" data-act="onb-next">次へ</button><button class="btn danger" style="color:var(--dim)" data-act="onb-back">戻る</button></div>`;
+      <div style="margin-top:auto;padding-top:26px"><button class="btn pk" data-act="onb-next">次へ</button><button class="btn quiet" data-act="onb-back">戻る</button></div>`;
     const n = document.getElementById('oName'), f = document.getElementById('oFac');
     n.oninput = () => { S.me.name = n.value.trim(); }; f.oninput = () => { S.me.fac = f.value.trim(); };
   } else {
-    const pool = friendPool();
+    const groups = byDayTodayFirst(friendPool());
     el.innerHTML = `${steps}<h1>まずは1コマだけでOK</h1><p class="lead">友だちが登録した授業から、自分も受けているものを選ぶだけ。あとから ＋ で追加できます。</p>
-      <div style="margin-top:16px">${pool.map(x => { const k = key(x.c), on = ONB.pick.has(k);
+      ${groups.map(g => `<div class="f">${g.d===dayIdx() ? 'きょう・' : ''}${DAYS[g.d]}曜</div>` + g.items.map(x => { const k = key(x.c), on = ONB.pick.has(k);
         const clash = !on && [...ONB.pick].some(pk => { const [,d,p] = pk.split('|'); return +d===x.c.day && +p===x.c.period; });
         return `<button class="pick ${on?'on':''}" data-act="onb-pick" data-v="${esc(k)}" ${clash?'disabled':''} aria-pressed="${on}">
-          <span class="sw" style="background:${x.c.color}"></span><span class="t"><b>${esc(x.c.name)}</b><span>${DAYS[x.c.day]}${x.c.period}限 ・ ${esc(x.c.room)}</span></span>
-          ${faces(x.fr, 24, false)}<span class="box">${on?'✓':''}</span></button>`; }).join('')}</div>
+          <span class="sw" style="background:${x.c.color}"></span><span class="t"><b>${esc(x.c.name)}</b><span>${x.c.period}限 ・ ${esc(x.c.room)} ・ ${names(x.fr)}</span></span>
+          <span class="box">${on?'✓':''}</span></button>`; }).join('')).join('') || '<div class="empty">友だちの授業はまだありません</div>'}
       <div style="position:sticky;bottom:0;padding:18px 0 4px;background:linear-gradient(transparent,var(--bg) 30%)">
-        <button class="btn pk" data-act="onb-done">${ONB.pick.size ? `${ONB.pick.size}コマではじめる` : 'あとで追加する'}</button>
-        <button class="btn danger" style="color:var(--dim)" data-act="onb-back">戻る</button></div>`;
+        ${ONB.pick.size ? `<button class="btn pk" data-act="onb-done">${ONB.pick.size}コマではじめる</button>` : '<button class="btn ghost" data-act="onb-done">あとで追加する</button>'}
+        <button class="btn quiet" data-act="onb-back">戻る</button></div>`;
   }
 }
 function finishOnb(demo){
-  if(demo) S.classes = MY_SEED.map((c,i) => ({id:uid(), day:c[0], period:c[1], name:c[2], room:c[3], color:COLORS[i%COLORS.length], got:false, shareGot:false}));
-  else {
+  if(demo){
+    S.classes = MY_SEED.map((c,i) => ({id:uid(), day:c[0], period:c[1], name:c[2], room:c[3], color:COLORS[i%COLORS.length], got:false, shareGot:false}));
+    ['f1','f2','f3','f4'].forEach(id => { S.friendState[id] = 'friend'; });
+    const r = new Date(), w = r.getDay();
+    S.settings.demo.on = !isWeekdayDaytime(r);   // 夜・週末に開いたときだけ、デモ時刻で授業中の様子を見せる
+    if(w>=1 && w<=5) S.settings.demo.day = w-1;
+    if(!S.me.fac) S.me.fac = '文学部';
+  } else {
     const src = friends().flatMap(f => f.classes);
     [...ONB.pick].forEach((k,i) => { const c = src.find(x => key(x)===k);
       if(c) S.classes.push({id:uid(), day:c.day, period:c.period, name:c.name, room:c.room, color:COLORS[i%COLORS.length], got:false, shareGot:false}); });
+    S.settings.demo.on = false; // 実際に使う人は、いつも本当の時刻
   }
   if(!S.me.name) S.me.name = 'あなた';
-  if(demo && !S.me.fac) S.me.fac = '文学部';
   S.onboarded = true; save();
   document.getElementById('onb').hidden = true;
-  tab = 'today'; render(); window.scrollTo(0,0);
-  if(!demo) toast(S.classes.length ? '準備OK。教室に着いたら ☺︎' : '授業は ＋ からいつでも追加できます');
+  tab = 'today'; applyTime(); scrollToNow();
+  if(!demo) toast(S.classes.some(c => c.day===dayIdx()) ? '準備OK。教室に着いたら ☺︎' : S.classes.length ? '準備OK。授業の日に ☺︎ が出ます' : '授業は ＋ からいつでも追加できます');
 }
 
 /* ============================================================
-   シート / スクリーン / トースト
+   シート / スクリーン / トースト(フォーカスも管理)
    ============================================================ */
-function openSheet(){ const sh = document.getElementById('sheet'); sh.classList.add('open'); document.getElementById('shade').classList.add('open'); sh.querySelector('.body').scrollTop = 0; }
-function closeSheet(){ document.getElementById('sheet').classList.remove('open'); document.getElementById('shade').classList.remove('open'); crop = null; CS = null; ADD = null; FSID = null; }
-function paintScreen(h, resetScroll){
-  const sc = document.getElementById('scr'); const top = sc.scrollTop;
-  document.getElementById('scrIn').innerHTML = h; sc.classList.add('open'); sc.scrollTop = resetScroll ? 0 : top;
+let lastFocus = null;
+const $ = id => document.getElementById(id);
+function openSheet(){
+  const sh = $('sheet'), wasOpen = sh.classList.contains('open');
+  if(!wasOpen) lastFocus = document.activeElement;
+  sh.classList.add('open'); $('shade').classList.add('open');
+  $('app').inert = true; $('nav').inert = true; $('scr').inert = true;
+  const body = sh.querySelector('.body'); body.scrollTop = 0; body.focus({preventScroll:true});
 }
-function closeScreen(){ document.getElementById('scr').classList.remove('open'); render(); }
+function closeSheet(){
+  $('sheet').classList.remove('open'); $('shade').classList.remove('open');
+  crop = null; CS = null; ADD = null; FSID = null;
+  const scrOpen = $('scr').classList.contains('open');
+  $('app').inert = scrOpen; $('nav').inert = scrOpen; $('scr').inert = false;
+  if(lastFocus && document.contains(lastFocus)) lastFocus.focus({preventScroll:true});
+  else if(lastFocus && lastFocus.dataset && lastFocus.dataset.act){
+    const n = [...document.querySelectorAll(`[data-act="${lastFocus.dataset.act}"]`)].find(x => x.dataset.v===lastFocus.dataset.v);
+    if(n) n.focus({preventScroll:true});
+  }
+  lastFocus = null;
+}
+function paintScreen(h, resetScroll){
+  const sc = $('scr'); const top = sc.scrollTop;
+  $('scrIn').innerHTML = h; sc.classList.add('open'); sc.scrollTop = resetScroll ? 0 : top;
+  $('app').inert = true; $('nav').inert = true;
+  if(resetScroll) sc.querySelector('.back button').focus({preventScroll:true});
+}
+function closeScreen(){ $('scr').classList.remove('open'); $('app').inert = false; $('nav').inert = false; render(); }
 let toastT;
-function toast(t){ const el = document.getElementById('toast'); el.textContent = t; el.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => el.classList.remove('on'), 2600); }
+function toast(t){ const el = $('toast'); el.textContent = t; el.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => el.classList.remove('on'), 2800); }
 
 /* ============================================================
    操作(クリックはまとめて委譲)
    ============================================================ */
 const ACT = {
-  tab: v => { tab = v; render(); window.scrollTo(0,0); },
-  wk: v => { viewWeek = Math.min(0, Math.max(-8, viewWeek + +v)); render(); },
+  tab: v => { tab = v; render(); if(v==='today') scrollToNow(); else window.scrollTo(0,0); },
+  wk: v => { viewWeek = Math.min(0, Math.max(minWeek(), viewWeek + +v)); render(); },
   cls: v => { const [cid, date] = v.split('|'); openClass(cid, date); },
   here: v => {
     const [cid, date] = v.split('|'); const c = S.classes.find(x => x.id===cid); if(!c) return;
     if(recOf(cid, date)){ if(!CS) openClass(cid, date); return; }
     if(!canRecord(date, c)){ toast(phaseOf(date,c)==='future' ? `${fmtMin(win(c).s-30)} から押せます` : '今週より前は記録できません'); return; }
-    if(!checkIn(cid, date)) return;
+    const r = checkIn(cid, date); if(!r) return;
     if(CS) renderClass();
     render();
-    const b = document.querySelector(`#app .smile[data-v="${cid}|${date}"]`); if(b) b.classList.add('pop');
-    toast('☺︎ 来た！ 写真も一枚のせられます');
+    const b = [...document.querySelectorAll('#app .smile')].find(x => x.dataset.v===v); if(b) b.classList.add('pop');
+    toast(`☺︎ 来た ・ ${audName(r.aud)}に見える`);
   },
-  undo: () => { if(!confirm('「来た」を取り消しますか? この日の写真も外れます。')) return;
+  undo: () => { if(!confirm('☺︎ を取り消しますか？ この日の写真も外れます。')) return;
     S.recs = S.recs.filter(r => !(r.classId===CS.cid && r.date===CS.date)); save(); renderClass(); render(); },
-  pick: () => document.getElementById('fileIn').click(),
+  pick: () => $('fileIn').click(),
   unphoto: () => { const r = recOf(CS.cid, CS.date); if(r){ r.photo = null; save(); } renderClass(); render(); },
-  cok: () => { const url = document.getElementById('cv').toDataURL('image/jpeg', .72); crop = null;
-    const had = !!recOf(CS.cid, CS.date); if(checkIn(CS.cid, CS.date, url)) toast(had ? '写真をのせました' : '☺︎ 来た！ 写真ものせました');
+  cok: () => { const url = $('cv').toDataURL('image/jpeg', .72); crop = null;
+    const had = !!recOf(CS.cid, CS.date); const r = checkIn(CS.cid, CS.date, url);
+    if(r && r.dropped){ delete r.dropped; toast('☺︎ 来た ・ 写真は容量がいっぱいでのせられませんでした'); }
+    else if(r) toast(had ? `写真をのせました(${audName(r.aud)}に見える)` : `☺︎ 来た ・ 写真も ${audName(r.aud)}に見える`);
     renderClass(); render(); },
   ccancel: () => { crop = null; renderClass(); },
-  aud: v => { CS.aud = v; const r = recOf(CS.cid, CS.date); if(r){ r.aud = v; save(); } renderClass(); },
-  got: () => { const c = S.classes.find(x => x.id===CS.cid); c.got = !c.got; if(!c.got) c.shareGot = false; save(); renderClass(); render(); if(c.got) toast('🎉 単位GET！'); },
-  share: () => { const c = S.classes.find(x => x.id===CS.cid); if(!c.got) return; c.shareGot = !c.shareGot; save(); renderClass(); render(); },
+  aud: v => { const c = S.classes.find(x => x.id===CS.cid); if(!c) return;
+    CS.aud = v; c.aud = v; const r = recOf(CS.cid, CS.date); if(r) r.aud = v;
+    if(!save()) CS.aud = (recOf(CS.cid, CS.date) || {}).aud || (S.classes.find(x => x.id===CS.cid) || {}).aud || S.settings.aud;
+    renderClass(); },
+  got: v => { const c = S.classes.find(x => x.id===v); if(!c) return; c.got = !c.got; if(!c.got) c.shareGot = false;
+    const ok = save(); refreshSem(v); if(ok && c.got) toast('🎉 単位GET！(自分だけに表示)'); },
+  share: v => { const c = S.classes.find(x => x.id===v); if(!c || !c.got) return; c.shareGot = !c.shareGot;
+    const ok = save(); refreshSem(v); if(ok) toast(c.shareGot ? '友だちに見せています' : '自分だけに戻しました'); },
   edit: v => openEdit(v),
   friend: v => openFriend(v),
   fadd: v => {
     const [name, d, p] = v.split('|');
     if(S.classes.some(m => key(m)===v)){ toast('あなたも受けている授業です 🤝'); return; }
-    if(confirm(`「${name}」(${DAYS[+d]}${p}限)を自分の時間割にも追加しますか?`) && addFromKey(v) && FSID) openFriend(FSID);
+    const clash = S.classes.find(m => m.day===+d && m.period===+p);
+    if(clash){ toast(`${DAYS[+d]}${p}限は「${clash.name}」が入っています`); return; }
+    if(confirm(`「${name}」(${DAYS[+d]}${p}限)を自分の時間割にも追加しますか？`) && addFromKey(v)) refreshFriendSheet();
   },
-  add: v => { if(v){ const [d,p] = v.split('-').map(Number); openAdd(d, p); } else openAdd(null, null); },
+  add: v => { if(v==='today') openAdd(dayIdx(), null); else if(v){ const [d,p] = v.split('-').map(Number); openAdd(d, p); } else openAdd(null, null); },
   amode: v => { ADD.mode = v; renderAdd(); },
   addk: v => { if(addFromKey(v)) renderAdd(); },
   ecol: (v, el) => { editColor = v; document.querySelectorAll('#eCol button').forEach(b => b.classList.toggle('on', b===el)); },
   esave: v => saveClass(v),
-  edel: v => { const c = S.classes.find(x => x.id===v); if(!c || !confirm(`「${c.name}」を削除しますか? この授業の記録と写真も消えます。`)) return;
+  edel: v => { const c = S.classes.find(x => x.id===v); if(!c || !confirm(`「${c.name}」を削除しますか？ この授業の ☺︎ と写真も消えます。`)) return;
     S.classes = S.classes.filter(x => x.id!==v); S.recs = S.recs.filter(r => r.classId!==v); save(); closeSheet(); render(); },
   sclose: () => closeSheet(),
   close: () => closeScreen(),
   friends: () => { closeSheet(); renderFriends(true); },
   me: () => { closeSheet(); renderMe(true); },
-  approve: v => { S.friendState[v] = 'friend'; save(); renderFriends(false); render(); toast(`${fById(v).name} と友だちになりました`); },
+  approve: v => { S.friendState[v] = 'friend'; if(!save()){ renderFriends(false); return; } renderFriends(false); render(); toast(`${fById(v).name} とつながりました`); },
   decline: v => { S.friendState[v] = 'later'; save(); renderFriends(false); render(); },
+  unfriend: v => { const f = fById(v); if(!f || !confirm(`${f.name} には、あなたの時間割と ☺︎・写真が見えなくなります。友だちをやめますか？`)) return;
+    S.friendState[v] = 'none'; S.groups.forEach(g => { g.members = g.members.filter(x => x!==v); });
+    save(); closeSheet(); render(); if($('scr').classList.contains('open') && $('audSel')) renderFriends(false); toast(`${f.name} とのつながりを解除しました`); },
   invite: async () => {
     const text = `KOMALOGで時間割つなごう。ID: @${S.me.handle}`;
     try{ if(navigator.share){ await navigator.share({text}); return; } await navigator.clipboard.writeText(text); toast('招待メッセージをコピーしました'); }
     catch(e){ if(e && e.name==='AbortError') return; toast(text); }
   },
-  addfr: () => { const v = document.getElementById('addId').value.trim().replace(/^@/, ''); if(!v){ toast('IDを入れてね'); return; }
-    if(!S.sentReq.includes(v)) S.sentReq.push(v); save(); renderFriends(false); toast('申請しました。承認されると時間割が見えます'); },
+  addfr: () => { const v = $('addId').value.trim().replace(/^@/, ''); if(!v){ toast('IDを入れてね'); return; }
+    if(!S.sentReq.includes(v)) S.sentReq.push(v); if(!save()){ renderFriends(false); return; } renderFriends(false); toast('申請しました。承認されると時間割が見えます'); },
   gmem: v => { const i = grpDraft.members.indexOf(v); if(i>=0) grpDraft.members.splice(i,1); else grpDraft.members.push(v); renderFriends(false); },
   gadd: () => { const name = grpDraft.name.trim(); if(!name){ toast('グループ名を入れてね'); return; }
-    S.groups.push({id:uid(), name, members:[...grpDraft.members]}); grpDraft = {name:'', members:[]}; save(); renderFriends(false); toast('グループを作りました'); },
-  gdel: v => { const g = S.groups.find(x => x.id===v); if(!g || !confirm(`「${g.name}」を削除しますか?`)) return;
-    const a = 'g:'+v; S.groups = S.groups.filter(x => x.id!==v);
-    if(S.settings.aud===a) S.settings.aud = 'friends';
+    S.groups.push({id:uid(), name, members:[...grpDraft.members]});
+    if(!save()){ renderFriends(false); return; }
+    grpDraft = {name:'', members:[]}; renderFriends(false); toast('グループを作りました'); },
+  gdel: v => { const g = S.groups.find(x => x.id===v);
+    if(!g || !confirm(`「${g.name}」を削除しますか？\nこのグループに見せていた ☺︎ と写真は「自分だけ」になります。`)) return;
+    const a = 'g:'+v, wasDefault = S.settings.aud===a;
+    S.groups = S.groups.filter(x => x.id!==v);
+    if(wasDefault) S.settings.aud = 'private'; // 見える範囲を勝手に広げない
     S.recs.forEach(r => { if(r.aud===a) r.aud = 'private'; });
-    save(); renderFriends(false); toast('削除しました。このグループに見せていた記録は「自分だけ」になりました'); },
+    S.classes.forEach(c => { if(c.aud===a) c.aud = 'private'; });
+    if(!save()){ renderFriends(false); return; }
+    renderFriends(false);
+    toast(wasDefault ? '削除しました。いつもの見える人も「自分だけ」になりました' : '削除しました。このグループに見せていた ☺︎ と写真は「自分だけ」になりました'); },
   memo: v => { S.me.emoji = v; save(); renderMe(false); render(); },
   mbg: v => { S.me.bg = +v; save(); renderMe(false); render(); },
   preset: v => { S.settings.preset = +v; save(); buildFriends(); renderMe(false); render(); },
   demo: v => { S.settings.demo.on = v==='1'; save(); applyTime(); renderMe(false); },
-  reset: () => { if(!confirm('時間割・記録・設定をすべて消して、最初からにしますか?')) return; localStorage.removeItem(KEY); location.reload(); },
-  'onb-next': () => { ONB.step++; renderOnb(); document.getElementById('onb').scrollTop = 0; },
-  'onb-back': () => { ONB.step = Math.max(0, ONB.step-1); renderOnb(); },
+  reset: () => { if(!confirm('時間割・☺︎・写真・設定をすべて消して、最初からにしますか？')) return; localStorage.removeItem(KEY); location.reload(); },
+  'onb-accept': () => { S.friendState.f1 = 'friend'; ONB.step = 1; renderOnb(); $('onb').scrollTop = 0; },
+  'onb-next': () => { ONB.step++; renderOnb(); $('onb').scrollTop = 0; },
+  'onb-back': () => { ONB.step = Math.max(0, ONB.step-1); if(ONB.step===0) S.friendState.f1 = 'request'; renderOnb(); },
   'onb-demo': () => finishOnb(true),
   'onb-emo': (v, el) => { S.me.emoji = v; document.querySelectorAll('#onbIn .emoji-pick button').forEach(b => b.classList.toggle('on', b===el)); },
-  'onb-pick': v => { if(ONB.pick.has(v)) ONB.pick.delete(v); else ONB.pick.add(v); const o = document.getElementById('onb'), t = o.scrollTop; renderOnb(); o.scrollTop = t; },
+  'onb-pick': v => { if(ONB.pick.has(v)) ONB.pick.delete(v); else ONB.pick.add(v); const o = $('onb'), t = o.scrollTop; renderOnb(); o.scrollTop = t; },
   'onb-done': () => finishOnb(false),
 };
 document.addEventListener('click', e => {
@@ -928,18 +1049,19 @@ document.addEventListener('click', e => {
   e.preventDefault(); fn(el.dataset.v, el, e);
 });
 document.addEventListener('keydown', e => {
-  if(e.key==='Escape'){ if(document.getElementById('sheet').classList.contains('open')) closeSheet(); else if(document.getElementById('scr').classList.contains('open')) closeScreen(); return; }
+  if(e.key==='Escape'){ if($('sheet').classList.contains('open')) closeSheet(); else if($('scr').classList.contains('open')) closeScreen(); return; }
   if((e.key==='Enter' || e.key===' ') && e.target.matches('[role=button][data-act]')){ e.preventDefault(); e.target.click(); }
 });
 
 /* ---------- 起動 ---------- */
 (function boot(){
   buildFriends();
-  if(!S.onboarded){ document.getElementById('onb').hidden = false; renderOnb(); }
-  render();
+  if(!S.onboarded){ $('onb').hidden = false; renderOnb(); }
+  render(); if(S.onboarded) scrollToNow();
   setInterval(() => {
     buildFriends();
-    const busy = document.getElementById('sheet').classList.contains('open') || ['INPUT','SELECT','TEXTAREA'].includes(document.activeElement?.tagName);
+    const a = document.activeElement;
+    const busy = $('sheet').classList.contains('open') || ['INPUT','SELECT','TEXTAREA'].includes(a?.tagName);
     if(!busy) render();
   }, 60000);
 })();
