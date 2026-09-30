@@ -206,7 +206,10 @@
   .cmp-top{display:flex; align-items:center; gap:10px;}
   .cmp-top .seg{flex:1; margin-top:0; background:var(--bg);}
   .cmp-top .seg small{font-size:10.5px; font-weight:700; opacity:.8;}
-  .cmp-in{display:block; width:100%; border:none; outline:none; resize:none; background:transparent; font-family:inherit; font-size:16px; font-weight:700; color:var(--tx); padding:12px 6px 6px;}
+  .cmp-in{display:block; width:calc(100% - 12px); margin:10px 6px 6px; border:none; outline:none; resize:none; font-family:inherit; font-size:16px; font-weight:700; color:var(--tx); padding:0 2px;
+    line-height:32px; height:66px; background:repeating-linear-gradient(transparent 0 30px, transparent 30px, transparent 30px) ,
+    linear-gradient(90deg, #d9d9d9 50%, transparent 0) 0 30px / 8px 2px repeat-x, linear-gradient(90deg, #d9d9d9 50%, transparent 0) 0 62px / 8px 2px repeat-x;}
+  .cmp-in:focus{background:linear-gradient(90deg, var(--pink2) 50%, transparent 0) 0 30px / 8px 2px repeat-x, linear-gradient(90deg, var(--pink2) 50%, transparent 0) 0 62px / 8px 2px repeat-x;}
   .composer .phrow button{background:var(--bg);}
   .composer .audb{background:var(--bg); width:56px; height:56px; font-size:22px;}
   .composer .postbtn{height:56px;}
@@ -828,7 +831,7 @@ function paintClass(){
     if(!r) h += `<div class="cmp-top">${meAv(36)}<div class="seg">
         <button data-act="dkind" data-v="here" class="${d.kind==='here'?'on':''}" ${can?'':'disabled'}>☺︎ 来た${can ? '' : ` <small>${fmtMin(win(c).s-10)}〜</small>`}</button>
         <button data-act="dkind" data-v="skip" class="${d.kind==='skip'?'on':''}">🏃 飛ぶ</button></div></div>`;
-    h += `<textarea class="cmp-in" id="cmIn" rows="2" placeholder="✍️" maxlength="60" aria-label="ひとこと">${esc(d.comment)}</textarea>`;
+    h += `<textarea class="cmp-in" id="cmIn" rows="2" maxlength="60" aria-label="ひとこと">${esc(d.comment)}</textarea>`;
     if(d.photo) h += `<div class="shot" style="margin-top:8px;background-image:url('${d.photo}')" role="img" aria-label="写真"></div>
       <div class="phrow"><button data-act="pick" aria-label="写真を選び直す">🔄</button><button data-act="unphoto" aria-label="写真を外す">🗑</button></div>`;
     h += `<div class="postrow">${d.photo ? '' : '<button class="audb" data-act="pick" aria-label="写真を1枚">📷</button>'}
