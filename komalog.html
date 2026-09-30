@@ -737,7 +737,7 @@ function paintClass(){
   const date = CS.date, r = recOf(c.id, date), ph = phaseOf(date, c), can = canRecord(date, c), isToday = date===todayStr();
   const fr = friendsIn(c);
   let h = `<div style="display:flex;align-items:flex-start;gap:8px"><h3 style="flex:1;min-width:0">${esc(c.name)}</h3><button class="edb" data-act="edit" data-v="${c.id}" aria-label="授業を編集">✏️</button></div><div class="sub">${md(date)}(${DAYS[c.day]}) ${c.period}限 ${timeText(c)}${c.room ? ' ・ 📍'+esc(c.room) : ''}</div>`;
-  { const u = unread(c); h += `<button class="talkbtn" data-act="talk" data-v="${c.id}">💬 トーク${u ? ` <span class="tkb">${cnt(u)}</span>` : ''}</button>`; }
+  { const u = unread(c); h += `<button class="talkbtn" data-act="talk" data-v="${c.id}" aria-label="トーク">💬${u ? ` <span class="tkb">${cnt(u)}</span>` : ''}</button>`; }
   if(fr.length) h += `<div class="fline">${fr.map(({f,fc}) => { const x = isToday && fHere(f, fc, date);
     return `<button class="fchip ${x?'ok':''}" data-act="friend" data-v="${f.id}">${avatar(f.emoji,f.bg,28)}${f.name}${x ? ' <small>来た</small>' : ''}</button>`; }).join('')}</div>`;
   const canSk = date <= todayStr() && date >= weekDates(0)[0], d = CS.draft;
@@ -1176,7 +1176,7 @@ function renderTalk(reset){
   const draft = $('tkIn') ? $('tkIn').value : '';
   let h = `<div class="back"><button data-act="close" aria-label="戻る">${BACK}</button><div style="min-width:0"><h3 style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(c.name)}</h3>
     <div class="sub">${DAYS[c.day]}${c.period}限 ・ ${fr.length ? `${names(fr)} とあなた` : 'まだ同じ授業の友だちはいません'}</div></div></div>
-    <p class="rule" style="margin:-4px 6px 14px">このトークは、この授業を受けている友だちだけが見られます。</p><div class="msgs">`;
+<div class="msgs">`;
   let last = '';
   ms.forEach(m => {
     const d = ymd(new Date(m.ts - 4*3600e3));
