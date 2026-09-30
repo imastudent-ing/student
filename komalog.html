@@ -650,7 +650,7 @@ function todayView(){
     else if(S.classes.length) h += `<div class="empty">きょうは授業なし。<br><button class="lnk" data-act="add" data-v="today">＋ きょうの授業を追加</button></div>`;
     else h += `<div class="empty">まだ時間割がありません。<br><button class="lnk" data-act="add">＋ 授業を追加</button></div>`;
   }
-  return h + `<p class="note foot">☺︎ = 自己申告 ・ 押してない ≠ 欠席</p>`;
+  return h;
 }
 // 開いたとき、いまの授業(なければ次の授業)が見えるようにする
 function scrollToNow(){
@@ -997,8 +997,7 @@ function friendSheetHTML(f){
       const r = fRec(f, c, t), ph = phaseOf(t, c);
       return `<div class="li">${thumbHTML(c, r, c.shareGot)}<div class="t"><span>${c.period}限 ${timeText(c)}</span><b>${esc(c.name)}</b></div>
         <span class="st ${r&&!isSkip(r)?'ok':''}">${isSkip(r) ? '🏃' : r ? '☺︎ 来た' : ph==='future' ? '⏳' : ''}</span></div>`; }).join('')
-      : '<div class="empty" style="padding:16px">きょうは授業なし</div>') + '</div>'
-      + `<p class="rule">☺︎ = 自己申告 ・ 押してない ≠ 欠席</p>`;
+      : '<div class="empty" style="padding:16px">きょうは授業なし</div>') + '</div>';
   }
   h += `<div class="f">時間割</div><div class="card ttc">${gridHTML(f.classes, weekDates(0), f)}</div>
     ${sameUniv(f) ? '<p class="rule">🤝 = 同じ授業 ・ マスをタップで投稿を見る</p>' : ''}`;
