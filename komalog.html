@@ -168,7 +168,16 @@
   .cform .csend{width:44px; height:44px; border-radius:50%; background:var(--pink); display:grid; place-items:center; flex-shrink:0;}
   .cform .csend svg{width:20px; height:20px;}
   .rxc.add{color:var(--dim);}
-  .rxc.cmb{margin-left:auto;}
+  .rxc.cmb{flex-shrink:0;}
+  .pbar{align-items:center;}
+  .rxe{font-size:19px; line-height:1; padding:4px 1px;}
+  .rxe.on{filter:drop-shadow(0 0 3px rgba(226,79,210,.6));}
+  .rxmore{font-size:14px; font-weight:900; color:var(--dim); padding:0 2px;}
+  .ctk{flex:1; min-width:0; height:26px; overflow:hidden; display:flex; justify-content:flex-end; align-items:center;}
+  .ctk-in{display:inline-flex; align-items:center; gap:5px; max-width:100%; font-size:12.5px; font-weight:700; color:#555; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; animation:ctkIn .5s ease both;}
+  .ctk-in .av{flex-shrink:0;}
+  @keyframes ctkIn{from{transform:translateY(110%); opacity:0} to{transform:none; opacity:1}}
+  @media (prefers-reduced-motion: reduce){ .ctk-in{animation:none;} }
   .rxpick{display:flex; gap:6px; padding:0 12px 12px;}
   .rxpick button{width:42px; height:42px; border-radius:50%; background:#fff; font-size:21px;}
   .cform{display:flex; gap:8px; margin-top:14px;}
@@ -734,14 +743,31 @@ function findPost(id){
   const r = S.recs.find(x => x.id===id); if(r) return {f:null, c:S.classes.find(x => x.id===r.classId), r};
   return null;
 }
+// リアクションは数字でなく1個ずつ並べる(多いときは「+」)
+function rxList(f, r){
+  const out = [];
+  friends().filter(x => !f || x.id!==f.id).forEach(x => { if(hash(x.id+r.id+'rx') < .3) out.push({e:RX[Math.floor(hash(x.id+r.id+'re')*RX.length)], mine:false}); });
+  (S.rx[r.id] || []).forEach(e => out.push({e, mine:true}));
+  return out;
+}
 function postBar(f, r){
-  const m = rxCounts(f, r), mine = S.rx[r.id] || [], n = postComments(f, r).length;
-  const chips = Object.entries(m).map(([e, k]) => f ? `<button class="rxc ${mine.includes(e)?'on':''}" data-act="rx" data-v="${r.id}|${e}" aria-pressed="${mine.includes(e)}">${e} ${k}</button>`
-    : `<span class="rxc">${e} ${k}</span>`).join('');
+  const list = rxList(f, r), cs = postComments(f, r), MAX = 5;
+  const chips = list.slice(0, MAX).map(x => x.mine && f ? `<button class="rxe on" data-act="rx" data-v="${r.id}|${x.e}" aria-label="${x.e} を取り消す">${x.e}</button>` : `<span class="rxe">${x.e}</span>`).join('')
+    + (list.length > MAX ? '<span class="rxmore" aria-label="ほかにもリアクション">+</span>' : '');
+  const last = cs[cs.length-1], lf = last && (last.from==='me' ? null : fById(last.from));
+  const tick = last ? `<span class="ctk" data-cm="${r.id}" data-i="${cs.length-1}"><span class="ctk-in">${lf ? avatar(lf.emoji, lf.bg, 18) : meAv(18)}${esc(last.text)}</span></span>` : '<span class="ctk"></span>';
   return `<div class="pbar">${chips}${f ? `<button class="rxc add" data-act="rxpick" data-v="${r.id}" aria-label="リアクション">☺︎＋</button>` : ''}
-    <button class="rxc cmb" data-act="cmts" data-v="${r.id}" aria-label="コメント">💬${n ? ' '+n : ''}</button></div>
+    ${tick}<button class="rxc cmb" data-act="cmts" data-v="${r.id}" aria-label="コメント${cs.length ? cs.length+'件' : ''}">💬</button></div>
     <div class="rxpick" id="rp-${r.id}" hidden>${RX.map(e => `<button data-act="rx" data-v="${r.id}|${e}">${e}</button>`).join('')}</div>`;
 }
+// コメントは 💬 の横で、ひとつずつ下から流れるように表示
+setInterval(() => {
+  document.querySelectorAll('.ctk[data-cm]').forEach(el => {
+    const p = findPost(el.dataset.cm); if(!p) return; const cs = postComments(p.f, p.r); if(cs.length < 2) return;
+    const i = (+el.dataset.i + 1) % cs.length, m = cs[i], f = m.from==='me' ? null : fById(m.from);
+    el.dataset.i = i; el.innerHTML = `<span class="ctk-in">${f ? avatar(f.emoji, f.bg, 18) : meAv(18)}${esc(m.text)}</span>`;
+  });
+}, 3500);
 function postCard({f, c, r}, clickable=true, bar=true){
   const ph = r.photo ? `<div class="pp" style="background-image:url('${r.photo}')"></div>` : r.ph ? `<div class="pp" style="background:${r.ph.bg}">${r.ph.emo}</div>` : '';
   const who = f ? `${avatar(f.emoji,f.bg,38)}<span class="t"><b>${f.name}</b>` : `${meAv(38)}<span class="t"><b>あなた${r.aud==='private' ? ' 🔒' : ''}</b>`;
