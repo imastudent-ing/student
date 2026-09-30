@@ -565,7 +565,7 @@ const cnt = n => n>9 ? '9+' : n;
 const friendsIn = c => friends().filter(sameUniv).map(f => ({f, fc:f.classes.find(x => key(x)===key(c))})).filter(x => x.fc);
 
 /* ---------- 見える人 ---------- */
-function audOptions(){ return [['friends','👥 友だち全員'], ['class','🤝 同じ授業の人'], ...S.groups.map(g => ['g:'+g.id, '🏷 '+g.name]), ['private','🔒 自分だけ']]; }
+function audOptions(){ return [['friends','👥 友だち全員'], ['class','🤝 この授業のみんな'], ...S.groups.map(g => ['g:'+g.id, '🏷 '+g.name]), ['private','🔒 自分だけ']]; }
 const audIcon = a => a==='private' ? '🔒' : a==='class' ? '🤝' : a && a.startsWith('g:') ? '🏷' : '👥';
 const audName = a => (audOptions().find(o => o[0]===a) || [0,'🔒 自分だけ'])[1];
 const audFor = (c, date) => (CS && CS.cid===c.id && CS.date===date) ? CS.aud : (c.aud || S.settings.aud);
