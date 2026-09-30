@@ -291,6 +291,7 @@ const BGS = [
   'linear-gradient(135deg,#fccb90,#d57eeb)',
 ];
 const ME_EMOJI = ['🐣','🐻','🐱','🦊','🐸','🐼','🍙','⭐️','🌙','🎧'];
+const UNIVS = ['中央大学','明治大学','法政大学','青山学院大学','立教大学','早稲田大学','慶應義塾大学'];
 const FACULTIES = ['文学部','法学部','経済学部','商学部','理工学部','総合政策学部','国際経営学部','国際情報学部'];
 const DEMO_PH = ['📓','🪑','☕️','🪟','📒','✏️','💻','🥤'];
 const MY_SEED = [
@@ -300,19 +301,19 @@ const MY_SEED = [
 ];
 // デモの友だち(本番では、承認した友だちのデータがサーバーから届く)
 const FDEF = [
-  {id:'f1', name:'りく', emoji:'🌅', bg:0, fac:'商学部', rate:.85, got:['英語コミュニケーション'], cls:[
+  {id:'f1', univ:'中央大学', name:'りく', emoji:'🌅', bg:0, fac:'商学部', rate:.85, got:['英語コミュニケーション'], cls:[
     [0,1,'英語コミュニケーション','2-301'],[0,2,'簿記原理','8-201'],[1,2,'心理学概論','大講義室A'],[2,2,'プログラミング基礎','情報演習室'],
     [2,3,'マーケティング論','8-305'],[3,2,'経営学入門','8-101'],[4,3,'基礎ゼミ','研究棟402'],[4,4,'哲学','3-102']]},
-  {id:'f2', name:'ゆい', emoji:'🍾', bg:4, fac:'文学部', rate:.8, got:['統計学入門'], cls:[
+  {id:'f2', univ:'中央大学', name:'ゆい', emoji:'🍾', bg:4, fac:'文学部', rate:.8, got:['統計学入門'], cls:[
     [0,3,'統計学入門','5-102'],[1,2,'心理学概論','大講義室A'],[1,3,'日本文学史','3-305'],[2,1,'フランス語Ⅰ','2-202'],
     [2,4,'経済学原論','3-205'],[3,1,'韓国語Ⅰ','2-104'],[3,3,'メディア論','3-401'],[4,2,'美術史','3-110']]},
-  {id:'f3', name:'けんと', emoji:'🏀', bg:5, fac:'法学部', rate:.65, got:[], cls:[
+  {id:'f3', univ:'中央大学', name:'けんと', emoji:'🏀', bg:5, fac:'法学部', rate:.65, got:[], cls:[
     [0,1,'英語コミュニケーション','2-301'],[0,4,'民法総論','法学棟201'],[1,1,'憲法','法学棟101'],[1,4,'社会学','3-201'],
     [2,3,'刑法総論','法学棟102'],[3,2,'政治学原論','3-301'],[3,3,'メディア論','3-401'],[4,2,'スポーツ科学','体育館']]},
-  {id:'f4', name:'まな', emoji:'🎨', bg:3, fac:'総合政策学部', rate:.9, got:[], cls:[
+  {id:'f4', univ:'中央大学', name:'まな', emoji:'🎨', bg:3, fac:'総合政策学部', rate:.9, got:[], cls:[
     [0,2,'デザイン論','7-101'],[0,3,'統計学入門','5-102'],[1,3,'デザイン演習','アトリエ'],[2,2,'プログラミング基礎','情報演習室'],
     [3,4,'色彩論','7-202'],[4,3,'基礎ゼミ','研究棟402']]},
-  {id:'f5', name:'はると', emoji:'🎸', bg:6, fac:'理工学部', rate:.75, got:[], cls:[
+  {id:'f5', univ:'明治大学', per:100, name:'はると', emoji:'🎸', bg:6, fac:'理工学部', rate:.75, got:[], cls:[
     [0,1,'線形代数','理工1-201'],[0,3,'統計学入門','5-102'],[1,1,'微分積分','理工1-101'],[2,3,'化学概論','理工2-301'],
     [3,2,'データ構造','理工3-201'],[4,1,'物理学実験','実験棟']]},
 ];
@@ -340,7 +341,7 @@ S.groups.forEach(g => { g.members = g.members.filter(id => S.friendState[id]==='
 function fresh(){
   return {
     v:3, onboarded:false,
-    me:{name:'', emoji:'🐣', bg:0, fac:'', handle:uid().slice(0,6)},
+    me:{name:'', emoji:'🐣', bg:0, univ:'', fac:'', handle:uid().slice(0,6)},
     classes:[], recs:[],
     groups:[],
     // 友だちは承認してはじめてつながる
@@ -397,7 +398,7 @@ function nowLabel(){
 
 /* ---------- 授業のコマ ---------- */
 // 授業ごとに時間を変えている場合はそれを使う(実験・集中講義など)
-const win = c => { const p = PER()[c.period-1]; return {s:toMin(c.s || p[0]), e:toMin(c.e || p[1])}; };
+const win = c => { const p = (c.P || PER())[c.period-1]; return {s:toMin(c.s || p[0]), e:toMin(c.e || p[1])}; };
 const timeText = c => { const w = win(c); return `${fmtMin(w.s)}–${fmtMin(w.e)}`; };
 function phaseOf(date, c){
   const t = todayStr();
@@ -417,7 +418,7 @@ let FRIENDS = [];
 function buildFriends(){
   FRIENDS = FDEF.map(fd => {
     const classes = fd.cls.map((c,i) => ({id:fd.id+'c'+i, day:c[0], period:c[1], name:c[2], room:c[3],
-      color:COLORS[(i*3+fd.bg)%COLORS.length], got:fd.got.includes(c[2]), shareGot:fd.got.includes(c[2])}));
+      color:COLORS[(i*3+fd.bg)%COLORS.length], got:fd.got.includes(c[2]), shareGot:fd.got.includes(c[2]), P: fd.per ? PRESETS[fd.per] : null}));
     const f = {...fd, classes}; f.recs = genRecs(f); return f;
   });
 }
@@ -428,7 +429,7 @@ function genRecs(f){
       if(date > today) return;
       f.classes.filter(c => c.day===d).forEach(c => {
         const seed = f.id+date+c.period;
-        const t = toMin(P[c.period-1][0]) - 8 + Math.floor(hash(seed+'t')*14);
+        const t = win(c).s - 8 + Math.floor(hash(seed+'t')*14);
         if(date===today && m < t) return;
         if(hash(seed) > f.rate) return;
         const photo = hash(seed+'p') < .5;
@@ -443,7 +444,9 @@ const friends = () => FRIENDS.filter(f => S.friendState[f.id]==='friend');
 const fById = id => FRIENDS.find(f => f.id===id);
 const fRec = (f, c, date) => f.recs.find(r => r.classId===c.id && r.date===date);
 // 同じ授業(授業名・曜日・時限が同じ)を受けている友だち
-const friendsIn = c => friends().map(f => ({f, fc:f.classes.find(x => key(x)===key(c))})).filter(x => x.fc);
+const sameUniv = f => !!S.me.univ && f.univ===S.me.univ;
+// 同じ大学の友だちだけを「同じ授業」とみなす(大学が違えば、授業名・時限が同じでも別の授業)
+const friendsIn = c => friends().filter(sameUniv).map(f => ({f, fc:f.classes.find(x => key(x)===key(c))})).filter(x => x.fc);
 
 /* ---------- 見える人 ---------- */
 function audOptions(){ return [['friends','👥 友だち全員'], ...S.groups.map(g => ['g:'+g.id, '🏷 '+g.name]), ['private','🔒 自分だけ']]; }
@@ -557,10 +560,10 @@ function gridHTML(classes, wd, owner){
       const r = isMe ? recOf(c.id, wd[d]) : fRec(owner, c, wd[d]);
       const bg = r && r.photo ? `background-image:url('${r.photo}')` : r && r.ph ? `background:${r.ph.bg}` : `background:${c.color}`;
       const got = isMe ? c.got : c.shareGot;
-      const same = !isMe && S.classes.some(x => key(x)===key(c));
+      const same = !isMe && sameUniv(owner) && S.classes.some(x => key(x)===key(c));
       const mk = r && (isMe || isToday); // 友だちの ✓ は今日だけ(過去の出欠表にしない)
       const came = isMe && isToday ? friendsIn(c).filter(x => fRec(x.f, x.fc, wd[d])).map(x => x.f) : [];
-      const act = isMe ? `data-act="cls" data-v="${c.id}|${wd[d]}"` : `data-act="fadd" data-v="${esc(key(c))}"`;
+      const act = isMe ? `data-act="cls" data-v="${c.id}|${wd[d]}"` : sameUniv(owner) ? `data-act="fadd" data-v="${esc(key(c))}"` : '';
       h += `<button class="cell ${r&&(r.photo||r.ph)?'ph':''} ${isToday&&p===curP?'now':''}" style="${bg}" ${act}
           aria-label="${DAYS[d]}${p}限 ${esc(c.name)}${mk?' 来た':''}${came.length?` ${names(came)}が来た`:''}${got?' 単位GET':''}${same?' 同じ授業':''}">
         <span>${esc(c.name)}</span><span class="rm">${esc(c.room||'')}</span>
@@ -731,7 +734,8 @@ let FSID = null;
 function friendSheetHTML(f){
   const d = dayIdx(), t = todayStr();
   const today = d<0 ? [] : f.classes.filter(c => c.day===d).sort((a,b) => a.period-b.period);
-  let h = `<div class="fhead">${avatar(f.emoji,f.bg,60)}<div><h3>${f.name}</h3><span class="fac">${f.fac}</span></div></div>`;
+  let h = `<div class="fhead">${avatar(f.emoji,f.bg,60)}<div><h3>${f.name}</h3><span class="fac">${f.univ} ${f.fac}</span></div></div>`;
+  if(!sameUniv(f)) h += `<p class="rule">${f.name}はちがう大学。授業の時間も${f.name}の大学のものです。</p>`;
   if(d>=0){
     h += `<div class="f">きょう</div><div class="card" style="padding:4px 16px">` + (today.length ? today.map(c => {
       const r = fRec(f, c, t), ph = phaseOf(t, c);
@@ -741,7 +745,7 @@ function friendSheetHTML(f){
       + `<p class="rule">☺︎ は本人が押すだけのしるし。押していなくても欠席とは限りません。</p>`;
   }
   h += `<div class="f">時間割</div><div class="card ttc">${gridHTML(f.classes, weekDates(0), f)}</div>
-    <p class="rule">🤝 はあなたの時間割にもある授業。ほかのマスも、受けている授業ならタップで自分の時間割に追加できます。</p>
+    ${sameUniv(f) ? '<p class="rule">🤝 はあなたの時間割にもある授業。ほかのマスも、受けている授業ならタップで自分の時間割に追加できます。</p>' : ''}
     <button class="btn quiet" data-act="unfriend" data-v="${f.id}">友だちをやめる</button>`;
   return h;
 }
@@ -771,7 +775,7 @@ function addFromKey(k){
 let ADD = null, editColor = null;
 function friendPool(){
   const map = new Map();
-  friends().forEach(f => f.classes.forEach(c => { const k = key(c); if(!map.has(k)) map.set(k, {c, fr:[]}); map.get(k).fr.push(f); }));
+  friends().filter(sameUniv).forEach(f => f.classes.forEach(c => { const k = key(c); if(!map.has(k)) map.set(k, {c, fr:[]}); map.get(k).fr.push(f); }));
   return [...map.values()].filter(x => !S.classes.some(m => key(m)===key(x.c)))
     .sort((a,b) => b.fr.length-a.fr.length || a.c.day-b.c.day || a.c.period-b.c.period);
 }
@@ -856,9 +860,9 @@ function renderFriends(resetScroll){
   const fr = friends(), reqs = FDEF.filter(f => ['request','later'].includes(S.friendState[f.id]));
   let h = `<div class="back"><button data-act="close" aria-label="戻る">${BACK}</button><h3>友だち</h3></div>`;
   if(reqs.length) h += `<p class="note" style="margin:0 6px 10px">承認すると、お互いの時間割と ☺︎ が見えるようになります。</p>` + reqs.map(f => { const later = S.friendState[f.id]==='later';
-    return `<div class="req">${avatar(f.emoji,f.bg,44)}<p><b>${f.name}</b> から友だち申請<small>${f.fac}${later ? ' ・ 保留中' : ''}</small></p>
+    return `<div class="req">${avatar(f.emoji,f.bg,44)}<p><b>${f.name}</b> から友だち申請<small>${f.univ} ${f.fac}${later ? ' ・ 保留中' : ''}</small></p>
       <div class="acts"><button class="addb pk" data-act="approve" data-v="${f.id}">承認</button>${later ? '' : `<button class="tog" data-act="decline" data-v="${f.id}">あとで</button>`}</div></div>`; }).join('');
-  h += `<div class="card" style="padding:4px 16px">${fr.map(f => `<button class="li" data-act="friend" data-v="${f.id}">${avatar(f.emoji,f.bg,40)}<span class="t"><b>${f.name}</b><span>${f.fac}</span></span>${CHEV}</button>`).join('')
+  h += `<div class="card" style="padding:4px 16px">${fr.map(f => `<button class="li" data-act="friend" data-v="${f.id}">${avatar(f.emoji,f.bg,40)}<span class="t"><b>${f.name}</b><span>${f.univ} ${f.fac}</span></span>${CHEV}</button>`).join('')
     || '<div class="empty">まだいません</div>'}</div>`;
   h += `<button class="btn pk" data-act="invite">友だちを招待する</button>
     <label class="f" for="addId">IDで申請(あなたのID: @${esc(S.me.handle)})</label>
@@ -887,6 +891,7 @@ function renderMe(resetScroll){
   const h = `<div class="back"><button data-act="close" aria-label="戻る">${BACK}</button><h3>プロフィール</h3></div>
     <div style="display:flex;justify-content:center;margin:4px 0 6px">${meAv(88)}</div>
     <label class="f" for="mName">名前</label><input class="tx" id="mName" value="${esc(S.me.name)}" maxlength="16">
+    <label class="f" for="mUniv">大学</label><input class="tx" id="mUniv" value="${esc(S.me.univ)}" list="univs" maxlength="20"><datalist id="univs">${UNIVS.map(x => `<option value="${x}">`).join('')}</datalist>
     <label class="f" for="mFac">学部</label><input class="tx" id="mFac" value="${esc(S.me.fac)}" list="facs" maxlength="16"><datalist id="facs">${FACULTIES.map(x => `<option value="${x}">`).join('')}</datalist>
     <label class="f">アイコン</label>
     <div class="phrow" style="margin-top:0;margin-bottom:10px"><button data-act="avpick">📷 自分の写真を選ぶ</button>${S.me.photo ? '<button data-act="avdel">写真をやめる</button>' : ''}</div>
@@ -912,6 +917,7 @@ function renderMe(resetScroll){
   const bind = (id, fn) => { const el = document.getElementById(id); el.onchange = () => { fn(el.value); if(!save()) renderMe(false); }; };
   bind('mName', v => { S.me.name = v.trim() || 'あなた'; });
   bind('mFac', v => { S.me.fac = v.trim(); });
+  bind('mUniv', v => { S.me.univ = v.trim(); render(); });
   bind('dDay', v => { S.settings.demo.day = +v; applyTime(); });
   PER().forEach((_, i) => ['S','E'].forEach(k => { const el = $(`p${k}${i}`); el.onchange = () => {
     const P = PER().map(x => [...x]); const v = el.value.replace(/^0(\d)/, '$1'); if(!v) return;
@@ -942,6 +948,7 @@ function renderOnb(){
   } else if(s===1){
     el.innerHTML = `${steps}<h1>プロフィール</h1><p class="lead">友だちに表示されます。</p>
       <label class="f" for="oName">名前</label><input class="tx" id="oName" maxlength="16" placeholder="例:たろう" value="${esc(S.me.name)}">
+      <label class="f" for="oUniv">大学</label><input class="tx" id="oUniv" list="univs" maxlength="20" placeholder="例:中央大学" value="${esc(S.me.univ)}"><datalist id="univs">${UNIVS.map(x => `<option value="${x}">`).join('')}</datalist>
       <label class="f" for="oFac">学部</label><input class="tx" id="oFac" list="ofacs" maxlength="16" placeholder="例:文学部" value="${esc(S.me.fac)}"><datalist id="ofacs">${FACULTIES.map(x => `<option value="${x}">`).join('')}</datalist>
       <label class="f">アイコン</label>
       <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">${meAv(52)}<button class="lnk" style="margin:0" data-act="avpick">📷 自分の写真を選ぶ</button></div>
@@ -949,6 +956,7 @@ function renderOnb(){
       <div style="margin-top:auto;padding-top:26px"><button class="btn pk" data-act="onb-next">次へ</button><button class="btn quiet" data-act="onb-back">戻る</button></div>`;
     const n = document.getElementById('oName'), f = document.getElementById('oFac');
     n.oninput = () => { S.me.name = n.value.trim(); }; f.oninput = () => { S.me.fac = f.value.trim(); };
+    const u = document.getElementById('oUniv'); u.oninput = () => { S.me.univ = u.value.trim(); };
   } else {
     const groups = byDayTodayFirst(friendPool());
     el.innerHTML = `${steps}<h1>まずは1コマだけでOK</h1><p class="lead">友だちが登録した授業から、自分も受けているものを選ぶだけ。あとから ＋ で追加できます。</p>
@@ -971,6 +979,7 @@ function finishOnb(demo){
     S.settings.demo.on = !isWeekdayDaytime(r);   // 夜・週末に開いたときだけ、デモ時刻で授業中の様子を見せる
     if(w>=1 && w<=5) S.settings.demo.day = w-1;
     if(!S.me.fac) S.me.fac = '文学部';
+    if(!S.me.univ) S.me.univ = '中央大学';
   } else {
     const src = friends().flatMap(f => f.classes);
     [...ONB.pick].forEach((k,i) => { const c = src.find(x => key(x)===k);
@@ -1127,7 +1136,7 @@ const ACT = {
   preset: v => { S.settings.preset = +v; S.settings.periods = null; save(); buildFriends(); renderMe(false); render(); },
   demo: v => { S.settings.demo.on = v==='1'; save(); applyTime(); renderMe(false); },
   reset: async () => { if(!await ask('時間割・☺︎・写真・設定をすべて消して、最初からにしますか？', 'リセット')) return; try{ localStorage.removeItem(KEY); }catch(e){} location.reload(); },
-  'onb-accept': () => { S.friendState.f1 = 'friend'; ONB.step = 1; renderOnb(); $('onb').scrollTop = 0; },
+  'onb-accept': () => { S.friendState.f1 = 'friend'; if(!S.me.univ) S.me.univ = fById('f1').univ; ONB.step = 1; renderOnb(); $('onb').scrollTop = 0; },
   'onb-next': () => { ONB.step++; renderOnb(); $('onb').scrollTop = 0; },
   'onb-back': () => { ONB.step = Math.max(0, ONB.step-1); if(ONB.step===0) S.friendState.f1 = 'request'; renderOnb(); },
   'onb-demo': () => finishOnb(true),
