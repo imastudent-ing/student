@@ -308,6 +308,18 @@
     #toast{background:rgba(17,17,17,.78); -webkit-backdrop-filter:blur(12px); backdrop-filter:blur(12px);}
     .shade{background:rgba(20,20,20,.28);}
   }
+  .sbk{width:40px; height:40px; border-radius:50%; background:#fff; display:grid; place-items:center; margin:-4px 0 10px; box-shadow:0 2px 8px rgba(0,0,0,.06);}
+  details.sec{background:var(--card); border:1px solid var(--line); border-radius:24px; margin-bottom:10px; overflow:hidden;}
+  details.sec > summary{list-style:none; cursor:pointer; padding:16px 18px; font-size:15px; font-weight:900; display:flex; align-items:center; gap:10px;}
+  details.sec > summary::-webkit-details-marker{display:none;}
+  details.sec > summary::after{content:"›"; margin-left:auto; font-size:20px; color:var(--dim); transition:transform .2s;}
+  details.sec[open] > summary::after{transform:rotate(90deg);}
+  details.sec > .in{padding:0 16px 16px;}
+  .mecard{display:flex; align-items:center; gap:16px; background:var(--card); border:1px solid var(--line); border-radius:28px; padding:18px; margin-bottom:14px;}
+  .mecard b{display:block; font-size:20px; font-weight:900;}
+  .mecard span{font-size:13px; font-weight:700; color:var(--dim);}
+  .phead[role=button]{cursor:pointer;}
+  .post .pm .pwho{display:flex; align-items:center; gap:10px; min-width:0; flex:1; text-align:left;}
   .toast{position:fixed; left:50%; top:calc(18px + env(safe-area-inset-top)); transform:translate(-50%, calc(-100% - 24px - env(safe-area-inset-top))); background:var(--tx); color:#fff; font-weight:900;
     padding:12px 20px; border-radius:30px; z-index:70; transition:transform .3s; font-size:14px; width:max-content; max-width:calc(100vw - 32px); text-align:center;}
   .toast.on{transform:translate(-50%,0);}
@@ -774,11 +786,13 @@ setInterval(() => {
 }, 3500);
 function postCard({f, c, r}, clickable=true, bar=true){
   const ph = r.photo ? `<div class="pp" style="background-image:url('${r.photo}')"></div>` : r.ph ? `<div class="pp" style="background:${r.ph.bg}">${r.ph.emo}</div>` : '';
-  const who = f ? `${avatar(f.emoji,f.bg,38)}<span class="t"><b>${f.name}</b>` : `${meAv(38)}<span class="t"><b>あなた${r.aud==='private' ? ' 🔒' : ''}</b>`;
-  const act = !clickable ? '' : f ? `data-act="friend" data-v="${f.id}"` : `data-act="cls" data-v="${c.id}|${r.date}"`;
+  const whoInner = f ? `${avatar(f.emoji,f.bg,38)}<span class="t"><b>${f.name}</b><span>${c.period}限 ${esc(c.name)}</span></span>`
+    : `${meAv(38)}<span class="t"><b>あなた${r.aud==='private' ? ' 🔒' : ''}</b><span>${c.period}限 ${esc(c.name)}</span></span>`;
+  // 投稿を押すと投稿(とコメント)、人を押すとその人の時間割
+  const who = clickable ? `<button class="pwho" ${f ? `data-act="friend" data-v="${f.id}"` : `data-act="cls" data-v="${c.id}|${r.date}"`}>${whoInner}</button>` : `<span class="pwho">${whoInner}</span>`;
   const mark = isSkip(r) ? `🏃 ${hm(r.ts)}` : `☺︎ ${r.late ? 'あとから' : hm(r.ts)}`;
-  const tag = clickable ? 'button' : 'div';
-  return `<div class="post"><${tag} class="phead" ${act}>${ph}<span class="pm">${who}<span>${c.period}限 ${esc(c.name)}</span></span><time>${mark}</time></span>${r.comment ? `<span class="cm">${esc(r.comment)}</span>` : ''}</${tag}>${bar ? postBar(f, r) : ''}</div>`;
+  const open = clickable ? `role="button" tabindex="0" data-act="cmts" data-v="${r.id}"` : '';
+  return `<div class="post"><div class="phead" ${open}>${ph}<span class="pm">${who}<time>${mark}</time></span>${r.comment ? `<span class="cm">${esc(r.comment)}</span>` : ''}</div>${bar ? postBar(f, r) : ''}</div>`;
 }
 // リアクション・コメントのあと、いま見ている画面を描き直す
 function refreshView(){
@@ -788,11 +802,15 @@ function refreshView(){
 }
 let CMV = null;
 let CM_BACK = null;
+function goBackFromComments(){
+  const back = CM_BACK; CM_BACK = null;
+  if(back && back.fpv) openFriendPost(back.fpv); else if(back && back.cs) openClass(back.cs.cid, back.cs.date); else if(back && back.fsid) openFriend(back.fsid); else closeSheet();
+}
 function openComments(id){ const open = $('sheet').classList.contains('open'); CM_BACK = open ? {fpv:FPV, cs:CS && {cid:CS.cid, date:CS.date}, fsid:FSID} : null; CMV = id; FPV = null; CS = null; FSID = null; ADD = null; renderComments(true); openSheet(); }
 function renderComments(){
   const p = findPost(CMV); if(!p) return;
   const cs = postComments(p.f, p.r);
-  let h = `<div style="margin-top:4px">${postCard(p, false, false)}</div><div class="clist">`;
+  let h = (CM_BACK ? `<button class="sbk" data-act="cmback" aria-label="戻る">${BACK}</button>` : '') + `<div style="margin-top:4px">${postCard(p, false, true)}</div><div class="clist">`;
   cs.forEach(m => { const f = m.from==='me' ? null : fById(m.from);
     h += `<div class="ci">${f ? avatar(f.emoji,f.bg,28) : meAv(28)}<p><b>${f ? f.name : 'あなた'}</b>${esc(m.text)}</p><time>${hm(m.ts)}</time></div>`; });
   h += `</div><form class="cform" id="cmForm">${meAv(36)}<input class="tx" id="pcIn" placeholder="💬" maxlength="100" autocomplete="off" aria-label="コメント" style="padding:10px 14px"><button class="csend" type="submit" aria-label="送信">${PLANE}</button></form>`;
@@ -802,8 +820,7 @@ function renderComments(){
     const id = CMV; (S.pcm[id] = S.pcm[id] || []).push({from:'me', text:t, ts:nowTs()}); if(!save()) return;
     { const pp = findPost(id); if(pp) TICK[id] = Math.max(0, postComments(pp.f, pp.r).length - 2); }
     $('pcIn').value = ''; $('pcIn').blur();
-    const back = CM_BACK; CM_BACK = null;
-    if(back && back.fpv) openFriendPost(back.fpv); else if(back && back.cs) openClass(back.cs.cid, back.cs.date); else if(back && back.fsid) openFriend(back.fsid); else closeSheet();
+    goBackFromComments();
     render(); toast('💬 ✓');
     const own = findPost(id); const who = own && own.f ? own.f : friends()[0];
     if(who) setTimeout(() => { S.pcm[id].push({from:who.id, text:['ありがと〜','それな','笑','りょ！'][Math.floor(Math.random()*4)], ts:nowTs()}); save(true);
@@ -895,7 +912,7 @@ function openAudPick(v){
   const [cid, date] = v.split('|'); const r = recOf(cid, date), c = S.classes.find(x => x.id===cid); if(!r || !c) return;
   const back = !!CS; AP = {back};
   CS = null; FSID = null; ADD = null;
-  $('sheetIn').innerHTML = `<h3>👀</h3><div class="sub">${c.period}限 ${esc(c.name)}</div><div class="chips" style="margin-top:14px">${audOptions().map(([k,l]) =>
+  $('sheetIn').innerHTML = (back ? `<button class="sbk" data-act="cls" data-v="${cid}|${date}" aria-label="戻る">${BACK}</button>` : '') + `<h3>👀</h3><div class="sub">${c.period}限 ${esc(c.name)}</div><div class="chips" style="margin-top:14px">${audOptions().map(([k,l]) =>
     `<button data-act="audset" data-v="${cid}|${date}|${k}" class="${r.aud===k?'on':''}" aria-pressed="${r.aud===k}">${esc(l)}</button>`).join('')}</div>`;
   AP.back = back; openSheet();
 }
@@ -1019,7 +1036,7 @@ function openFriendPost(v){
   const [fid, cid, date] = v.split('|'); const f = fById(fid); const c = f && f.classes.find(x => x.id===cid); if(!c) return;
   const r = fRec(f, c, date), k = key(c);
   const canAdd = sameUniv(f) && !S.classes.some(m => key(m)===k) && !S.classes.some(m => m.day===c.day && m.period===c.period);
-  let h = `<button class="lnk" style="margin:0 0 12px" data-act="friend" data-v="${f.id}">‹ ${f.name}</button>
+  let h = `<button class="sbk" data-act="friend" data-v="${f.id}" aria-label="戻る">${BACK}</button>
     <h3>${esc(c.name)}</h3><div class="sub">${md(date)}(${DAYS[c.day]}) ${c.period}限 ${timeText(c)}</div><div style="margin-top:14px">`;
   h += r ? postCard({f, c, r}, false) : `<div class="empty">${date > todayStr() ? '⏳' : '—'}</div>`;
   h += '</div>';
@@ -1129,30 +1146,32 @@ async function saveClass(id){
    友だち(承認・招待・見える人)
    ============================================================ */
 let grpDraft = {name:'', members:[]};
+const OPENSEC = new Set(); // 開いている設定の項目(描き直しても閉じないように)
+function bindSecs(){ document.querySelectorAll('#scrIn details.sec').forEach(d => d.ontoggle = () => { if(d.open) OPENSEC.add(d.dataset.sec); else OPENSEC.delete(d.dataset.sec); }); }
 function renderFriends(resetScroll){
   const fr = friends(), reqs = FDEF.filter(f => ['request','later'].includes(S.friendState[f.id]));
   let h = `<div class="back"><button data-act="close" aria-label="戻る">${BACK}</button><h3>友だち</h3></div>`;
-  if(reqs.length) h += `<p class="note" style="margin:0 6px 10px">承認すると、お互いの時間割と ☺︎ が見えるようになります。</p>` + reqs.map(f => { const later = S.friendState[f.id]==='later';
-    return `<div class="req">${avatar(f.emoji,f.bg,44)}<p><b>${f.name}</b> から友だち申請<small>${f.univ} ${f.fac}${later ? ' ・ 保留中' : ''}</small></p>
+  if(reqs.length) h += reqs.map(f => { const later = S.friendState[f.id]==='later';
+    return `<div class="req">${avatar(f.emoji,f.bg,44)}<p><b>${f.name}</b><small>${f.univ} ${f.fac}${later ? ' ・ 保留中' : ''}</small></p>
       <div class="acts"><button class="addb pk" data-act="approve" data-v="${f.id}">承認</button>${later ? '' : `<button class="tog" data-act="decline" data-v="${f.id}">あとで</button>`}</div></div>`; }).join('');
   h += `<div class="card" style="padding:4px 16px">${fr.map(f => `<button class="li" data-act="friend" data-v="${f.id}">${avatar(f.emoji,f.bg,40)}<span class="t"><b>${f.name}</b><span>${f.univ} ${f.fac}</span></span>${CHEV}</button>`).join('')
     || '<div class="empty">まだいません</div>'}</div>`;
   h += `<button class="btn pk" data-act="invite">友だちを招待する</button>
-    <label class="f" for="addId">IDで申請(あなたのID: @${esc(S.me.handle)})</label>
-    <div style="display:flex;gap:8px"><input class="tx" id="addId" placeholder="@ID" maxlength="20"><button class="addb" data-act="addfr" style="padding:0 18px">申請</button></div>
-    ${S.sentReq.length ? `<p class="note">承認待ち: ${S.sentReq.map(x => '@'+esc(x)).join('、')}</p>` : ''}`;
-  h += `<div class="sec-t" style="margin-top:34px">見える人</div>
-    <div class="card" style="padding:16px 18px">
-      <label class="f" style="margin-top:0" for="audSel">☺︎ と写真が見える人(いつもの設定)</label>
+    <details class="sec" data-sec="fset" style="margin-top:22px" ${OPENSEC.has('fset')?'open':''}><summary>⚙</summary><div class="in">
+      <label class="f" style="margin-top:0" for="addId">🔎 ID(あなた: @${esc(S.me.handle)})</label>
+      <div style="display:flex;gap:8px"><input class="tx" id="addId" placeholder="@ID" maxlength="20"><button class="addb" data-act="addfr" style="padding:0 18px">申請</button></div>
+      ${S.sentReq.length ? `<p class="note">⏳ ${S.sentReq.map(x => '@'+esc(x)).join('、')}</p>` : ''}
+      <label class="f" for="audSel">👀 いつもの見える人</label>
       <select class="tx" id="audSel">${audOptions().map(([k,l]) => `<option value="${k}" ${k===S.settings.aud?'selected':''}>${esc(l)}</option>`).join('')}</select>
-      <p class="note">時間割は承認した友だちに、☺︎ と写真はここで選んだ人にだけ見えます。大学全体や知らない人には公開されません。授業のシートで授業ごとに変えられます。</p></div>`;
-  h += `<div class="sec-t">グループ</div><div class="card" style="padding:4px 16px">${S.groups.map(g => `<div class="li"><span class="t"><b>🏷 ${esc(g.name)}</b><span>${g.members.map(id => S.friendState[id]==='friend' ? fById(id)?.name : null).filter(Boolean).join('・') || 'メンバーなし'}</span></span><button class="tog" data-act="gdel" data-v="${g.id}">削除</button></div>`).join('')
-    || '<div class="empty">まだありません</div>'}</div>
-    <div class="card" style="padding:14px 16px"><input class="tx" id="gName" placeholder="新しいグループ(例:ゼミ)" maxlength="16" value="${esc(grpDraft.name)}">
+      <label class="f">🏷 グループ</label>
+      <div class="card" style="padding:4px 16px;background:#fff">${S.groups.map(g => `<div class="li"><span class="t"><b>${esc(g.name)}</b><span>${g.members.map(id => S.friendState[id]==='friend' ? fById(id)?.name : null).filter(Boolean).join('・') || '—'}</span></span><button class="tog" data-act="gdel" data-v="${g.id}" aria-label="削除">🗑</button></div>`).join('')
+        || '<div class="empty" style="padding:12px">—</div>'}</div>
+      <input class="tx" id="gName" placeholder="＋ 新しいグループ" maxlength="16" value="${esc(grpDraft.name)}">
       ${fr.length ? `<div class="chips" style="margin-top:10px">${fr.map(f => `<button data-act="gmem" data-v="${f.id}" class="${grpDraft.members.includes(f.id)?'on':''}" aria-pressed="${grpDraft.members.includes(f.id)}">${f.emoji} ${f.name}</button>`).join('')}</div>` : ''}
-      <button class="btn" data-act="gadd" style="margin-top:12px;padding:13px;font-size:15px">グループを作る</button></div>`;
+      <button class="btn" data-act="gadd" style="margin-top:12px;padding:13px;font-size:15px">＋ 🏷</button></div></details>`;
   paintScreen(h, resetScroll);
   document.getElementById('audSel').onchange = e => { S.settings.aud = e.target.value; if(!save()) renderFriends(false); };
+  bindSecs();
   document.getElementById('gName').oninput = e => { grpDraft.name = e.target.value; };
 }
 
@@ -1161,32 +1180,32 @@ function renderFriends(resetScroll){
    ============================================================ */
 function renderMe(resetScroll){
   const st = S.settings, dm = st.demo;
+  const sec = (id, title, body) => `<details class="sec" data-sec="${id}" ${OPENSEC.has(id)?'open':''}><summary>${title}</summary><div class="in">${body}</div></details>`;
   const h = `<div class="back"><button data-act="close" aria-label="戻る">${BACK}</button><h3>プロフィール</h3></div>
-    <div style="display:flex;justify-content:center;margin:4px 0 6px">${meAv(88)}</div>
-    <label class="f" for="mName">名前</label><input class="tx" id="mName" value="${esc(S.me.name)}" maxlength="16">
+    <div class="mecard">${meAv(72)}<div style="min-width:0"><b>${esc(S.me.name||'あなた')}</b><span>${esc(S.me.univ)} ${esc(S.me.fac)}</span></div></div>`
+    + sec('prof', '✏️ プロフィール', `
+    <label class="f" style="margin-top:0" for="mName">名前</label><input class="tx" id="mName" value="${esc(S.me.name)}" maxlength="16">
     <label class="f" for="mUniv">大学</label><input class="tx" id="mUniv" value="${esc(S.me.univ)}" list="univs" maxlength="20"><datalist id="univs">${UNIVS.map(x => `<option value="${x}">`).join('')}</datalist>
     <label class="f" for="mFac">学部</label><input class="tx" id="mFac" value="${esc(S.me.fac)}" list="facs" maxlength="16"><datalist id="facs">${FACULTIES.map(x => `<option value="${x}">`).join('')}</datalist>
     <label class="f">アイコン</label>
-    <div class="phrow" style="margin-top:0;margin-bottom:10px"><button data-act="avpick">📷 自分の写真を選ぶ</button>${S.me.photo ? '<button data-act="avdel">写真をやめる</button>' : ''}</div>
+    <div class="phrow" style="margin-top:0;margin-bottom:10px"><button data-act="avpick">📷</button>${S.me.photo ? '<button data-act="avdel" aria-label="写真をやめる">🗑</button>' : ''}</div>
     <div class="emoji-pick">${ME_EMOJI.map(e => `<button data-act="memo" data-v="${e}" class="${e===S.me.emoji&&!S.me.photo?'on':''}">${e}</button>`).join('')}</div>
-    <label class="f">背景</label><div class="colors">${BGS.map((b,i) => `<button data-act="mbg" data-v="${i}" class="${i===S.me.bg?'on':''}" style="background:${b}" aria-label="背景${i+1}"></button>`).join('')}</div>
-    <div class="sec-t" style="margin-top:34px">授業の時間</div>
-    <div class="chips">${[90,100].map(v => `<button data-act="preset" data-v="${v}" class="${!st.periods&&st.preset===v?'on':''}">${v}分授業</button>`).join('')}</div>
-    <div class="card" style="padding:8px 16px;margin-top:10px">${PER().slice(0, myRows()).map((p,i) => `<div style="display:flex;align-items:center;gap:8px;padding:6px 0">
+    <div class="colors" style="margin-top:12px">${BGS.map((b,i) => `<button data-act="mbg" data-v="${i}" class="${i===S.me.bg?'on':''}" style="background:${b}" aria-label="背景${i+1}"></button>`).join('')}</div>`)
+    + sec('time', '⏰ 授業の時間', `
+    <div class="chips">${[90,100].map(v => `<button data-act="preset" data-v="${v}" class="${!st.periods&&st.preset===v?'on':''}">${v}分</button>`).join('')}</div>
+    <div class="card" style="padding:8px 16px;margin-top:10px;background:#fff">${PER().slice(0, myRows()).map((p,i) => `<div style="display:flex;align-items:center;gap:8px;padding:6px 0">
       <b style="width:40px;flex-shrink:0;white-space:nowrap;font-size:14px">${i+1}限</b><input class="tx" type="time" id="pS${i}" value="${p[0].padStart(5,'0')}" style="padding:10px 8px;flex:1;min-width:0" aria-label="${i+1}限の開始">
       <span>–</span><input class="tx" type="time" id="pE${i}" value="${p[1].padStart(5,'0')}" style="padding:10px 8px;flex:1;min-width:0" aria-label="${i+1}限の終了"></div>`).join('')}
-      ${myRows() < 10 ? `<div style="text-align:center;padding:6px 0"><button class="lnk" data-act="addrow">＋ ${myRows()+1}限</button></div>` : ''}</div>
-    <div class="sec-t">デモ時刻(試すとき用)</div>
-    <div class="card" style="padding:14px 16px">
+      ${myRows() < 10 ? `<div style="text-align:center;padding:6px 0"><button class="lnk" data-act="addrow">＋ ${myRows()+1}限</button></div>` : ''}</div>`)
+    + sec('demo', '🧪 デモ時刻', `
       <div class="chips"><button data-act="demo" data-v="0" class="${dm.on?'':'on'}">実際の時刻</button><button data-act="demo" data-v="1" class="${dm.on?'on':''}">デモ時刻</button></div>
       <div style="display:flex;gap:10px;margin-top:10px">
         <select class="tx" id="dDay" ${dm.on?'':'disabled'}>${DAYS.map((x,i) => `<option value="${i}" ${i===dm.day?'selected':''}>${x}曜</option>`).join('')}</select>
-        <input class="tx" type="time" id="dTime" value="${String(Math.floor(dm.min/60)).padStart(2,'0')}:${String(dm.min%60).padStart(2,'0')}" ${dm.on?'':'disabled'}></div>
-      <p class="note">夜や週末でも、授業中の様子を試せます。友だちはデモデータです。</p></div>
-    <div class="sec-t">☺︎ について</div>
-    <div class="card" style="padding:14px 18px"><p class="note" style="margin:0">・☺︎(来た)は本人の自己申告です。大学の正式な出席記録ではありません。<br>・押していないことは欠席を意味しません。<br>・写真は任意です。人の顔や授業の資料は写さず、授業中に撮るときは先生のルールに従ってください。<br>・データはこの端末に保存されます(プロトタイプ)。</p></div>
+        <input class="tx" type="time" id="dTime" value="${String(Math.floor(dm.min/60)).padStart(2,'0')}:${String(dm.min%60).padStart(2,'0')}" ${dm.on?'':'disabled'}></div>`)
+    + sec('about', '☺︎ について', `<p class="note" style="margin:0">・☺︎(来た)は本人の自己申告です。大学の正式な出席記録ではありません。<br>・押していないことは欠席を意味しません。<br>・写真は任意です。人の顔や授業の資料は写さず、授業中に撮るときは先生のルールに従ってください。<br>・データはこの端末に保存されます(プロトタイプ)。</p>`)
+    + `
     <button class="btn danger" data-act="reset">データをリセット</button>`;
-  paintScreen(h, resetScroll);
+  paintScreen(h, resetScroll); bindSecs();
   const bind = (id, fn) => { const el = document.getElementById(id); el.onchange = () => { fn(el.value); if(!save()) renderMe(false); }; };
   bind('mName', v => { S.me.name = v.trim() || 'あなた'; });
   bind('mFac', v => { S.me.fac = v.trim(); });
@@ -1317,7 +1336,7 @@ function renderTalk(reset){
       : `<div class="msg">${f ? avatar(f.emoji,f.bg,32) : ''}<div><small>${f ? f.name : ''}</small><div class="bb">${esc(m.text)}</div></div><time>${hm(m.ts)}</time></div>`;
   });
   if(!ms.length) h += '<div class="empty">まだメッセージはありません</div>';
-  h += `</div><div class="talkbar"><form id="tkForm"><input class="tx" id="tkIn" placeholder="メッセージ" maxlength="200" autocomplete="off" aria-label="メッセージ"><button class="sendb" type="submit">送信</button></form></div>`;
+  h += `</div><div class="talkbar"><form id="tkForm"><input class="tx" id="tkIn" placeholder="💬" maxlength="200" autocomplete="off" aria-label="メッセージ"><button class="sendb" type="submit" aria-label="送信" style="width:52px;padding:0;display:grid;place-items:center">${PLANE}</button></form></div>`;
   paintScreen(h, reset);
   $('tkIn').value = draft;
   const sc = $('scr'); sc.scrollTop = sc.scrollHeight;
@@ -1413,6 +1432,7 @@ const ACT = {
   rxpick: v => { const el = document.getElementById('rp-'+v); if(el) el.hidden = !el.hidden; },
   rx: v => { const [id, e] = v.split('|'); const a = S.rx[id] = S.rx[id] || []; const i = a.indexOf(e); if(i>=0) a.splice(i,1); else a.push(e); if(!save()) return; refreshView(); },
   cmts: v => openComments(v),
+  cmback: () => goBackFromComments(),
   addrow: v => addRow(v==='per'),
   fadd: async v => {
     const [name, d, p] = v.split('|');
