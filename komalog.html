@@ -289,6 +289,16 @@
   .talkbar form{display:flex; gap:8px; width:100%; max-width:448px;}
   .talkbar input{flex:1; min-width:0;}
   .sendb{background:var(--pink); color:#fff; font-weight:900; border-radius:18px; padding:0 18px; font-size:15px;}
+  /* すりガラス(読みやすさを保つため、白を6〜7割残してぼかす) */
+  @supports ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
+    .circ,.pill{background:rgba(255,255,255,.66); -webkit-backdrop-filter:blur(18px) saturate(1.6); backdrop-filter:blur(18px) saturate(1.6); border:1px solid rgba(255,255,255,.8);}
+    .circ.on{background:rgba(252,230,248,.72);}
+    .pill button.on{background:rgba(0,0,0,.08);}
+    .me-btn{background:rgba(255,255,255,.66); -webkit-backdrop-filter:blur(18px); backdrop-filter:blur(18px); border:1px solid rgba(255,255,255,.8);}
+    .sheet .body{background:rgba(244,244,244,.86); -webkit-backdrop-filter:blur(24px) saturate(1.4); backdrop-filter:blur(24px) saturate(1.4);}
+    #toast{background:rgba(17,17,17,.78); -webkit-backdrop-filter:blur(12px); backdrop-filter:blur(12px);}
+    .shade{background:rgba(20,20,20,.28);}
+  }
   .toast{position:fixed; left:50%; top:calc(18px + env(safe-area-inset-top)); transform:translate(-50%, calc(-100% - 24px - env(safe-area-inset-top))); background:var(--tx); color:#fff; font-weight:900;
     padding:12px 20px; border-radius:30px; z-index:70; transition:transform .3s; font-size:14px; width:max-content; max-width:calc(100vw - 32px); text-align:center;}
   .toast.on{transform:translate(-50%,0);}
@@ -337,7 +347,7 @@
     <button data-act="tab" data-v="week" role="tab">週</button>
   </div>
   <button class="circ" id="feedBtn" data-act="tab" data-v="feed" aria-label="みんなの ☺︎ と写真">
-    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="6" width="14" height="14" rx="3"/><path d="M7 3h11a3 3 0 0 1 3 3v11"/><circle cx="8.5" cy="11" r="1.5"/><path d="m17 17-4-4-6 6"/></svg>
+    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="6" r="2"/><path d="M10 5h10M10 8h6"/><circle cx="5" cy="13" r="2"/><path d="M10 12h10M10 15h6"/><circle cx="5" cy="20" r="2"/><path d="M10 19h10"/></svg>
     <span class="nbadge" id="feedBadge" hidden></span>
   </button>
 </div></nav>
