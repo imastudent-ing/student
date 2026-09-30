@@ -94,6 +94,15 @@
   .nav-in{width:100%; max-width:448px; display:flex; justify-content:space-between; align-items:center; pointer-events:auto;}
   .circ{width:70px; height:70px; border-radius:50%; background:#fff; display:grid; place-items:center; box-shadow:0 8px 24px rgba(0,0,0,.09); position:relative;}
   .circ .badge{position:absolute; top:13px; right:14px; width:13px; height:13px; border-radius:50%; background:var(--pink); border:2px solid #fff;}
+  .circ.on{background:var(--pink3);}
+  .nbadge{position:absolute; top:6px; right:4px; min-width:22px; height:22px; border-radius:11px; background:var(--pink); color:#fff; font-size:11.5px; font-weight:900; display:grid; place-items:center; padding:0 6px; border:2px solid #fff;}
+  .post{background:var(--card); border:1px solid var(--line); border-radius:26px; overflow:hidden; margin-bottom:12px; width:100%; text-align:left; display:block;}
+  .post .pp{width:100%; aspect-ratio:4/3; background-size:cover; background-position:center; display:grid; place-items:center; font-size:64px;}
+  .post .pm{display:flex; align-items:center; gap:10px; padding:12px 14px;}
+  .post .pm .t{flex:1; min-width:0;}
+  .post .pm b{display:block; font-size:15px; font-weight:900;}
+  .post .pm span{display:block; font-size:12.5px; font-weight:700; color:var(--dim); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .post .pm time{font-size:12px; font-weight:900; color:var(--pink); white-space:nowrap;}
   .pill{background:#fff; border-radius:40px; padding:8px; display:flex; gap:4px; box-shadow:0 8px 24px rgba(0,0,0,.09);}
   .pill button{padding:14px 26px; border-radius:30px; font-size:17px; font-weight:900; color:#666; white-space:nowrap;}
   .pill button.on{background:#e4e4e4; color:var(--tx);}
@@ -284,8 +293,9 @@
     <button data-act="tab" data-v="today" role="tab">きょう</button>
     <button data-act="tab" data-v="week" role="tab">週</button>
   </div>
-  <button class="circ" data-act="add" aria-label="授業を追加">
-    <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="3.2" stroke-linecap="round" aria-hidden="true"><path d="M12 4v16M4 12h16"/></svg>
+  <button class="circ" id="feedBtn" data-act="tab" data-v="feed" aria-label="みんなの ☺︎ と写真">
+    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="6" width="14" height="14" rx="3"/><path d="M7 3h11a3 3 0 0 1 3 3v11"/><circle cx="8.5" cy="11" r="1.5"/><path d="m17 17-4-4-6 6"/></svg>
+    <span class="nbadge" id="feedBadge" hidden></span>
   </button>
 </div></nav>
 
@@ -361,7 +371,7 @@ function fresh(){
   return {
     v:3, onboarded:false,
     me:{name:'', emoji:'🐣', bg:0, univ:'', fac:'', handle:uid().slice(0,6)},
-    classes:[], recs:[], talk:{}, talkSeen:{},
+    classes:[], recs:[], talk:{}, talkSeen:{}, feedSeen:0,
     groups:[],
     // 友だちは承認してはじめてつながる
     friendState:{f1:'request', f2:'request', f3:'request', f4:'request', f5:'request'},
@@ -521,7 +531,7 @@ function header(){
   const dm = S.settings.demo;
   return `<div class="hd"><div class="logo">KOMALOG</div>
     <button class="me-btn" data-act="me" aria-label="プロフィールと設定">${meAv(42)}</button></div>
-    <div class="hint"><span class="ic">${MINI_SMILE}</span><span class="ht">着いたら ☺︎ をタップ</span>
+    <div class="hint"><span class="ic">${MINI_SMILE}</span><span class="ht">着いたら ☺︎</span>
       ${dm.on ? `<button class="demo-chip" data-act="me" aria-label="デモ時刻の設定">デモ ${fmtMin(dm.min)}〜</button>` : ''}</div>`;
 }
 function heroHTML(){
@@ -535,8 +545,8 @@ function heroHTML(){
   const inNow = list.filter(x => x.lc && phaseOf(t, x.lc)==='now').length;
   let line;
   if(d<0) line = `${md(t)} ・ 授業のない日。`;
-  else if(!fr.length) line = `${md(t)} ・ いまは${nowLabel()}<br>友だちとつながると、ここに気配が出ます。`;
-  else line = `${md(t)} ・ いまは${nowLabel()}<br>${inNow ? `いま友だち${inNow}人が<span class="nb">授業に来てる。</span>` : came ? `きょうは友だち${came}人が<span class="nb">来た。</span>` : 'まだ誰も ☺︎ を<span class="nb">押していません。</span>'}`;
+  else if(!fr.length) line = `${md(t)} ・ ⏰ ${nowLabel()}<br>👥 友だちとつながると、ここに出ます`;
+  else line = `${md(t)} ・ ⏰ ${nowLabel()}<br>${inNow ? `☺︎ ${inNow}人が授業中` : came ? `☺︎ きょう${came}人` : '☺︎ まだ0人'}`;
   const strip = list.length ? `<div class="fstrip">${list.map(x => `<button class="fp" data-act="friend" data-v="${x.f.id}" aria-label="${x.f.name}${x.lc ? `、${x.lc.period}限 ${esc(x.lc.name)}に来た` : ''}">
       <span class="ring ${x.lc?'ok':''}">${avatar(x.f.emoji,x.f.bg,46)}${x.lc ? `<i class="pb">${x.lc.period}限</i>` : ''}</span><b>${x.f.name}</b></button>`).join('')}</div>`
     : (!fr.length ? `<button class="lnk" data-act="friends">友だちとつながる</button>` : '');
@@ -546,8 +556,8 @@ function classRow(c, date, isNext){
   const r = recOf(c.id, date), ph = phaseOf(date, c), can = canRecord(date, c);
   const fr = friendsIn(c), came = fr.filter(x => fRec(x.f, x.fc, date));
   let who = '';
-  if(came.length) who = `<div class="who"><span class="t">${names(came.map(x=>x.f))}</span><span class="v">が${ph==='past'?'来てた':'来てる'}</span></div>`;
-  else if(fr.length) who = `<div class="who gray"><span class="t">${names(fr.map(x=>x.f))}</span><span class="v">も同じ授業</span></div>`;
+  if(came.length) who = `<div class="who"><span class="v">☺︎</span><span class="t">${names(came.map(x=>x.f))}</span></div>`;
+  else if(fr.length) who = `<div class="who gray"><span class="v">🤝</span><span class="t">${names(fr.map(x=>x.f))}</span></div>`;
   const label = r ? '来た(記録済み)' : can ? '来た を記録' : `${fmtMin(win(c).s-30)} から押せます`;
   const sc = r ? 'done' : !can ? 'wait' : ph==='past' ? 'past' : '';
   return `<div class="row ${ph==='now'?'now':''} ${isNext?'next':''}" data-act="cls" data-v="${c.id}|${date}" role="button" tabindex="0" aria-label="${c.period}限 ${esc(c.name)}">
@@ -567,7 +577,7 @@ function todayView(){
     else if(S.classes.length) h += `<div class="empty">きょうは授業なし。<br><button class="lnk" data-act="add" data-v="today">＋ きょうの授業を追加</button></div>`;
     else h += `<div class="empty">まだ時間割がありません。<br>まずは1コマだけでOK。<br><button class="lnk" data-act="add">＋ 授業を追加</button></div>`;
   }
-  return h + `<p class="note foot">☺︎ は自己申告のしるしです。押していないことは欠席を意味しません。</p>`;
+  return h + `<p class="note foot">☺︎ = 自己申告 ・ 押してない ≠ 欠席</p>`;
 }
 // 開いたとき、いまの授業(なければ次の授業)が見えるようにする
 function scrollToNow(){
@@ -619,14 +629,39 @@ function weekView(){
   const title = viewWeek===0 ? '今週' : viewWeek===-1 ? '先週' : `${md(wd[0])}の週`;
   return header() + `<div class="card ttc"><div class="wkbar"><button data-act="wk" data-v="-1" aria-label="前の週" ${viewWeek<=minWeek()?'disabled':''}>‹</button><b>${title}</b>
       <button data-act="wk" data-v="1" aria-label="次の週" ${viewWeek>=0?'disabled':''}>›</button></div>${gridHTML(S.classes, wd, 'me')}</div>
-    <p class="note" style="text-align:center">マスをタップで詳細、長押しで ☺︎。空いたマスで授業を追加。</p>`;
+    <p class="note" style="text-align:center">タップ → 詳細 ・ 長押し → ☺︎ ・ ＋ → 授業を追加</p>`;
 }
 
+/* ============================================================
+   画面: みんな(☺︎ と写真の流れ)
+   ============================================================ */
+function feedItems(){
+  const L = logical(), from = ymd(new Date(L.getFullYear(), L.getMonth(), L.getDate()-6)), n = nowTs(), items = [];
+  friends().forEach(f => f.recs.forEach(r => { if(r.date>=from && r.ts<=n){ const c = f.classes.find(x => x.id===r.classId); if(c) items.push({f, c, r}); } }));
+  S.recs.forEach(r => { if(r.date>=from){ const c = S.classes.find(x => x.id===r.classId); if(c) items.push({f:null, c, r}); } });
+  return items.sort((a,b) => b.r.ts-a.r.ts).slice(0,80);
+}
+const feedNew = () => feedItems().filter(x => x.f && x.r.ts > (S.feedSeen||0)).length;
+function feedView(){
+  const items = feedItems(); let h = header(), last = '';
+  if(!items.length) h += '<div class="empty">📷 まだ誰も ☺︎ を押していません</div>';
+  items.forEach(({f, c, r}) => {
+    if(r.date!==last){ h += `<div class="sec-t">${r.date===todayStr() ? 'きょう' : `${md(r.date)}(${DAYS[c.day]})`}</div>`; last = r.date; }
+    const ph = r.photo ? `<div class="pp" style="background-image:url('${r.photo}')"></div>` : r.ph ? `<div class="pp" style="background:${r.ph.bg}">${r.ph.emo}</div>` : '';
+    const who = f ? `${avatar(f.emoji,f.bg,38)}<span class="t"><b>${f.name}</b>` : `${meAv(38)}<span class="t"><b>あなた${r.aud==='private' ? ' 🔒' : ''}</b>`;
+    const act = f ? `data-act="friend" data-v="${f.id}"` : `data-act="cls" data-v="${c.id}|${r.date}"`;
+    h += `<button class="post" ${act}>${ph}<span class="pm">${who}<span>${c.period}限 ${esc(c.name)}</span></span><time>☺︎ ${r.late ? 'あとから' : hm(r.ts)}</time></span></button>`;
+  });
+  return h;
+}
 function render(){
   const a = document.activeElement, app = document.getElementById('app');
   const refocus = a && app.contains(a) && a.dataset && a.dataset.act ? [a.dataset.act, a.dataset.v] : null;
   document.querySelectorAll('.pill button').forEach(b => { const on = b.dataset.v===tab; b.classList.toggle('on', on); b.setAttribute('aria-selected', on); });
-  app.innerHTML = tab==='today' ? todayView() : weekView();
+  $('feedBtn').classList.toggle('on', tab==='feed');
+  if(tab==='feed'){ S.feedSeen = nowTs(); save(true); }
+  app.innerHTML = tab==='today' ? todayView() : tab==='week' ? weekView() : feedView();
+  const nf = feedNew(); $('feedBadge').hidden = !nf; $('feedBadge').textContent = cnt(nf);
   document.getElementById('frBadge').hidden = !FDEF.some(f => S.friendState[f.id]==='request');
   if(refocus){
     let n = [...app.querySelectorAll(`[data-act="${refocus[0]}"]`)].find(x => x.dataset.v===refocus[1] && !x.disabled);
@@ -662,24 +697,24 @@ function paintClass(){
   const date = CS.date, r = recOf(c.id, date), ph = phaseOf(date, c), can = canRecord(date, c), isToday = date===todayStr();
   const fr = friendsIn(c);
   let h = `<h3>${esc(c.name)}</h3><div class="sub">${md(date)}(${DAYS[c.day]}) ${c.period}限 ${timeText(c)}${c.room ? ' ・ 📍'+esc(c.room) : ''}</div>`;
-  { const u = unread(c); h += `<button class="talkbtn" data-act="talk" data-v="${c.id}">💬 この授業のトーク${u ? ` <span class="tkb">${cnt(u)}</span>` : ''}</button>`; }
+  { const u = unread(c); h += `<button class="talkbtn" data-act="talk" data-v="${c.id}">💬 トーク${u ? ` <span class="tkb">${cnt(u)}</span>` : ''}</button>`; }
   if(fr.length) h += `<div class="fline">${fr.map(({f,fc}) => { const x = isToday && fRec(f, fc, date);
     return `<button class="fchip ${x?'ok':''}" data-act="friend" data-v="${f.id}">${avatar(f.emoji,f.bg,28)}${f.name}${x ? ' <small>来た</small>' : ''}</button>`; }).join('')}</div>`;
   if(r) h += `<div class="herest"><span class="smile done">${SMILE}</span>来た <small>${r.late ? 'あとから記録' : hm(r.ts)}</small><button class="undo" data-act="undo">取り消す</button></div>`;
   else if(can) h += `<button class="herebtn" data-act="here" data-v="${c.id}|${date}">${SMILE}来た</button>`;
   else h += `<div class="herest wait">${ph==='future' ? `${fmtMin(win(c).s-30)} から押せます` : 'この日の記録はもう付けられません'}</div>`;
   if(r && r.photo){
-    h += `<div class="f">この日の一枚</div><div class="shot" style="background-image:url('${r.photo}')" role="img" aria-label="この日の写真"></div>
+    h += `<div class="f">📷</div><div class="shot" style="background-image:url('${r.photo}')" role="img" aria-label="この日の写真"></div>
       <div class="phrow"><button data-act="pick">選び直す</button><button data-act="unphoto">写真を外す</button></div>`;
-  } else if(r || can) h += `<button class="phline" data-act="pick">📷 写真も一枚のせる(任意)</button>`;
-  if(r || can) h += `<div class="f">見える人</div><div class="chips">${audOptions().map(([v,l]) => `<button data-act="aud" data-v="${v}" class="${CS.aud===v?'on':''}" aria-pressed="${CS.aud===v}">${esc(l)}</button>`).join('')}</div>`;
+  } else if(r || can) h += `<button class="phline" data-act="pick">📷 写真を1枚</button>`;
+  if(r || can) h += `<div class="f">👀 見える人</div><div class="chips">${audOptions().map(([v,l]) => `<button data-act="aud" data-v="${v}" class="${CS.aud===v?'on':''}" aria-pressed="${CS.aud===v}">${esc(l)}</button>`).join('')}</div>`;
   if(c.got || isSemEnd()) h += `<div id="semBox">${semHTML(c)}</div>`;
-  h += `<button class="btn ghost" data-act="edit" data-v="${c.id}">授業を編集</button>`;
+  h += `<button class="btn ghost" data-act="edit" data-v="${c.id}">✏️ 編集</button>`;
   document.getElementById('sheetIn').innerHTML = h;
 }
 function semHTML(c){
   const tog = c.got ? friendsIn(c).filter(x => x.fc.shareGot).map(x => x.f) : [];
-  return `<div class="f">学期末</div><div class="sem"><span>単位が取れたら<wbr>印をつける</span>
+  return `<div class="f">🎓 学期末</div><div class="sem"><span>単位が取れたら<wbr>印をつける</span>
     <button class="tog ${c.got?'on':''}" data-act="got" data-v="${c.id}" aria-pressed="${!!c.got}">${c.got ? '✓ 単位GET' : '単位GET'}</button>
     ${c.got ? `<button class="tog ${c.shareGot?'on':''}" data-act="share" data-v="${c.id}" aria-pressed="${!!c.shareGot}">${c.shareGot ? '✓ 友だちに見せてる' : '友だちにも見せる'}</button>` : ''}</div>
     ${tog.length ? `<div class="together">🎉 ${names(tog)} と一緒に取れた！</div>` : ''}
@@ -777,12 +812,12 @@ function friendSheetHTML(f){
     h += `<div class="f">きょう</div><div class="card" style="padding:4px 16px">` + (today.length ? today.map(c => {
       const r = fRec(f, c, t), ph = phaseOf(t, c);
       return `<div class="li">${thumbHTML(c, r, c.shareGot)}<div class="t"><span>${c.period}限 ${timeText(c)}</span><b>${esc(c.name)}</b></div>
-        <span class="st ${r?'ok':''}">${r ? '☺︎ 来た' : ph==='future' ? 'これから' : ''}</span></div>`; }).join('')
+        <span class="st ${r?'ok':''}">${r ? '☺︎ 来た' : ph==='future' ? '⏳' : ''}</span></div>`; }).join('')
       : '<div class="empty" style="padding:16px">きょうは授業なし</div>') + '</div>'
-      + `<p class="rule">☺︎ は本人が押すだけのしるし。押していなくても欠席とは限りません。</p>`;
+      + `<p class="rule">☺︎ = 自己申告 ・ 押してない ≠ 欠席</p>`;
   }
   h += `<div class="f">時間割</div><div class="card ttc">${gridHTML(f.classes, weekDates(0), f)}</div>
-    ${sameUniv(f) ? '<p class="rule">🤝 はあなたの時間割にもある授業。ほかのマスも、受けている授業ならタップで自分の時間割に追加できます。</p>' : ''}
+    ${sameUniv(f) ? '<p class="rule">🤝 = 同じ授業 ・ ほかのマスはタップで自分にも追加</p>' : ''}
     <button class="btn quiet" data-act="unfriend" data-v="${f.id}">友だちをやめる</button>`;
   return h;
 }
@@ -1126,7 +1161,7 @@ $('ask').onclick = e => { if(e.target===$('ask') && askDone) askDone(false); };
    操作(クリックはまとめて委譲)
    ============================================================ */
 const ACT = {
-  tab: v => { tab = v; render(); if(v==='today') scrollToNow(); else window.scrollTo(0,0); },
+  tab: v => { tab = v; closeSheet(); render(); if(v==='today') scrollToNow(); else window.scrollTo(0,0); },
   wk: v => { viewWeek = Math.min(0, Math.max(minWeek(), viewWeek + +v)); render(); },
   cls: v => { const [cid, date] = v.split('|'); openClass(cid, date); },
   here: v => {
