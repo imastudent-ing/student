@@ -14,8 +14,10 @@
     --pink:#e24fd2; --pink2:#f5c6ee; --pink3:#fce6f8; --rose:#e2677f;
     --mint:#5fd6bd; --red:#e25555;
     --r:30px;
+    color-scheme:light;
   }
   *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  [hidden]{display:none !important;}
   html,body{margin:0; padding:0; background:var(--bg); color:var(--tx);
     font-family:'Zen Maru Gothic','Hiragino Maru Gothic ProN','Hiragino Kaku Gothic ProN',system-ui,sans-serif;}
   body{min-height:100vh; display:flex; justify-content:center; overflow-x:hidden;}
@@ -211,6 +213,12 @@
   .emoji-pick{display:flex; gap:8px; flex-wrap:wrap;}
   .emoji-pick button{width:46px; height:46px; border-radius:50%; background:#fff; font-size:24px; border:2px solid transparent;}
   .emoji-pick button.on{border-color:var(--pink);}
+  .ask{position:fixed; inset:0; z-index:80; background:rgba(20,20,20,.42); display:grid; place-items:center; padding:24px 16px;}
+  .askbox{width:100%; max-width:340px; background:var(--bg); border-radius:28px; padding:22px 20px 16px; box-shadow:0 20px 50px rgba(0,0,0,.2);}
+  .askbox p{margin:0 4px 16px; font-size:15px; font-weight:900; line-height:1.6; white-space:pre-line;}
+  .askrow{display:flex; gap:8px;}
+  .askrow button{flex:1; padding:14px 10px; border-radius:20px; font-size:15px; font-weight:900; background:#fff;}
+  .askrow #askYes{background:var(--tx); color:#fff;}
   .toast{position:fixed; left:50%; top:calc(18px + env(safe-area-inset-top)); transform:translate(-50%, calc(-100% - 24px - env(safe-area-inset-top))); background:var(--tx); color:#fff; font-weight:900;
     padding:12px 20px; border-radius:30px; z-index:70; transition:transform .3s; font-size:14px; width:max-content; max-width:calc(100vw - 32px); text-align:center;}
   .toast.on{transform:translate(-50%,0);}
@@ -244,6 +252,7 @@
 <div class="shade" id="shade" data-act="sclose"></div>
 <div class="sheet" id="sheet" role="dialog" aria-modal="true"><div class="body" tabindex="-1"><div class="grab"></div><div id="sheetIn"></div></div></div>
 <div class="onb" id="onb" hidden><div class="wrap" id="onbIn"></div></div>
+<div class="ask" id="ask" hidden role="alertdialog" aria-modal="true" aria-labelledby="askMsg"><div class="askbox"><p id="askMsg"></p><div class="askrow"><button id="askNo">やめる</button><button id="askYes">OK</button></div></div></div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <input type="file" id="fileIn" accept="image/*" hidden>
 
@@ -796,7 +805,7 @@ function openEdit(cid){
     + ((c.got || isSemEnd()) ? `<div id="semBox">${semHTML(c)}</div>` : '') + `<button class="btn danger" data-act="edel" data-v="${c.id}">この授業を削除</button>`;
   openSheet();
 }
-function saveClass(id){
+async function saveClass(id){
   const c = id ? S.classes.find(x => x.id===id) : null;
   const name = document.getElementById('eName').value.trim();
   if(!name){ toast('授業名を入れてね'); return; }
@@ -807,7 +816,7 @@ function saveClass(id){
   if(c){
     const moved = c.day!==nd.day || c.period!==nd.period;
     if(moved && S.recs.some(r => r.classId===c.id)){
-      if(!confirm('曜日・時限を変えると、この授業の ☺︎ と写真は消えます。変更しますか？')) return;
+      if(!await ask('曜日・時限を変えると、この授業の ☺︎ と写真は消えます。変更しますか？', '変更する')) return;
       S.recs = S.recs.filter(r => r.classId!==c.id);
     }
     Object.assign(c, nd);
@@ -979,6 +988,19 @@ function closeScreen(){
 let toastT;
 function toast(t){ const el = $('toast'); el.textContent = t; el.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => el.classList.remove('on'), 2800); }
 
+// 確認ダイアログ(ブラウザの confirm の代わりに画面の中で聞く)
+let askDone = null;
+function ask(msg, yes='OK'){
+  return new Promise(res => {
+    const prev = document.activeElement;
+    $('askMsg').textContent = msg; $('askYes').textContent = yes; $('ask').hidden = false; $('askYes').focus();
+    askDone = v => { $('ask').hidden = true; askDone = null; if(prev && document.contains(prev)) prev.focus({preventScroll:true}); res(v); };
+  });
+}
+$('askYes').onclick = () => askDone && askDone(true);
+$('askNo').onclick = () => askDone && askDone(false);
+$('ask').onclick = e => { if(e.target===$('ask') && askDone) askDone(false); };
+
 /* ============================================================
    操作(クリックはまとめて委譲)
    ============================================================ */
@@ -996,7 +1018,7 @@ const ACT = {
     const b = [...document.querySelectorAll('#app .smile')].find(x => x.dataset.v===v); if(b) b.classList.add('pop');
     toast(`☺︎ 来た ・ ${audName(r.aud)}に見える`);
   },
-  undo: () => { if(!confirm('☺︎ を取り消しますか？ この日の写真も外れます。')) return;
+  undo: async () => { if(!await ask('☺︎ を取り消しますか？ この日の写真も外れます。', '取り消す') || !CS) return;
     S.recs = S.recs.filter(r => !(r.classId===CS.cid && r.date===CS.date)); save(); renderClass(); render(); },
   pick: () => $('fileIn').click(),
   unphoto: () => { const r = recOf(CS.cid, CS.date); if(r){ r.photo = null; save(); } renderClass(); render(); },
@@ -1016,19 +1038,19 @@ const ACT = {
     const ok = save(); refreshSem(v); if(ok) toast(c.shareGot ? '友だちに見せています' : '自分だけに戻しました'); },
   edit: v => openEdit(v),
   friend: v => openFriend(v),
-  fadd: v => {
+  fadd: async v => {
     const [name, d, p] = v.split('|');
     if(S.classes.some(m => key(m)===v)){ toast('あなたも受けている授業です 🤝'); return; }
     const clash = S.classes.find(m => m.day===+d && m.period===+p);
     if(clash){ toast(`${DAYS[+d]}${p}限は「${clash.name}」が入っています`); return; }
-    if(confirm(`「${name}」(${DAYS[+d]}${p}限)を自分の時間割にも追加しますか？`) && addFromKey(v)) refreshFriendSheet();
+    if(await ask(`「${name}」(${DAYS[+d]}${p}限)を自分の時間割にも追加しますか？`, '追加する') && addFromKey(v)) refreshFriendSheet();
   },
   add: v => { if(v==='today') openAdd(dayIdx(), null); else if(v){ const [d,p] = v.split('-').map(Number); openAdd(d, p); } else openAdd(null, null); },
   amode: v => { ADD.mode = v; renderAdd(); },
   addk: v => { if(!addFromKey(v)) return; if(ADD && ADD.p!=null) closeSheet(); else renderAdd(); },
   ecol: (v, el) => { editColor = v; document.querySelectorAll('#eCol button').forEach(b => b.classList.toggle('on', b===el)); },
   esave: v => saveClass(v),
-  edel: v => { const c = S.classes.find(x => x.id===v); if(!c || !confirm(`「${c.name}」を削除しますか？ この授業の ☺︎ と写真も消えます。`)) return;
+  edel: async v => { const c = S.classes.find(x => x.id===v); if(!c || !await ask(`「${c.name}」を削除しますか？ この授業の ☺︎ と写真も消えます。`, '削除する')) return;
     S.classes = S.classes.filter(x => x.id!==v); S.recs = S.recs.filter(r => r.classId!==v); save(); closeSheet(); render(); },
   sclose: () => closeSheet(),
   close: () => closeScreen(),
@@ -1036,14 +1058,14 @@ const ACT = {
   me: () => { closeSheet(); renderMe(true); },
   approve: v => { S.friendState[v] = 'friend'; if(!save()){ renderFriends(false); return; } renderFriends(false); render(); toast(`${fById(v).name} とつながりました`); },
   decline: v => { S.friendState[v] = 'later'; save(); renderFriends(false); render(); },
-  unfriend: v => { const f = fById(v); if(!f || !confirm(`${f.name} には、あなたの時間割と ☺︎・写真が見えなくなります。友だちをやめますか？`)) return;
+  unfriend: async v => { const f = fById(v); if(!f || !await ask(`${f.name} には、あなたの時間割と ☺︎・写真が見えなくなります。友だちをやめますか？`, 'やめる')) return;
     S.friendState[v] = 'none'; S.groups.forEach(g => { g.members = g.members.filter(x => x!==v); });
     grpDraft.members = grpDraft.members.filter(x => x!==v);
     save(); closeSheet(); render(); if($('scr').classList.contains('open') && $('audSel')) renderFriends(false); toast(`${f.name} とのつながりを解除しました`); },
   invite: async () => {
     const text = `KOMALOGで時間割つなごう。ID: @${S.me.handle}`;
-    try{ if(navigator.share){ await navigator.share({text}); return; } await navigator.clipboard.writeText(text); toast('招待メッセージをコピーしました'); }
-    catch(e){ if(e && e.name==='AbortError') return; toast(text); }
+    if(navigator.share){ try{ await navigator.share({text}); return; }catch(e){ if(e && e.name==='AbortError') return; } }
+    try{ await navigator.clipboard.writeText(text); toast('招待メッセージをコピーしました'); }catch(e){ toast(text); }
   },
   addfr: () => { const v = $('addId').value.trim().replace(/^@/, ''); if(!v){ toast('IDを入れてね'); return; }
     if(!S.sentReq.includes(v)) S.sentReq.push(v); if(!save()){ renderFriends(false); return; } renderFriends(false); toast('申請しました。承認されると時間割が見えます'); },
@@ -1052,8 +1074,8 @@ const ACT = {
     S.groups.push({id:uid(), name, members:grpDraft.members.filter(id => S.friendState[id]==='friend')});
     if(!save()){ renderFriends(false); return; }
     grpDraft = {name:'', members:[]}; renderFriends(false); toast('グループを作りました'); },
-  gdel: v => { const g = S.groups.find(x => x.id===v);
-    if(!g || !confirm(`「${g.name}」を削除しますか？\nこのグループに見せていた ☺︎ と写真は「自分だけ」になります。`)) return;
+  gdel: async v => { const g = S.groups.find(x => x.id===v);
+    if(!g || !await ask(`「${g.name}」を削除しますか？\nこのグループに見せていた ☺︎ と写真は「自分だけ」になります。`, '削除する')) return;
     const a = 'g:'+v, wasDefault = S.settings.aud===a;
     S.groups = S.groups.filter(x => x.id!==v);
     if(wasDefault) S.settings.aud = 'private'; // 見える範囲を勝手に広げない
@@ -1066,7 +1088,7 @@ const ACT = {
   mbg: v => { S.me.bg = +v; save(); renderMe(false); render(); },
   preset: v => { S.settings.preset = +v; save(); buildFriends(); renderMe(false); render(); },
   demo: v => { S.settings.demo.on = v==='1'; save(); applyTime(); renderMe(false); },
-  reset: () => { if(!confirm('時間割・☺︎・写真・設定をすべて消して、最初からにしますか？')) return; localStorage.removeItem(KEY); location.reload(); },
+  reset: async () => { if(!await ask('時間割・☺︎・写真・設定をすべて消して、最初からにしますか？', 'リセット')) return; try{ localStorage.removeItem(KEY); }catch(e){} location.reload(); },
   'onb-accept': () => { S.friendState.f1 = 'friend'; ONB.step = 1; renderOnb(); $('onb').scrollTop = 0; },
   'onb-next': () => { ONB.step++; renderOnb(); $('onb').scrollTop = 0; },
   'onb-back': () => { ONB.step = Math.max(0, ONB.step-1); if(ONB.step===0) S.friendState.f1 = 'request'; renderOnb(); },
@@ -1081,7 +1103,7 @@ document.addEventListener('click', e => {
   e.preventDefault(); fn(el.dataset.v, el, e);
 });
 document.addEventListener('keydown', e => {
-  if(e.key==='Escape'){ if($('sheet').classList.contains('open')) closeSheet(); else if($('scr').classList.contains('open')) closeScreen(); return; }
+  if(e.key==='Escape'){ if(askDone){ askDone(false); return; } if($('sheet').classList.contains('open')) closeSheet(); else if($('scr').classList.contains('open')) closeScreen(); return; }
   if((e.key==='Enter' || e.key===' ') && e.target.matches('[role=button][data-act]')){ e.preventDefault(); e.target.click(); }
 });
 
