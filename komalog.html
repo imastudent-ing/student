@@ -721,8 +721,7 @@ function weekView(){
   const wd = weekDates(viewWeek);
   const title = viewWeek===0 ? '今週' : viewWeek===-1 ? '先週' : `${md(wd[0])}の週`;
   return header() + `<div class="card ttc"><div class="wkbar"><button data-act="wk" data-v="-1" aria-label="前の週" ${viewWeek<=minWeek()?'disabled':''}>‹</button><b>${title}</b>
-      <button data-act="wk" data-v="1" aria-label="次の週" ${viewWeek>=0?'disabled':''}>›</button></div>${gridHTML(S.classes, wd, 'me')}</div>
-    <p class="note" style="text-align:center">タップ → 詳細 ・ 長押し → ☺︎ ・ ＋ → 授業を追加</p>`;
+      <button data-act="wk" data-v="1" aria-label="次の週" ${viewWeek>=0?'disabled':''}>›</button></div>${gridHTML(S.classes, wd, 'me')}</div>`;
 }
 
 /* ============================================================
