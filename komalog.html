@@ -158,8 +158,15 @@
   .sheet .body{transition:transform .2s;}
   .phead{display:block; width:100%; text-align:left;}
   .pbar{display:flex; flex-wrap:wrap; gap:6px; padding:0 12px 12px 12px;}
-  .rxc{min-height:34px; padding:4px 11px; border-radius:17px; background:#fff; font-size:14px; font-weight:900; border:1.5px solid transparent; display:flex; align-items:center; gap:4px;}
-  .rxc.on{border-color:var(--pink); background:var(--pink3); color:var(--pink);}
+  .rxc{min-height:34px; padding:4px 6px; background:none; font-size:15px; font-weight:900; display:flex; align-items:center; gap:3px; color:#555;}
+  .rxc.on{color:var(--pink);}
+  .clist{display:flex; flex-direction:column; gap:12px; margin-top:14px;}
+  .ci{display:flex; gap:10px; align-items:flex-start;}
+  .ci p{margin:0; font-size:14px; font-weight:700; line-height:1.5; flex:1; min-width:0; word-break:break-word;}
+  .ci p b{font-weight:900; margin-right:6px;}
+  .ci time{font-size:11px; color:var(--dim2); font-weight:700; white-space:nowrap; padding-top:2px;}
+  .cform .csend{width:44px; height:44px; border-radius:50%; background:var(--pink); display:grid; place-items:center; flex-shrink:0;}
+  .cform .csend svg{width:20px; height:20px;}
   .rxc.add{color:var(--dim);}
   .rxc.cmb{margin-left:auto;}
   .rxpick{display:flex; gap:6px; padding:0 12px 12px;}
@@ -741,11 +748,10 @@ function openComments(id){ CMV = id; FPV = null; CS = null; FSID = null; ADD = n
 function renderComments(){
   const p = findPost(CMV); if(!p) return;
   const cs = postComments(p.f, p.r);
-  let h = `<div style="margin-top:4px">${postCard(p, false, false)}</div><div class="msgs" style="padding-bottom:0">`;
+  let h = `<div style="margin-top:4px">${postCard(p, false, false)}</div><div class="clist">`;
   cs.forEach(m => { const f = m.from==='me' ? null : fById(m.from);
-    h += m.from==='me' ? `<div class="msg me"><div class="bb">${esc(m.text)}</div><time>${hm(m.ts)}</time></div>`
-      : `<div class="msg">${f ? avatar(f.emoji,f.bg,30) : ''}<div><small>${f ? f.name : ''}</small><div class="bb">${esc(m.text)}</div></div><time>${hm(m.ts)}</time></div>`; });
-  h += `</div><form class="cform" id="cmForm"><input class="tx" id="pcIn" placeholder="💬" maxlength="100" autocomplete="off" aria-label="コメント"><button class="sendb" type="submit" aria-label="送信">${PLANE}</button></form>`;
+    h += `<div class="ci">${f ? avatar(f.emoji,f.bg,28) : meAv(28)}<p><b>${f ? f.name : 'あなた'}</b>${esc(m.text)}</p><time>${hm(m.ts)}</time></div>`; });
+  h += `</div><form class="cform" id="cmForm">${meAv(36)}<input class="tx" id="pcIn" placeholder="💬" maxlength="100" autocomplete="off" aria-label="コメント" style="padding:10px 14px"><button class="csend" type="submit" aria-label="送信">${PLANE}</button></form>`;
   const draft = $('pcIn') ? $('pcIn').value : '';
   $('sheetIn').innerHTML = h; $('pcIn').value = draft;
   $('cmForm').onsubmit = e => { e.preventDefault(); const t = $('pcIn').value.trim(); if(!t) return;
