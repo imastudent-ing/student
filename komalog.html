@@ -255,6 +255,7 @@
 <div class="ask" id="ask" hidden role="alertdialog" aria-modal="true" aria-labelledby="askMsg"><div class="askbox"><p id="askMsg"></p><div class="askrow"><button id="askNo">やめる</button><button id="askYes">OK</button></div></div></div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <input type="file" id="fileIn" accept="image/*" hidden>
+<input type="file" id="avIn" accept="image/*" hidden>
 
 <nav class="nav" id="nav"><div class="nav-in">
   <button class="circ" data-act="friends" aria-label="友だち">
@@ -299,7 +300,7 @@ const MY_SEED = [
 ];
 // デモの友だち(本番では、承認した友だちのデータがサーバーから届く)
 const FDEF = [
-  {id:'f1', name:'そうご', emoji:'🌅', bg:0, fac:'商学部', rate:.85, got:['英語コミュニケーション'], cls:[
+  {id:'f1', name:'りく', emoji:'🌅', bg:0, fac:'商学部', rate:.85, got:['英語コミュニケーション'], cls:[
     [0,1,'英語コミュニケーション','2-301'],[0,2,'簿記原理','8-201'],[1,2,'心理学概論','大講義室A'],[2,2,'プログラミング基礎','情報演習室'],
     [2,3,'マーケティング論','8-305'],[3,2,'経営学入門','8-101'],[4,3,'基礎ゼミ','研究棟402'],[4,4,'哲学','3-102']]},
   {id:'f2', name:'ゆい', emoji:'🍾', bg:4, fac:'文学部', rate:.8, got:['統計学入門'], cls:[
@@ -382,7 +383,7 @@ function weekDates(off=0){
 // 学期末(前期: 7/10〜9/20、後期: 1/10〜3/31)
 function isSemEnd(){ const L = logical(), m = L.getMonth()+1, d = L.getDate();
   return (m===7 && d>=10) || m===8 || (m===9 && d<=20) || (m===1 && d>=10) || m===2 || m===3; }
-const PER = () => PRESETS[S.settings.preset] || PRESETS[90];
+const PER = () => S.settings.periods || PRESETS[S.settings.preset] || PRESETS[90];
 function nowLabel(){
   const m = nowMin(), P = PER();
   if(m < toMin(P[0][0])) return '授業前';
@@ -395,7 +396,8 @@ function nowLabel(){
 }
 
 /* ---------- 授業のコマ ---------- */
-const win = c => { const p = PER()[c.period-1]; return {s:toMin(p[0]), e:toMin(p[1])}; };
+// 授業ごとに時間を変えている場合はそれを使う(実験・集中講義など)
+const win = c => { const p = PER()[c.period-1]; return {s:toMin(c.s || p[0]), e:toMin(c.e || p[1])}; };
 const timeText = c => { const w = win(c); return `${fmtMin(w.s)}–${fmtMin(w.e)}`; };
 function phaseOf(date, c){
   const t = todayStr();
@@ -449,6 +451,7 @@ const audName = a => (audOptions().find(o => o[0]===a) || [0,'🔒 自分だけ'
 const audFor = (c, date) => (CS && CS.cid===c.id && CS.date===date) ? CS.aud : (c.aud || S.settings.aud);
 
 /* ---------- 部品 ---------- */
+const meAv = size => S.me.photo ? `<span class="av" style="width:${size}px;height:${size}px;background:url('${S.me.photo}') center/cover"></span>` : avatar(S.me.emoji, S.me.bg, size);
 const avatar = (emoji, bg, size=42) => `<span class="av" style="width:${size}px;height:${size}px;font-size:${Math.round(size*.52)}px;background:${BGS[bg]||BGS[0]}">${emoji}</span>`;
 const faces = (list, size) => `<span class="stk">${list.slice(0,3).map(f => avatar(f.emoji, f.bg, size)).join('')}</span>`;
 const SMILE = `<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#222" stroke-width="1.4" stroke-linecap="round" aria-hidden="true"><circle cx="9.2" cy="10" r=".9" fill="#222"/><circle cx="14.8" cy="10" r=".9" fill="#222"/><path d="M7.5 13.6c1.1 1.9 2.7 2.8 4.5 2.8s3.4-.9 4.5-2.8"/></svg>`;
@@ -478,7 +481,7 @@ let tab = 'today', viewWeek = 0;
 function header(){
   const dm = S.settings.demo;
   return `<div class="hd"><div class="logo">KOMALOG</div>
-    <button class="me-btn" data-act="me" aria-label="プロフィールと設定">${avatar(S.me.emoji,S.me.bg,42)}</button></div>
+    <button class="me-btn" data-act="me" aria-label="プロフィールと設定">${meAv(42)}</button></div>
     <div class="hint"><span class="ic">${MINI_SMILE}</span><span class="ht">着いたら ☺︎ をタップ</span>
       ${dm.on ? `<button class="demo-chip" data-act="me" aria-label="デモ時刻の設定">デモ ${fmtMin(dm.min)}〜</button>` : ''}</div>`;
 }
@@ -505,7 +508,7 @@ function classRow(c, date, isNext){
   const fr = friendsIn(c), came = fr.filter(x => fRec(x.f, x.fc, date));
   let who = '';
   if(came.length) who = `<div class="who"><span class="t">${names(came.map(x=>x.f))}</span><span class="v">が${ph==='past'?'来てた':'来てる'}</span></div>`;
-  else if(fr.length) who = `<div class="who gray"><span class="t">${names(fr.map(x=>x.f))}</span><span class="v">も受けてる</span></div>`;
+  else if(fr.length) who = `<div class="who gray"><span class="t">${names(fr.map(x=>x.f))}</span><span class="v">も同じ授業</span></div>`;
   const label = r ? '来た(記録済み)' : can ? '来た を記録' : `${fmtMin(win(c).s-30)} から押せます`;
   const sc = r ? 'done' : !can ? 'wait' : ph==='past' ? 'past' : '';
   return `<div class="row ${ph==='now'?'now':''} ${isNext?'next':''}" data-act="cls" data-v="${c.id}|${date}" role="button" tabindex="0" aria-label="${c.period}限 ${esc(c.name)}">
@@ -671,6 +674,21 @@ function checkIn(cid, date, photo){
 
 /* ---------- 写真: 選ぶ → トリミング(3:4) → マスに一枚 ---------- */
 let crop = null;
+document.getElementById('avIn').onchange = e => {
+  const file = e.target.files[0]; e.target.value = ''; if(!file) return;
+  const url = URL.createObjectURL(file); const img = new Image();
+  img.onload = () => {
+    URL.revokeObjectURL(url);
+    const n = 256, side = Math.min(img.width, img.height), cv = document.createElement('canvas'); cv.width = cv.height = n;
+    cv.getContext('2d').drawImage(img, (img.width-side)/2, (img.height-side)/2, side, side, 0, 0, n, n);
+    const prev = S.me.photo; S.me.photo = cv.toDataURL('image/jpeg', .8);
+    if(!save()){ S.me.photo = prev; return; }
+    render(); if(!$('onb').hidden) renderOnb(); else renderMe(false);
+    toast('アイコンを写真にしました');
+  };
+  img.onerror = () => { URL.revokeObjectURL(url); toast('画像を読み込めませんでした'); };
+  img.src = url;
+};
 document.getElementById('fileIn').onchange = e => {
   const file = e.target.files[0]; e.target.value = ''; if(!file || !CS) return;
   const url = URL.createObjectURL(file); const img = new Image();
@@ -794,6 +812,8 @@ function classForm(c, isNew){
       <div style="flex:1"><label class="f" for="eDay">曜日</label><select class="tx" id="eDay">${DAYS.map((x,i) => `<option value="${i}" ${i===c.day?'selected':''}>${x}曜</option>`).join('')}</select></div>
       <div style="flex:1"><label class="f" for="ePer">時限</label><select class="tx" id="ePer">${PER().map((p,i) => `<option value="${i+1}" ${i+1===c.period?'selected':''}>${i+1}限 ${p[0]}〜</option>`).join('')}</select></div>
     </div>
+    <label class="f" for="eS">時間(この授業だけ違うときに変更)</label>
+    <div style="display:flex;align-items:center;gap:8px"><input class="tx" type="time" id="eS" style="flex:1;min-width:0" value="${fmtMin(win(c).s).padStart(5,'0')}"><span>–</span><input class="tx" type="time" id="eE" style="flex:1;min-width:0" value="${fmtMin(win(c).e).padStart(5,'0')}"></div>
     <label class="f" for="eRoom">教室(任意)</label><input class="tx" id="eRoom" value="${esc(c.room)}" placeholder="例:2-301" maxlength="20">
     <label class="f">色</label><div class="colors" id="eCol">${COLORS.map(x => `<button data-act="ecol" data-v="${x}" class="${x===c.color?'on':''}" style="background:${x}" aria-label="色"></button>`).join('')}</div>
     <button class="btn" data-act="esave" data-v="${isNew ? '' : c.id}">${isNew ? '追加する' : '保存する'}</button>`;
@@ -811,6 +831,9 @@ async function saveClass(id){
   if(!name){ toast('授業名を入れてね'); return; }
   const nd = {name, day:+document.getElementById('eDay').value, period:+document.getElementById('ePer').value,
     room:document.getElementById('eRoom').value.trim(), color:editColor};
+  { const P = PER()[nd.period-1], sv = $('eS').value.replace(/^0(\d)/,'$1'), ev = $('eE').value.replace(/^0(\d)/,'$1');
+    if(sv && ev && toMin(sv) >= toMin(ev)){ toast('終わりは始まりより後にしてね'); return; }
+    nd.s = sv && sv!==P[0] ? sv : null; nd.e = ev && ev!==P[1] ? ev : null; }
   const clash = S.classes.find(x => x.day===nd.day && x.period===nd.period && (!c || x.id!==c.id));
   if(clash){ toast(`${DAYS[nd.day]}${nd.period}限は「${clash.name}」が入っています`); return; }
   if(c){
@@ -862,13 +885,19 @@ function renderFriends(resetScroll){
 function renderMe(resetScroll){
   const st = S.settings, dm = st.demo;
   const h = `<div class="back"><button data-act="close" aria-label="戻る">${BACK}</button><h3>プロフィール</h3></div>
-    <div style="display:flex;justify-content:center;margin:4px 0 6px">${avatar(S.me.emoji,S.me.bg,88)}</div>
+    <div style="display:flex;justify-content:center;margin:4px 0 6px">${meAv(88)}</div>
     <label class="f" for="mName">名前</label><input class="tx" id="mName" value="${esc(S.me.name)}" maxlength="16">
     <label class="f" for="mFac">学部</label><input class="tx" id="mFac" value="${esc(S.me.fac)}" list="facs" maxlength="16"><datalist id="facs">${FACULTIES.map(x => `<option value="${x}">`).join('')}</datalist>
-    <label class="f">アイコン</label><div class="emoji-pick">${ME_EMOJI.map(e => `<button data-act="memo" data-v="${e}" class="${e===S.me.emoji?'on':''}">${e}</button>`).join('')}</div>
+    <label class="f">アイコン</label>
+    <div class="phrow" style="margin-top:0;margin-bottom:10px"><button data-act="avpick">📷 自分の写真を選ぶ</button>${S.me.photo ? '<button data-act="avdel">写真をやめる</button>' : ''}</div>
+    <div class="emoji-pick">${ME_EMOJI.map(e => `<button data-act="memo" data-v="${e}" class="${e===S.me.emoji&&!S.me.photo?'on':''}">${e}</button>`).join('')}</div>
     <label class="f">背景</label><div class="colors">${BGS.map((b,i) => `<button data-act="mbg" data-v="${i}" class="${i===S.me.bg?'on':''}" style="background:${b}" aria-label="背景${i+1}"></button>`).join('')}</div>
     <div class="sec-t" style="margin-top:34px">授業の時間</div>
-    <div class="chips">${[90,100].map(v => `<button data-act="preset" data-v="${v}" class="${st.preset===v?'on':''}">${v}分授業(1限 ${PRESETS[v][0].join('–')})</button>`).join('')}</div>
+    <p class="note" style="margin:-4px 8px 10px">大学によって違うので、自分の時間に合わせてね。</p>
+    <div class="chips">${[90,100].map(v => `<button data-act="preset" data-v="${v}" class="${!st.periods&&st.preset===v?'on':''}">${v}分授業</button>`).join('')}</div>
+    <div class="card" style="padding:8px 16px;margin-top:10px">${PER().map((p,i) => `<div style="display:flex;align-items:center;gap:8px;padding:6px 0">
+      <b style="width:40px;flex-shrink:0;white-space:nowrap;font-size:14px">${i+1}限</b><input class="tx" type="time" id="pS${i}" value="${p[0].padStart(5,'0')}" style="padding:10px 8px;flex:1;min-width:0" aria-label="${i+1}限の開始">
+      <span>–</span><input class="tx" type="time" id="pE${i}" value="${p[1].padStart(5,'0')}" style="padding:10px 8px;flex:1;min-width:0" aria-label="${i+1}限の終了"></div>`).join('')}</div>
     <div class="sec-t">デモ時刻(試すとき用)</div>
     <div class="card" style="padding:14px 16px">
       <div class="chips"><button data-act="demo" data-v="0" class="${dm.on?'':'on'}">実際の時刻</button><button data-act="demo" data-v="1" class="${dm.on?'on':''}">デモ時刻</button></div>
@@ -884,6 +913,11 @@ function renderMe(resetScroll){
   bind('mName', v => { S.me.name = v.trim() || 'あなた'; });
   bind('mFac', v => { S.me.fac = v.trim(); });
   bind('dDay', v => { S.settings.demo.day = +v; applyTime(); });
+  PER().forEach((_, i) => ['S','E'].forEach(k => { const el = $(`p${k}${i}`); el.onchange = () => {
+    const P = PER().map(x => [...x]); const v = el.value.replace(/^0(\d)/, '$1'); if(!v) return;
+    P[i][k==='S'?0:1] = v;
+    if(toMin(P[i][0]) >= toMin(P[i][1])){ toast('終わりは始まりより後にしてね'); renderMe(false); return; }
+    S.settings.periods = P; if(!save()) return; buildFriends(); render(); renderMe(false); }; }));
   bind('dTime', v => { if(!v) return; S.settings.demo.min = toMin(v); applyTime(); });
 }
 function applyTime(){ demoAnchor = Date.now(); buildFriends(); viewWeek = 0; render(); }
@@ -909,7 +943,9 @@ function renderOnb(){
     el.innerHTML = `${steps}<h1>プロフィール</h1><p class="lead">友だちに表示されます。</p>
       <label class="f" for="oName">名前</label><input class="tx" id="oName" maxlength="16" placeholder="例:たろう" value="${esc(S.me.name)}">
       <label class="f" for="oFac">学部</label><input class="tx" id="oFac" list="ofacs" maxlength="16" placeholder="例:文学部" value="${esc(S.me.fac)}"><datalist id="ofacs">${FACULTIES.map(x => `<option value="${x}">`).join('')}</datalist>
-      <label class="f">アイコン</label><div class="emoji-pick">${ME_EMOJI.map(e => `<button data-act="onb-emo" data-v="${e}" class="${e===S.me.emoji?'on':''}">${e}</button>`).join('')}</div>
+      <label class="f">アイコン</label>
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">${meAv(52)}<button class="lnk" style="margin:0" data-act="avpick">📷 自分の写真を選ぶ</button></div>
+      <div class="emoji-pick">${ME_EMOJI.map(e => `<button data-act="onb-emo" data-v="${e}" class="${e===S.me.emoji?'on':''}">${e}</button>`).join('')}</div>
       <div style="margin-top:auto;padding-top:26px"><button class="btn pk" data-act="onb-next">次へ</button><button class="btn quiet" data-act="onb-back">戻る</button></div>`;
     const n = document.getElementById('oName'), f = document.getElementById('oFac');
     n.oninput = () => { S.me.name = n.value.trim(); }; f.oninput = () => { S.me.fac = f.value.trim(); };
@@ -1084,16 +1120,18 @@ const ACT = {
     if(!save()){ renderFriends(false); return; }
     renderFriends(false);
     toast(wasDefault ? '削除しました。いつもの見える人も「自分だけ」になりました' : '削除しました。このグループに見せていた ☺︎ と写真は「自分だけ」になりました'); },
-  memo: v => { S.me.emoji = v; save(); renderMe(false); render(); },
+  memo: v => { S.me.emoji = v; S.me.photo = null; save(); renderMe(false); render(); },
+  avpick: () => $('avIn').click(),
+  avdel: () => { S.me.photo = null; save(); renderMe(false); render(); },
   mbg: v => { S.me.bg = +v; save(); renderMe(false); render(); },
-  preset: v => { S.settings.preset = +v; save(); buildFriends(); renderMe(false); render(); },
+  preset: v => { S.settings.preset = +v; S.settings.periods = null; save(); buildFriends(); renderMe(false); render(); },
   demo: v => { S.settings.demo.on = v==='1'; save(); applyTime(); renderMe(false); },
   reset: async () => { if(!await ask('時間割・☺︎・写真・設定をすべて消して、最初からにしますか？', 'リセット')) return; try{ localStorage.removeItem(KEY); }catch(e){} location.reload(); },
   'onb-accept': () => { S.friendState.f1 = 'friend'; ONB.step = 1; renderOnb(); $('onb').scrollTop = 0; },
   'onb-next': () => { ONB.step++; renderOnb(); $('onb').scrollTop = 0; },
   'onb-back': () => { ONB.step = Math.max(0, ONB.step-1); if(ONB.step===0) S.friendState.f1 = 'request'; renderOnb(); },
   'onb-demo': () => finishOnb(true),
-  'onb-emo': (v, el) => { S.me.emoji = v; document.querySelectorAll('#onbIn .emoji-pick button').forEach(b => b.classList.toggle('on', b===el)); },
+  'onb-emo': (v, el) => { S.me.emoji = v; S.me.photo = null; renderOnb(); return; document.querySelectorAll('#onbIn .emoji-pick button').forEach(b => b.classList.toggle('on', b===el)); },
   'onb-pick': v => { if(ONB.pick.has(v)) ONB.pick.delete(v); else ONB.pick.add(v); const o = $('onb'), t = o.scrollTop; renderOnb(); o.scrollTop = t; },
   'onb-done': () => finishOnb(false),
 };
@@ -1101,6 +1139,10 @@ document.addEventListener('click', e => {
   const el = e.target.closest('[data-act]'); if(!el || el.disabled) return;
   const fn = ACT[el.dataset.act]; if(!fn) return;
   e.preventDefault(); fn(el.dataset.v, el, e);
+});
+// 時限を変えたら、時間もその時限に合わせる
+document.addEventListener('change', e => {
+  if(e.target.id==='ePer' && $('eS')){ const P = PER()[+e.target.value-1]; $('eS').value = P[0].padStart(5,'0'); $('eE').value = P[1].padStart(5,'0'); }
 });
 document.addEventListener('keydown', e => {
   if(e.key==='Escape'){ if(askDone){ askDone(false); return; } if($('sheet').classList.contains('open')) closeSheet(); else if($('scr').classList.contains('open')) closeScreen(); return; }
