@@ -1172,10 +1172,10 @@ function renderMe(resetScroll){
     <label class="f">背景</label><div class="colors">${BGS.map((b,i) => `<button data-act="mbg" data-v="${i}" class="${i===S.me.bg?'on':''}" style="background:${b}" aria-label="背景${i+1}"></button>`).join('')}</div>
     <div class="sec-t" style="margin-top:34px">授業の時間</div>
     <div class="chips">${[90,100].map(v => `<button data-act="preset" data-v="${v}" class="${!st.periods&&st.preset===v?'on':''}">${v}分授業</button>`).join('')}</div>
-    <div class="card" style="padding:8px 16px;margin-top:10px">${PER().map((p,i) => `<div style="display:flex;align-items:center;gap:8px;padding:6px 0">
+    <div class="card" style="padding:8px 16px;margin-top:10px">${PER().slice(0, myRows()).map((p,i) => `<div style="display:flex;align-items:center;gap:8px;padding:6px 0">
       <b style="width:40px;flex-shrink:0;white-space:nowrap;font-size:14px">${i+1}限</b><input class="tx" type="time" id="pS${i}" value="${p[0].padStart(5,'0')}" style="padding:10px 8px;flex:1;min-width:0" aria-label="${i+1}限の開始">
       <span>–</span><input class="tx" type="time" id="pE${i}" value="${p[1].padStart(5,'0')}" style="padding:10px 8px;flex:1;min-width:0" aria-label="${i+1}限の終了"></div>`).join('')}
-      ${PER().length < 10 ? `<div style="text-align:center;padding:6px 0"><button class="lnk" data-act="addrow" data-v="per">＋ ${PER().length+1}限</button></div>` : ''}</div>
+      ${myRows() < 10 ? `<div style="text-align:center;padding:6px 0"><button class="lnk" data-act="addrow">＋ ${myRows()+1}限</button></div>` : ''}</div>
     <div class="sec-t">デモ時刻(試すとき用)</div>
     <div class="card" style="padding:14px 16px">
       <div class="chips"><button data-act="demo" data-v="0" class="${dm.on?'':'on'}">実際の時刻</button><button data-act="demo" data-v="1" class="${dm.on?'on':''}">デモ時刻</button></div>
@@ -1192,7 +1192,7 @@ function renderMe(resetScroll){
   bind('mFac', v => { S.me.fac = v.trim(); });
   bind('mUniv', v => { S.me.univ = v.trim(); render(); });
   bind('dDay', v => { S.settings.demo.day = +v; applyTime(); });
-  PER().forEach((_, i) => ['S','E'].forEach(k => { const el = $(`p${k}${i}`); el.onchange = () => {
+  PER().slice(0, myRows()).forEach((_, i) => ['S','E'].forEach(k => { const el = $(`p${k}${i}`); el.onchange = () => {
     const P = PER().map(x => [...x]); const v = el.value.replace(/^0(\d)/, '$1'); if(!v) return;
     P[i][k==='S'?0:1] = v;
     if(toMin(P[i][0]) >= toMin(P[i][1])){ toast('終わりは始まりより後にしてね'); renderMe(false); return; }
