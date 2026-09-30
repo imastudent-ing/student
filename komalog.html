@@ -195,6 +195,15 @@
   .herest .ib{width:44px; height:44px; border-radius:50%; background:var(--bg); font-size:19px; display:grid; place-items:center; flex-shrink:0;}
   .herest .ib:first-of-type{margin-left:auto;}
   .postbtn{display:flex; align-items:center; justify-content:center; width:100%; height:60px; margin-top:18px; border-radius:30px; background:var(--pink); box-shadow:0 8px 20px rgba(226,79,210,.3);}
+  .composer{background:#fff; border:2px solid var(--pink2); border-radius:28px; padding:12px; margin-top:16px; box-shadow:0 6px 18px rgba(226,79,210,.1);}
+  .cmp-top{display:flex; align-items:center; gap:10px;}
+  .cmp-top .seg{flex:1; margin-top:0; background:var(--bg);}
+  .cmp-top .seg small{font-size:10.5px; font-weight:700; opacity:.8;}
+  .cmp-in{display:block; width:100%; border:none; outline:none; resize:none; background:transparent; font-family:inherit; font-size:16px; font-weight:700; color:var(--tx); padding:12px 6px 6px;}
+  .composer .phrow button{background:var(--bg);}
+  .composer .audb{background:var(--bg); width:56px; height:56px; font-size:22px;}
+  .composer .postbtn{height:56px;}
+  .postbtn:disabled{opacity:.35; box-shadow:none;}
   .postrow{display:flex; gap:10px; align-items:center; margin-top:18px;}
   .postrow .postbtn{margin-top:0; flex:1;}
   .audb{width:60px; height:60px; border-radius:50%; background:#fff; font-size:24px; flex-shrink:0; display:grid; place-items:center;}
@@ -808,21 +817,24 @@ function paintClass(){
   if(isSkip(r)) h += `<div class="herest"><span class="smile skip">🏃</span>飛んだ <small>${hm(r.ts)}</small>${recBtns(r)}</div>`;
   else if(r) h += `<div class="herest"><span class="smile done">${SMILE}</span>来た <small>${r.late ? 'あとから' : hm(r.ts)}</small>${recBtns(r)}</div>`;
   if(r || can || canSk){
-    if(!r) h += `<div class="seg"><button data-act="dkind" data-v="here" class="${d.kind==='here'?'on':''}" ${can?'':'disabled'}>☺︎ 来た</button><button data-act="dkind" data-v="skip" class="${d.kind==='skip'?'on':''}">🏃 飛ぶ</button></div>`
-      + (can ? '' : `<p class="rule" style="text-align:center">☺︎ ${fmtMin(win(c).s-10)}〜</p>`);
-    h += `<input class="tx" id="cmIn" style="margin-top:12px" placeholder="💬" maxlength="60" value="${esc(d.comment)}" aria-label="ひとこと">`;
-    h += d.photo ? `<div class="shot" style="margin-top:12px;background-image:url('${d.photo}')" role="img" aria-label="写真"></div>
-      <div class="phrow"><button data-act="pick" aria-label="写真を選び直す">🔄 📷</button><button data-act="unphoto" aria-label="写真を外す">🗑</button></div>`
-      : `<button class="phline" data-act="pick" aria-label="写真を1枚" style="font-size:24px;padding:10px">📷</button>`;
-    // 見える人は投稿のあとで変えられる(🗑 の隣のアイコン)
-    h += r ? `<button class="postbtn" id="postBtn" data-act="post" aria-label="投稿" ${isDirty(r, d) ? '' : 'hidden'}>${PLANE}</button>`
-      : `<div class="postrow"><button class="audb" data-act="audcycle" aria-label="見える人: ${esc(audName(CS.aud))}">${audIcon(CS.aud)}</button><button class="postbtn" id="postBtn" data-act="post" aria-label="投稿">${PLANE}</button></div>`;
+    // 投稿する枠(ひとつのカードにまとめる)
+    h += `<div class="composer">`;
+    if(!r) h += `<div class="cmp-top">${meAv(36)}<div class="seg">
+        <button data-act="dkind" data-v="here" class="${d.kind==='here'?'on':''}" ${can?'':'disabled'}>☺︎ 来た${can ? '' : ` <small>${fmtMin(win(c).s-10)}〜</small>`}</button>
+        <button data-act="dkind" data-v="skip" class="${d.kind==='skip'?'on':''}">🏃 飛ぶ</button></div></div>`;
+    h += `<textarea class="cmp-in" id="cmIn" rows="2" placeholder="✍️" maxlength="60" aria-label="ひとこと">${esc(d.comment)}</textarea>`;
+    if(d.photo) h += `<div class="shot" style="margin-top:8px;background-image:url('${d.photo}')" role="img" aria-label="写真"></div>
+      <div class="phrow"><button data-act="pick" aria-label="写真を選び直す">🔄</button><button data-act="unphoto" aria-label="写真を外す">🗑</button></div>`;
+    h += `<div class="postrow">${d.photo ? '' : '<button class="audb" data-act="pick" aria-label="写真を1枚">📷</button>'}
+      ${r ? '' : `<button class="audb" data-act="audcycle" aria-label="見える人: ${esc(audName(CS.aud))}">${audIcon(CS.aud)}</button>`}
+      <button class="postbtn" id="postBtn" data-act="post" aria-label="投稿" ${r && !isDirty(r, d) ? 'disabled' : ''}>${PLANE}</button></div>`;
+    h += `</div>`;
   } else h += `<div class="herest wait">${ph==='future' ? `☺︎ ${fmtMin(win(c).s-10)}〜` : '—'}</div>`;
   { const posts = date >= weekDates(0)[0] ? fr.map(({f,fc}) => ({f, c:fc, r:fRec(f, fc, date)})).filter(x => x.r) : [];
     if(posts.length) h += `<div class="f">👥 みんな</div>` + posts.map(x => postCard(x, false)).join(''); }
   if(c.got || isSemEnd()) h += `<div id="semBox">${semHTML(c)}</div>`;
   document.getElementById('sheetIn').innerHTML = h;
-  const cm = $('cmIn'); if(cm) cm.oninput = () => { CS.draft.comment = cm.value; const b = $('postBtn'); if(b) b.hidden = !isDirty(recOf(c.id, date), CS.draft); };
+  const cm = $('cmIn'); if(cm) cm.oninput = () => { CS.draft.comment = cm.value; const b = $('postBtn'), rr = recOf(c.id, date); if(b && rr) b.disabled = !isDirty(rr, CS.draft); };
 }
 let AP = null;
 function openAudPick(v){
