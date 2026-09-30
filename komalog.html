@@ -438,11 +438,11 @@ function phaseOf(date, c){
   if(date < t) return 'past'; if(date > t) return 'future';
   const m = nowMin(), w = win(c); return m < w.s ? 'future' : m < w.e ? 'now' : 'past';
 }
-// ☺︎ を押せるのは授業開始30分前から。今週の過ぎた日は、あとからでも押せる
+// ☺︎ を押せるのは授業開始10分前から。今週の過ぎた日は、あとからでも押せる
 function canRecord(date, c){
   const t = todayStr();
   if(date > t || date < weekDates(0)[0]) return false;
-  return date < t || nowMin() >= win(c).s - 30;
+  return date < t || nowMin() >= win(c).s - 10;
 }
 const recOf = (cid, date) => S.recs.find(r => r.classId===cid && r.date===date);
 
@@ -569,7 +569,7 @@ function classRow(c, date, isNext){
   let who = '';
   if(came.length) who = `<div class="who"><span class="v">☺︎</span><span class="t">${names(came.map(x=>x.f))}</span></div>`;
   else if(fr.length) who = `<div class="who gray"><span class="v">🤝</span><span class="t">${names(fr.map(x=>x.f))}</span></div>`;
-  const label = isSkip(r) ? '飛んだ(記録済み)' : r ? '来た(記録済み)' : can ? '来た を記録' : `${fmtMin(win(c).s-30)} から押せます`;
+  const label = isSkip(r) ? '飛んだ(記録済み)' : r ? '来た(記録済み)' : can ? '来た を記録' : `${fmtMin(win(c).s-10)} から押せます`;
   const sc = isSkip(r) ? 'skip' : r ? 'done' : !can ? 'wait' : ph==='past' ? 'past' : '';
   return `<div class="row ${ph==='now'?'now':''} ${isNext?'next':''}" data-act="cls" data-v="${c.id}|${date}" role="button" tabindex="0" aria-label="${c.period}限 ${esc(c.name)}">
     ${thumbHTML(c, r, c.got)}
@@ -605,8 +605,8 @@ function scrollToNow(){
 function gridHTML(classes, wd, owner){
   const t = todayStr(), td = wd.indexOf(t), m = nowMin(), P = PER();
   const curP = P.findIndex(p => m >= toMin(p[0]) && m < toMin(p[1])) + 1;
-  const maxP = Math.max(5, ...classes.map(c => c.period));
   const isMe = owner==='me';
+  const maxP = Math.max(5, isMe ? (S.settings.rows || 0) : 0, ...classes.map(c => c.period));
   let h = `<div class="tt"><div></div>` + DAYS.map((x,i) => `<div class="h ${i===td?'today':''}">${x}<small>${md(wd[i])}</small></div>`).join('');
   for(let p=1; p<=maxP; p++){
     h += `<div class="p">${p}</div>`;
@@ -635,11 +635,20 @@ function minWeek(){
   const oldest = Math.min(...S.recs.map(r => dateMs(r.date)));
   return Math.min(-8, -Math.ceil((dateMs(weekDates(0)[0]) - oldest) / (7*864e5)));
 }
+const myRows = () => Math.max(5, S.settings.rows || 0, ...S.classes.map(c => c.period));
+function addRow(fromTimes){
+  const n = fromTimes ? PER().length + 1 : myRows() + 1; if(n > 10) return;
+  if(PER().length < n){ const P = PER().map(x => [...x]); const last = P[P.length-1], len = toMin(last[1]) - toMin(last[0]), st = toMin(last[1]) + 10;
+    P.push([fmtMin(st), fmtMin(st + len)]); S.settings.periods = P; }
+  S.settings.rows = Math.max(S.settings.rows || 0, n); if(!save()) return;
+  render(); if($('pS0')) renderMe(false); toast(`${n}限を追加しました`);
+}
 function weekView(){
   const wd = weekDates(viewWeek);
   const title = viewWeek===0 ? '今週' : viewWeek===-1 ? '先週' : `${md(wd[0])}の週`;
   return header() + `<div class="card ttc"><div class="wkbar"><button data-act="wk" data-v="-1" aria-label="前の週" ${viewWeek<=minWeek()?'disabled':''}>‹</button><b>${title}</b>
-      <button data-act="wk" data-v="1" aria-label="次の週" ${viewWeek>=0?'disabled':''}>›</button></div>${gridHTML(S.classes, wd, 'me')}</div>
+      <button data-act="wk" data-v="1" aria-label="次の週" ${viewWeek>=0?'disabled':''}>›</button></div>${gridHTML(S.classes, wd, 'me')}
+      ${myRows() < 10 ? `<div style="text-align:center;margin-top:8px"><button class="lnk" data-act="addrow">＋ ${myRows()+1}限</button></div>` : ''}</div>
     <p class="note" style="text-align:center">タップ → 詳細 ・ 長押し → ☺︎ ・ ＋ → 授業を追加</p>`;
 }
 
@@ -690,11 +699,12 @@ function render(){
    授業のシート(来た・写真・見える人・学期末の印)
    ============================================================ */
 let CS = null; // 開いている授業シート {cid, date, aud}
+const newDraft = (c, date, r) => ({kind: r ? (r.kind || 'here') : canRecord(date, c) ? 'here' : 'skip', comment: r && r.comment || '', photo: r && r.photo || null});
 function openClass(cid, date){
   const c = S.classes.find(x => x.id===cid); if(!c) return;
   const r = recOf(cid, date);
   FSID = null; ADD = null;
-  CS = {cid, date, aud: r ? r.aud : (c.aud || S.settings.aud)};
+  CS = {cid, date, aud: r ? r.aud : (c.aud || S.settings.aud), draft: newDraft(c, date, r)};
   renderClass(); openSheet();
 }
 // シートの中身を描き直しても、キーボードの位置を見失わないようにする
@@ -716,24 +726,25 @@ function paintClass(){
   { const u = unread(c); h += `<button class="talkbtn" data-act="talk" data-v="${c.id}">💬 トーク${u ? ` <span class="tkb">${cnt(u)}</span>` : ''}</button>`; }
   if(fr.length) h += `<div class="fline">${fr.map(({f,fc}) => { const x = isToday && fHere(f, fc, date);
     return `<button class="fchip ${x?'ok':''}" data-act="friend" data-v="${f.id}">${avatar(f.emoji,f.bg,28)}${f.name}${x ? ' <small>来た</small>' : ''}</button>`; }).join('')}</div>`;
-  const canSk = date <= todayStr() && date >= weekDates(0)[0];
+  const canSk = date <= todayStr() && date >= weekDates(0)[0], d = CS.draft;
   if(isSkip(r)) h += `<div class="herest"><span class="smile skip">🏃</span>飛んだ <small>${hm(r.ts)}</small><button class="undo" data-act="undo">取り消す</button></div>`;
   else if(r) h += `<div class="herest"><span class="smile done">${SMILE}</span>来た <small>${r.late ? 'あとから記録' : hm(r.ts)}</small><button class="undo" data-act="undo">取り消す</button></div>`;
-  if(r) h += `<input class="tx" id="cmIn" style="margin-top:10px" placeholder="💬 ひとこと" maxlength="60" value="${esc(r.comment||'')}" aria-label="ひとこと">`;
-  else if(can) h += `<button class="herebtn" data-act="here" data-v="${c.id}|${date}">${SMILE}来た</button><button class="skipbtn" data-act="skip" data-v="${c.id}|${date}">🏃 飛ぶ</button>`;
-  else if(canSk) h += `<button class="skipbtn" data-act="skip" data-v="${c.id}|${date}">🏃 飛ぶ</button><div class="herest wait">☺︎ は ${fmtMin(win(c).s-30)} から</div>`;
-  else h += `<div class="herest wait">${ph==='future' ? `${fmtMin(win(c).s-30)} から押せます` : 'この日の記録はもう付けられません'}</div>`;
-  if(r && r.photo){
-    h += `<div class="f">📷</div><div class="shot" style="background-image:url('${r.photo}')" role="img" aria-label="この日の写真"></div>
-      <div class="phrow"><button data-act="pick">選び直す</button><button data-act="unphoto">写真を外す</button></div>`;
-  } else if(r || can) h += `<button class="phline" data-act="pick">📷 写真を1枚</button>`;
-  if(r || can) h += `<div class="f">👀 見える人</div><div class="chips">${audOptions().map(([v,l]) => `<button data-act="aud" data-v="${v}" class="${CS.aud===v?'on':''}" aria-pressed="${CS.aud===v}">${esc(l)}</button>`).join('')}</div>`;
+  if(r || can || canSk){
+    if(!r) h += `<div class="seg"><button data-act="dkind" data-v="here" class="${d.kind==='here'?'on':''}" ${can?'':'disabled'}>☺︎ 来た</button><button data-act="dkind" data-v="skip" class="${d.kind==='skip'?'on':''}">🏃 飛ぶ</button></div>`
+      + (can ? '' : `<p class="rule" style="text-align:center">☺︎ は ${fmtMin(win(c).s-10)} から</p>`);
+    h += `<input class="tx" id="cmIn" style="margin-top:12px" placeholder="💬 ひとこと(任意)" maxlength="60" value="${esc(d.comment)}" aria-label="ひとこと">`;
+    h += d.photo ? `<div class="shot" style="margin-top:12px;background-image:url('${d.photo}')" role="img" aria-label="写真"></div>
+      <div class="phrow"><button data-act="pick">選び直す</button><button data-act="unphoto">写真を外す</button></div>`
+      : `<button class="phline" data-act="pick">📷 写真を1枚(任意)</button>`;
+    h += `<div class="f">👀 見える人</div><div class="chips">${audOptions().map(([v,l]) => `<button data-act="aud" data-v="${v}" class="${CS.aud===v?'on':''}" aria-pressed="${CS.aud===v}">${esc(l)}</button>`).join('')}</div>`;
+    h += `<button class="btn pk" data-act="post">${r ? '更新する' : '投稿する'}</button>`;
+  } else h += `<div class="herest wait">${ph==='future' ? `${fmtMin(win(c).s-10)} から押せます` : 'この日の記録はもう付けられません'}</div>`;
   { const posts = date >= weekDates(0)[0] ? fr.map(({f,fc}) => ({f, c:fc, r:fRec(f, fc, date)})).filter(x => x.r) : [];
     if(posts.length) h += `<div class="f">👥 みんな</div>` + posts.map(x => postCard(x, false)).join(''); }
   if(c.got || isSemEnd()) h += `<div id="semBox">${semHTML(c)}</div>`;
   h += `<button class="btn ghost" data-act="edit" data-v="${c.id}">✏️ 編集</button>`;
   document.getElementById('sheetIn').innerHTML = h;
-  const cm = $('cmIn'); if(cm) cm.onchange = () => { const rr = recOf(c.id, date); if(!rr) return; rr.comment = cm.value.trim(); if(save()) { render(); toast('💬 のせました'); } };
+  const cm = $('cmIn'); if(cm) cm.oninput = () => { CS.draft.comment = cm.value; };
 }
 function semHTML(c){
   const tog = c.got ? friendsIn(c).filter(x => x.fc.shareGot).map(x => x.f) : [];
@@ -1009,7 +1020,8 @@ function renderMe(resetScroll){
     <div class="chips">${[90,100].map(v => `<button data-act="preset" data-v="${v}" class="${!st.periods&&st.preset===v?'on':''}">${v}分授業</button>`).join('')}</div>
     <div class="card" style="padding:8px 16px;margin-top:10px">${PER().map((p,i) => `<div style="display:flex;align-items:center;gap:8px;padding:6px 0">
       <b style="width:40px;flex-shrink:0;white-space:nowrap;font-size:14px">${i+1}限</b><input class="tx" type="time" id="pS${i}" value="${p[0].padStart(5,'0')}" style="padding:10px 8px;flex:1;min-width:0" aria-label="${i+1}限の開始">
-      <span>–</span><input class="tx" type="time" id="pE${i}" value="${p[1].padStart(5,'0')}" style="padding:10px 8px;flex:1;min-width:0" aria-label="${i+1}限の終了"></div>`).join('')}</div>
+      <span>–</span><input class="tx" type="time" id="pE${i}" value="${p[1].padStart(5,'0')}" style="padding:10px 8px;flex:1;min-width:0" aria-label="${i+1}限の終了"></div>`).join('')}
+      ${PER().length < 10 ? `<div style="text-align:center;padding:6px 0"><button class="lnk" data-act="addrow" data-v="per">＋ ${PER().length+1}限</button></div>` : ''}</div>
     <div class="sec-t">デモ時刻(試すとき用)</div>
     <div class="card" style="padding:14px 16px">
       <div class="chips"><button data-act="demo" data-v="0" class="${dm.on?'':'on'}">実際の時刻</button><button data-act="demo" data-v="1" class="${dm.on?'on':''}">デモ時刻</button></div>
@@ -1202,7 +1214,7 @@ const ACT = {
   here: v => {
     const [cid, date] = v.split('|'); const c = S.classes.find(x => x.id===cid); if(!c) return;
     if(recOf(cid, date)){ if(!CS) openClass(cid, date); return; }
-    if(!canRecord(date, c)){ toast(phaseOf(date,c)==='future' ? `${fmtMin(win(c).s-30)} から押せます` : '今週より前は記録できません'); return; }
+    if(!canRecord(date, c)){ toast(phaseOf(date,c)==='future' ? `${fmtMin(win(c).s-10)} から押せます` : '今週より前は記録できません'); return; }
     const r = checkIn(cid, date); if(!r) return;
     if(CS) renderClass();
     render();
@@ -1212,19 +1224,23 @@ const ACT = {
   skip: v => { const [cid, date] = v.split('|'); const r = checkIn(cid, date, undefined, 'skip'); if(!r) return;
     renderClass(); render(); toast(`🏃 飛んだ ・ ${audName(r.aud)}に見える`); const cm = $('cmIn'); if(cm) cm.focus(); },
   undo: async () => { if(!await ask('☺︎ を取り消しますか？ この日の写真も外れます。', '取り消す') || !CS) return;
-    S.recs = S.recs.filter(r => !(r.classId===CS.cid && r.date===CS.date)); save(); renderClass(); render(); },
+    S.recs = S.recs.filter(r => !(r.classId===CS.cid && r.date===CS.date)); save();
+    const c = S.classes.find(x => x.id===CS.cid); if(c) CS.draft = newDraft(c, CS.date, null); renderClass(); render(); },
   pick: () => $('fileIn').click(),
-  unphoto: () => { const r = recOf(CS.cid, CS.date); if(r){ r.photo = null; save(); } renderClass(); render(); },
-  cok: () => { const url = $('cv').toDataURL('image/jpeg', .72); crop = null;
-    const had = !!recOf(CS.cid, CS.date); const r = checkIn(CS.cid, CS.date, url);
-    if(r && r.dropped){ delete r.dropped; toast('☺︎ 来た ・ 写真は容量がいっぱいでのせられませんでした'); }
-    else if(r) toast(had ? `写真をのせました(${audName(r.aud)}に見える)` : `☺︎ 来た ・ 写真も ${audName(r.aud)}に見える`);
-    renderClass(); render(); },
+  unphoto: () => { CS.draft.photo = null; renderClass(); },
+  dkind: v => { CS.draft.kind = v; renderClass(); },
+  cok: () => { CS.draft.photo = $('cv').toDataURL('image/jpeg', .72); crop = null; renderClass(); },
   ccancel: () => { crop = null; renderClass(); },
-  aud: v => { const c = S.classes.find(x => x.id===CS.cid); if(!c) return;
-    CS.aud = v; c.aud = v; const r = recOf(CS.cid, CS.date); if(r) r.aud = v;
-    if(!save()) CS.aud = (recOf(CS.cid, CS.date) || {}).aud || (S.classes.find(x => x.id===CS.cid) || {}).aud || S.settings.aud;
-    renderClass(); },
+  aud: v => { CS.aud = v; renderClass(); },
+  post: () => {
+    const c = S.classes.find(x => x.id===CS.cid); if(!c) return;
+    const d = CS.draft, existed = recOf(CS.cid, CS.date);
+    if(!existed){ const nr = checkIn(CS.cid, CS.date, d.photo || undefined, d.kind); if(!nr) return; if(nr.dropped){ delete nr.dropped; d.photo = null; toast('写真は容量がいっぱいでのせられませんでした'); } }
+    const r = recOf(CS.cid, CS.date), cc = S.classes.find(x => x.id===CS.cid);
+    r.comment = d.comment.trim(); r.aud = CS.aud; cc.aud = CS.aud; if(existed) r.photo = d.photo;
+    if(!save()){ renderClass(); return; }
+    const aud = audName(r.aud); closeSheet(); render();
+    toast(`${isSkip(r) ? '🏃 飛んだ' : '☺︎ 来た'} ・ ${aud}に見える`); },
   got: v => { const c = S.classes.find(x => x.id===v); if(!c) return; c.got = !c.got; if(!c.got) c.shareGot = false;
     const ok = save(); refreshSem(v); if(ok && c.got) toast('🎉 単位GET！(自分だけに表示)'); },
   share: v => { const c = S.classes.find(x => x.id===v); if(!c || !c.got) return; c.shareGot = !c.shareGot;
@@ -1232,6 +1248,7 @@ const ACT = {
   edit: v => openEdit(v),
   friend: v => openFriend(v),
   fpost: v => openFriendPost(v),
+  addrow: v => addRow(v==='per'),
   fadd: async v => {
     const [name, d, p] = v.split('|');
     if(S.classes.some(m => key(m)===v)){ toast('あなたも受けている授業です 🤝'); return; }
