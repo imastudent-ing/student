@@ -180,6 +180,11 @@
   .herest .smile{width:40px; height:40px;}
   .herest small{color:var(--dim); font-weight:700; font-size:13px;}
   .herest .undo{margin-left:auto; font-size:12px; color:var(--dim); font-weight:900; padding:12px;}
+  .herest .ib{width:44px; height:44px; border-radius:50%; background:var(--bg); font-size:19px; display:grid; place-items:center; flex-shrink:0;}
+  .herest .ib:first-of-type{margin-left:auto;}
+  .postbtn{display:flex; align-items:center; justify-content:center; width:100%; height:60px; margin-top:18px; border-radius:30px; background:var(--pink); box-shadow:0 8px 20px rgba(226,79,210,.3);}
+  .postbtn:active{transform:scale(.97);}
+  .toast button{color:#fff; font-weight:900; font-size:14px;}
   .herest.wait{color:var(--dim); justify-content:center; padding:16px;}
   .fline{display:flex; flex-wrap:wrap; gap:6px; margin-top:12px;}
   .fchip{display:flex; align-items:center; gap:6px; background:#fff; border-radius:22px; padding:5px 12px 5px 5px; min-height:40px; font-size:13px; font-weight:900; border:1.5px solid transparent;}
@@ -507,6 +512,7 @@ const friendsIn = c => friends().filter(sameUniv).map(f => ({f, fc:f.classes.fin
 
 /* ---------- 見える人 ---------- */
 function audOptions(){ return [['friends','👥 友だち全員'], ...S.groups.map(g => ['g:'+g.id, '🏷 '+g.name]), ['private','🔒 自分だけ']]; }
+const audIcon = a => a==='private' ? '🔒' : a && a.startsWith('g:') ? '🏷' : '👥';
 const audName = a => (audOptions().find(o => o[0]===a) || [0,'🔒 自分だけ'])[1];
 const audFor = (c, date) => (CS && CS.cid===c.id && CS.date===date) ? CS.aud : (c.aud || S.settings.aud);
 
@@ -516,6 +522,7 @@ const avatar = (emoji, bg, size=42) => `<span class="av" style="width:${size}px;
 const faces = (list, size) => `<span class="stk">${list.slice(0,3).map(f => avatar(f.emoji, f.bg, size)).join('')}</span>`;
 const SMILE = `<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#222" stroke-width="1.4" stroke-linecap="round" aria-hidden="true"><circle cx="9.2" cy="10" r=".9" fill="#222"/><circle cx="14.8" cy="10" r=".9" fill="#222"/><path d="M7.5 13.6c1.1 1.9 2.7 2.8 4.5 2.8s3.4-.9 4.5-2.8"/></svg>`;
 const MK_SMILE = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" aria-hidden="true"><circle cx="8.5" cy="9.5" r="1" fill="#fff"/><circle cx="15.5" cy="9.5" r="1" fill="#fff"/><path d="M6.5 14c1.3 2.2 3.2 3.3 5.5 3.3s4.2-1.1 5.5-3.3"/></svg>`;
+const PLANE = `<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 3 10 14"/><path d="m21 3-7 18-4-7-7-4z"/></svg>`;
 const MINI_SMILE = `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="9" cy="10" r=".6" fill="#fff"/><circle cx="15" cy="10" r=".6" fill="#fff"/><path d="M7.5 14c1.1 1.8 2.7 2.7 4.5 2.7s3.4-.9 4.5-2.7"/></svg>`;
 const CHEV = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink:0"><path d="m9 5 7 7-7 7"/></svg>`;
 const BACK = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 5-7 7 7 7"/></svg>`;
@@ -719,6 +726,8 @@ function keepFocus(paint, fallback){
   n.focus({preventScroll:true});
 }
 function renderClass(){ keepFocus(paintClass, '[data-act=undo]'); }
+const recBtns = r => `<button class="ib" data-act="audpick" data-v="${r.classId}|${r.date}" aria-label="見える人: ${esc(audName(r.aud))}">${audIcon(r.aud)}</button><button class="ib" data-act="undo" aria-label="投稿を削除">🗑</button>`;
+const isDirty = (r, d) => !r || d.comment.trim()!==(r.comment||'') || (d.photo||null)!==(r.photo||null);
 function paintClass(){
   const c = CS && S.classes.find(x => x.id===CS.cid); if(!c){ closeSheet(); return; }
   const date = CS.date, r = recOf(c.id, date), ph = phaseOf(date, c), can = canRecord(date, c), isToday = date===todayStr();
@@ -728,24 +737,33 @@ function paintClass(){
   if(fr.length) h += `<div class="fline">${fr.map(({f,fc}) => { const x = isToday && fHere(f, fc, date);
     return `<button class="fchip ${x?'ok':''}" data-act="friend" data-v="${f.id}">${avatar(f.emoji,f.bg,28)}${f.name}${x ? ' <small>来た</small>' : ''}</button>`; }).join('')}</div>`;
   const canSk = date <= todayStr() && date >= weekDates(0)[0], d = CS.draft;
-  if(isSkip(r)) h += `<div class="herest"><span class="smile skip">🏃</span>飛んだ <small>${hm(r.ts)}</small><button class="undo" data-act="undo">取り消す</button></div>`;
-  else if(r) h += `<div class="herest"><span class="smile done">${SMILE}</span>来た <small>${r.late ? 'あとから記録' : hm(r.ts)}</small><button class="undo" data-act="undo">取り消す</button></div>`;
+  if(isSkip(r)) h += `<div class="herest"><span class="smile skip">🏃</span>飛んだ <small>${hm(r.ts)}</small>${recBtns(r)}</div>`;
+  else if(r) h += `<div class="herest"><span class="smile done">${SMILE}</span>来た <small>${r.late ? 'あとから' : hm(r.ts)}</small>${recBtns(r)}</div>`;
   if(r || can || canSk){
     if(!r) h += `<div class="seg"><button data-act="dkind" data-v="here" class="${d.kind==='here'?'on':''}" ${can?'':'disabled'}>☺︎ 来た</button><button data-act="dkind" data-v="skip" class="${d.kind==='skip'?'on':''}">🏃 飛ぶ</button></div>`
-      + (can ? '' : `<p class="rule" style="text-align:center">☺︎ は ${fmtMin(win(c).s-10)} から</p>`);
-    h += `<input class="tx" id="cmIn" style="margin-top:12px" placeholder="💬 ひとこと(任意)" maxlength="60" value="${esc(d.comment)}" aria-label="ひとこと">`;
+      + (can ? '' : `<p class="rule" style="text-align:center">☺︎ ${fmtMin(win(c).s-10)}〜</p>`);
+    h += `<input class="tx" id="cmIn" style="margin-top:12px" placeholder="💬" maxlength="60" value="${esc(d.comment)}" aria-label="ひとこと">`;
     h += d.photo ? `<div class="shot" style="margin-top:12px;background-image:url('${d.photo}')" role="img" aria-label="写真"></div>
-      <div class="phrow"><button data-act="pick">選び直す</button><button data-act="unphoto">写真を外す</button></div>`
-      : `<button class="phline" data-act="pick">📷 写真を1枚(任意)</button>`;
-    h += `<div class="f">👀 見える人</div><div class="chips">${audOptions().map(([v,l]) => `<button data-act="aud" data-v="${v}" class="${CS.aud===v?'on':''}" aria-pressed="${CS.aud===v}">${esc(l)}</button>`).join('')}</div>`;
-    h += `<button class="btn pk" data-act="post">${r ? '更新する' : '投稿する'}</button>`;
-  } else h += `<div class="herest wait">${ph==='future' ? `${fmtMin(win(c).s-10)} から押せます` : 'この日の記録はもう付けられません'}</div>`;
+      <div class="phrow"><button data-act="pick" aria-label="写真を選び直す">🔄 📷</button><button data-act="unphoto" aria-label="写真を外す">🗑</button></div>`
+      : `<button class="phline" data-act="pick" aria-label="写真を1枚" style="font-size:24px;padding:10px">📷</button>`;
+    // 見える人は投稿のあとで変えられる(🗑 の隣のアイコン)
+    h += `<button class="postbtn" id="postBtn" data-act="post" aria-label="投稿" ${isDirty(r, d) ? '' : 'hidden'}>${PLANE}</button>`;
+  } else h += `<div class="herest wait">${ph==='future' ? `☺︎ ${fmtMin(win(c).s-10)}〜` : '—'}</div>`;
   { const posts = date >= weekDates(0)[0] ? fr.map(({f,fc}) => ({f, c:fc, r:fRec(f, fc, date)})).filter(x => x.r) : [];
     if(posts.length) h += `<div class="f">👥 みんな</div>` + posts.map(x => postCard(x, false)).join(''); }
   if(c.got || isSemEnd()) h += `<div id="semBox">${semHTML(c)}</div>`;
-  h += `<button class="btn ghost" data-act="edit" data-v="${c.id}">✏️ 編集</button>`;
+  h += `<button class="btn ghost" data-act="edit" data-v="${c.id}" aria-label="授業を編集" style="font-size:22px;padding:12px">✏️</button>`;
   document.getElementById('sheetIn').innerHTML = h;
-  const cm = $('cmIn'); if(cm) cm.oninput = () => { CS.draft.comment = cm.value; };
+  const cm = $('cmIn'); if(cm) cm.oninput = () => { CS.draft.comment = cm.value; const b = $('postBtn'); if(b) b.hidden = !isDirty(recOf(c.id, date), CS.draft); };
+}
+let AP = null;
+function openAudPick(v){
+  const [cid, date] = v.split('|'); const r = recOf(cid, date), c = S.classes.find(x => x.id===cid); if(!r || !c) return;
+  const back = !!CS; AP = {back};
+  CS = null; FSID = null; ADD = null;
+  $('sheetIn').innerHTML = `<h3>👀</h3><div class="sub">${c.period}限 ${esc(c.name)}</div><div class="chips" style="margin-top:14px">${audOptions().map(([k,l]) =>
+    `<button data-act="audset" data-v="${cid}|${date}|${k}" class="${r.aud===k?'on':''}" aria-pressed="${r.aud===k}">${esc(l)}</button>`).join('')}</div>`;
+  AP.back = back; openSheet();
 }
 function semHTML(c){
   const tog = c.got ? friendsIn(c).filter(x => x.fc.shareGot).map(x => x.f) : [];
@@ -753,7 +771,7 @@ function semHTML(c){
     <button class="tog ${c.got?'on':''}" data-act="got" data-v="${c.id}" aria-pressed="${!!c.got}">${c.got ? '✓ 単位GET' : '単位GET'}</button>
     ${c.got ? `<button class="tog ${c.shareGot?'on':''}" data-act="share" data-v="${c.id}" aria-pressed="${!!c.shareGot}">${c.shareGot ? '✓ 友だちに見せてる' : '友だちにも見せる'}</button>` : ''}</div>
     ${tog.length ? `<div class="together">🎉 ${names(tog)} と一緒に取れた！</div>` : ''}
-    <p class="rule">印はふだん自分だけ。見せると、友だちの画面であなたの時間割に GET が付きます。取れなかった授業や成績は出ません。</p>`;
+`;
 }
 function refreshSem(cid){
   const c = S.classes.find(x => x.id===cid), box = document.getElementById('semBox');
@@ -1190,6 +1208,10 @@ function closeScreen(){
   if(o){ const n = o.el && document.contains(o.el) ? o.el : document.querySelector(o.act==='me' ? '.me-btn' : `[data-act="${o.act}"]`); if(n) n.focus({preventScroll:true}); }
 }
 let toastT;
+function actToast(text, act, v){
+  const el = $('toast'); el.innerHTML = `<button data-act="${act}" data-v="${esc(v)}">${esc(text)} ›</button>`; el.classList.add('on');
+  clearTimeout(toastT); toastT = setTimeout(() => el.classList.remove('on'), 4500);
+}
 function toast(t){ const el = $('toast'); el.textContent = t; el.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => el.classList.remove('on'), 2800); }
 
 // 確認ダイアログ(ブラウザの confirm の代わりに画面の中で聞く)
@@ -1220,11 +1242,11 @@ const ACT = {
     if(CS) renderClass();
     render();
     const b = [...document.querySelectorAll('#app .smile')].find(x => x.dataset.v===v); if(b) b.classList.add('pop');
-    toast(`☺︎ 来た ・ ${audName(r.aud)}に見える`);
+    actToast(`☺︎ ✓  ${audIcon(r.aud)} ${audName(r.aud).replace(/^\S+ /,'')}`, 'audpick', `${cid}|${date}`);
   },
   skip: v => { const [cid, date] = v.split('|'); const r = checkIn(cid, date, undefined, 'skip'); if(!r) return;
     renderClass(); render(); toast(`🏃 飛んだ ・ ${audName(r.aud)}に見える`); const cm = $('cmIn'); if(cm) cm.focus(); },
-  undo: async () => { if(!await ask('☺︎ を取り消しますか？ この日の写真も外れます。', '取り消す') || !CS) return;
+  undo: async () => { if(!await ask('🗑 この投稿を削除しますか？', '削除') || !CS) return;
     S.recs = S.recs.filter(r => !(r.classId===CS.cid && r.date===CS.date)); save();
     const c = S.classes.find(x => x.id===CS.cid); if(c) CS.draft = newDraft(c, CS.date, null); renderClass(); render(); },
   pick: () => $('fileIn').click(),
@@ -1240,8 +1262,11 @@ const ACT = {
     const r = recOf(CS.cid, CS.date), cc = S.classes.find(x => x.id===CS.cid);
     r.comment = d.comment.trim(); r.aud = CS.aud; cc.aud = CS.aud; if(existed) r.photo = d.photo;
     if(!save()){ renderClass(); return; }
-    const aud = audName(r.aud); closeSheet(); render();
-    toast(`${isSkip(r) ? '🏃 飛んだ' : '☺︎ 来た'} ・ ${aud}に見える`); },
+    closeSheet(); render();
+    actToast(`${isSkip(r) ? '🏃' : '☺︎'} ✓  ${audIcon(r.aud)} ${audName(r.aud).replace(/^\S+ /,'')}`, 'audpick', `${r.classId}|${r.date}`); },
+  audpick: v => { $('toast').classList.remove('on'); openAudPick(v); },
+  audset: v => { const [cid, date, a] = v.split('|'); const r = recOf(cid, date), c = S.classes.find(x => x.id===cid); if(!r || !c) return;
+    r.aud = a; c.aud = a; if(!save()) return; if(AP && AP.back) openClass(cid, date); else closeSheet(); render(); toast(`${audIcon(a)} ${audName(a).replace(/^\S+ /,'')}`); },
   got: v => { const c = S.classes.find(x => x.id===v); if(!c) return; c.got = !c.got; if(!c.got) c.shareGot = false;
     const ok = save(); refreshSem(v); if(ok && c.got) toast('🎉 単位GET！(自分だけに表示)'); },
   share: v => { const c = S.classes.find(x => x.id===v); if(!c || !c.got) return; c.shareGot = !c.shareGot;
