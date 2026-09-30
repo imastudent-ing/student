@@ -153,7 +153,19 @@
   .sheet{position:fixed; left:0; right:0; bottom:0; z-index:41; transform:translateY(105%); transition:transform .28s cubic-bezier(.2,.8,.2,1); display:flex; justify-content:center; visibility:hidden;}
   .sheet.open{transform:none; visibility:visible;}
   .sheet .body{width:100%; max-width:480px; background:var(--bg); border-radius:32px 32px 0 0; padding:12px 20px calc(24px + env(safe-area-inset-bottom)); max-height:90vh; overflow-y:auto; outline:none;}
-  .grab{width:44px; height:5px; border-radius:3px; background:#d0d0d0; margin:0 auto 16px;}
+  .grab{display:block; width:100%; height:26px; margin:-8px 0 8px; position:relative;}
+  .grab::after{content:""; position:absolute; left:50%; top:10px; transform:translateX(-50%); width:44px; height:5px; border-radius:3px; background:#d0d0d0;}
+  .sheet .body{transition:transform .2s;}
+  .phead{display:block; width:100%; text-align:left;}
+  .pbar{display:flex; flex-wrap:wrap; gap:6px; padding:0 12px 12px 12px;}
+  .rxc{min-height:34px; padding:4px 11px; border-radius:17px; background:#fff; font-size:14px; font-weight:900; border:1.5px solid transparent; display:flex; align-items:center; gap:4px;}
+  .rxc.on{border-color:var(--pink); background:var(--pink3); color:var(--pink);}
+  .rxc.add{color:var(--dim);}
+  .rxc.cmb{margin-left:auto;}
+  .rxpick{display:flex; gap:6px; padding:0 12px 12px;}
+  .rxpick button{width:42px; height:42px; border-radius:50%; background:#fff; font-size:21px;}
+  .cform{display:flex; gap:8px; margin-top:14px;}
+  .cform input{flex:1; min-width:0;}
   .sheet h3{margin:0 0 4px; font-size:22px; font-weight:900;}
   .sub{font-weight:700; color:var(--dim); font-size:13.5px; line-height:1.6;}
   label.f,.f{display:block; font-size:13px; font-weight:900; color:var(--dim); margin:18px 4px 8px;}
@@ -289,7 +301,7 @@
 
 <div class="screen" id="scr" role="dialog" aria-modal="true"><div class="wrap" id="scrIn"></div></div>
 <div class="shade" id="shade" data-act="sclose"></div>
-<div class="sheet" id="sheet" role="dialog" aria-modal="true"><div class="body" tabindex="-1"><div class="grab"></div><div id="sheetIn"></div></div></div>
+<div class="sheet" id="sheet" role="dialog" aria-modal="true"><div class="body" tabindex="-1"><button class="grab" data-act="sclose" aria-label="閉じる"></button><div id="sheetIn"></div></div></div>
 <div class="onb" id="onb" hidden><div class="wrap" id="onbIn"></div></div>
 <div class="ask" id="ask" hidden role="alertdialog" aria-modal="true" aria-labelledby="askMsg"><div class="askbox"><p id="askMsg"></p><div class="askrow"><button id="askNo">やめる</button><button id="askYes">OK</button></div></div></div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
@@ -378,13 +390,13 @@ const KEY = 'komalog.v3';
 let demoAnchor = Date.now(); // デモ時刻は「設定した時刻 + 経過時間」で進む
 let lastSaved = null;
 let S = load();
-S.talk = S.talk || {}; S.talkSeen = S.talkSeen || {};
+S.talk = S.talk || {}; S.talkSeen = S.talkSeen || {}; S.rx = S.rx || {}; S.pcm = S.pcm || {};
 S.groups.forEach(g => { g.members = g.members.filter(id => S.friendState[id]==='friend'); }); // グループには今の友だちだけ
 function fresh(){
   return {
     v:3, onboarded:false,
     me:{name:'', emoji:'🐣', bg:0, univ:'', fac:'', handle:uid().slice(0,6)},
-    classes:[], recs:[], talk:{}, talkSeen:{}, feedSeen:0,
+    classes:[], recs:[], talk:{}, talkSeen:{}, feedSeen:0, rx:{}, pcm:{},
     groups:[],
     // 友だちは承認してはじめてつながる
     friendState:{f1:'request', f2:'request', f3:'request', f4:'request', f5:'request'},
@@ -674,13 +686,65 @@ function feedItems(){
   return items.sort((a,b) => b.r.ts-a.r.ts).slice(0,80);
 }
 const feedNew = () => feedItems().filter(x => x.f && x.r.ts > (S.feedSeen||0)).length;
-function postCard({f, c, r}, clickable=true){
+const RX = ['😆','🔥','👀','🙌','🥲'];
+const CM_LINES = ['いいね','わかる〜','おつ！','ノート見せて〜','ねむそう笑'];
+// 投稿へのリアクション(デモ: ほかの友だちの分は決まった値で生成)
+function rxCounts(f, r){
+  const m = {};
+  friends().filter(x => !f || x.id!==f.id).forEach(x => { if(hash(x.id+r.id+'rx') < .3){ const e = RX[Math.floor(hash(x.id+r.id+'re')*RX.length)]; m[e] = (m[e]||0) + 1; } });
+  (S.rx[r.id] || []).forEach(e => { m[e] = (m[e]||0) + 1; });
+  return m;
+}
+function postComments(f, r){
+  const out = [];
+  friends().filter(x => !f || x.id!==f.id).forEach(x => { if(hash(x.id+r.id+'cm') < .18) out.push({from:x.id, text:CM_LINES[Math.floor(hash(x.id+r.id+'ct')*CM_LINES.length)], ts:r.ts + (5 + Math.floor(hash(x.id+r.id+'cs')*50))*60e3}); });
+  return [...out.filter(m => m.ts <= nowTs()), ...(S.pcm[r.id] || [])].sort((a,b) => a.ts-b.ts);
+}
+function findPost(id){
+  for(const f of FRIENDS){ const r = f.recs.find(x => x.id===id); if(r) return {f, c:f.classes.find(x => x.id===r.classId), r}; }
+  const r = S.recs.find(x => x.id===id); if(r) return {f:null, c:S.classes.find(x => x.id===r.classId), r};
+  return null;
+}
+function postBar(f, r){
+  const m = rxCounts(f, r), mine = S.rx[r.id] || [], n = postComments(f, r).length;
+  const chips = Object.entries(m).map(([e, k]) => f ? `<button class="rxc ${mine.includes(e)?'on':''}" data-act="rx" data-v="${r.id}|${e}" aria-pressed="${mine.includes(e)}">${e} ${k}</button>`
+    : `<span class="rxc">${e} ${k}</span>`).join('');
+  return `<div class="pbar">${chips}${f ? `<button class="rxc add" data-act="rxpick" data-v="${r.id}" aria-label="リアクション">☺︎＋</button>` : ''}
+    <button class="rxc cmb" data-act="cmts" data-v="${r.id}" aria-label="コメント">💬${n ? ' '+n : ''}</button></div>
+    <div class="rxpick" id="rp-${r.id}" hidden>${RX.map(e => `<button data-act="rx" data-v="${r.id}|${e}">${e}</button>`).join('')}</div>`;
+}
+function postCard({f, c, r}, clickable=true, bar=true){
   const ph = r.photo ? `<div class="pp" style="background-image:url('${r.photo}')"></div>` : r.ph ? `<div class="pp" style="background:${r.ph.bg}">${r.ph.emo}</div>` : '';
   const who = f ? `${avatar(f.emoji,f.bg,38)}<span class="t"><b>${f.name}</b>` : `${meAv(38)}<span class="t"><b>あなた${r.aud==='private' ? ' 🔒' : ''}</b>`;
   const act = !clickable ? '' : f ? `data-act="friend" data-v="${f.id}"` : `data-act="cls" data-v="${c.id}|${r.date}"`;
   const mark = isSkip(r) ? `🏃 ${hm(r.ts)}` : `☺︎ ${r.late ? 'あとから' : hm(r.ts)}`;
   const tag = clickable ? 'button' : 'div';
-  return `<${tag} class="post" ${act}>${ph}<span class="pm">${who}<span>${c.period}限 ${esc(c.name)}</span></span><time>${mark}</time></span>${r.comment ? `<span class="cm">${esc(r.comment)}</span>` : ''}</${tag}>`;
+  return `<div class="post"><${tag} class="phead" ${act}>${ph}<span class="pm">${who}<span>${c.period}限 ${esc(c.name)}</span></span><time>${mark}</time></span>${r.comment ? `<span class="cm">${esc(r.comment)}</span>` : ''}</${tag}>${bar ? postBar(f, r) : ''}</div>`;
+}
+// リアクション・コメントのあと、いま見ている画面を描き直す
+function refreshView(){
+  const sh = $('sheet').classList.contains('open');
+  if(sh && CMV) renderComments(); else if(sh && FPV) openFriendPost(FPV); else if(sh && CS) renderClass(); else if(sh && FSID) refreshFriendSheet();
+  render();
+}
+let CMV = null;
+function openComments(id){ CMV = id; FPV = null; CS = null; FSID = null; ADD = null; renderComments(true); openSheet(); }
+function renderComments(){
+  const p = findPost(CMV); if(!p) return;
+  const cs = postComments(p.f, p.r);
+  let h = `<div style="margin-top:4px">${postCard(p, false, false)}</div><div class="msgs" style="padding-bottom:0">`;
+  cs.forEach(m => { const f = m.from==='me' ? null : fById(m.from);
+    h += m.from==='me' ? `<div class="msg me"><div class="bb">${esc(m.text)}</div><time>${hm(m.ts)}</time></div>`
+      : `<div class="msg">${f ? avatar(f.emoji,f.bg,30) : ''}<div><small>${f ? f.name : ''}</small><div class="bb">${esc(m.text)}</div></div><time>${hm(m.ts)}</time></div>`; });
+  h += `</div><form class="cform" id="cmForm"><input class="tx" id="pcIn" placeholder="💬" maxlength="100" autocomplete="off" aria-label="コメント"><button class="sendb" type="submit" aria-label="送信">${PLANE}</button></form>`;
+  const draft = $('pcIn') ? $('pcIn').value : '';
+  $('sheetIn').innerHTML = h; $('pcIn').value = draft;
+  $('cmForm').onsubmit = e => { e.preventDefault(); const t = $('pcIn').value.trim(); if(!t) return;
+    const id = CMV; (S.pcm[id] = S.pcm[id] || []).push({from:'me', text:t, ts:nowTs()}); if(!save()) return;
+    $('pcIn').value = ''; renderComments(); render();
+    const own = findPost(id); const who = own && own.f ? own.f : friends()[0];
+    if(who) setTimeout(() => { S.pcm[id].push({from:who.id, text:['ありがと〜','それな','笑','りょ！'][Math.floor(Math.random()*4)], ts:nowTs()}); save(true);
+      if(CMV===id && $('sheet').classList.contains('open')) renderComments(); render(); }, 2500); };
 }
 function feedView(){
   const items = feedItems(); let h = header(), last = '';
@@ -715,7 +779,7 @@ const newDraft = (c, date, r) => ({kind: r ? (r.kind || 'here') : canRecord(date
 function openClass(cid, date){
   const c = S.classes.find(x => x.id===cid); if(!c) return;
   const r = recOf(cid, date);
-  FSID = null; ADD = null;
+  FSID = null; ADD = null; FPV = null; CMV = null;
   CS = {cid, date, aud: r ? r.aud : (c.aud || S.settings.aud), draft: newDraft(c, date, r)};
   renderClass(); openSheet();
 }
@@ -881,10 +945,12 @@ function friendSheetHTML(f){
 }
 function openFriend(id){
   const f = fById(id); if(!f || S.friendState[id]!=='friend') return;
-  CS = null; ADD = null; FSID = id;
+  CS = null; ADD = null; FSID = id; FPV = null; CMV = null;
   document.getElementById('sheetIn').innerHTML = friendSheetHTML(f); openSheet();
 }
+let FPV = null;
 function openFriendPost(v){
+  FPV = v; CMV = null;
   const [fid, cid, date] = v.split('|'); const f = fById(fid); const c = f && f.classes.find(x => x.id===cid); if(!c) return;
   const r = fRec(f, c, date), k = key(c);
   const canAdd = sameUniv(f) && !S.classes.some(m => key(m)===k) && !S.classes.some(m => m.day===c.day && m.period===c.period);
@@ -1147,7 +1213,7 @@ function openSheet(){
   $('app').inert = true; $('nav').inert = true; $('scr').inert = true;
   const body = sh.querySelector('.body'); body.scrollTop = 0; body.focus({preventScroll:true});
 }
-function closeSheet(){
+function closeSheet(){ FPV = null; CMV = null;
   $('sheet').classList.remove('open'); $('shade').classList.remove('open');
   crop = null; CS = null; ADD = null; FSID = null;
   const scrOpen = $('scr').classList.contains('open');
@@ -1279,6 +1345,9 @@ const ACT = {
   edit: v => openEdit(v),
   friend: v => openFriend(v),
   fpost: v => openFriendPost(v),
+  rxpick: v => { const el = document.getElementById('rp-'+v); if(el) el.hidden = !el.hidden; },
+  rx: v => { const [id, e] = v.split('|'); const a = S.rx[id] = S.rx[id] || []; const i = a.indexOf(e); if(i>=0) a.splice(i,1); else a.push(e); if(!save()) return; refreshView(); },
+  cmts: v => openComments(v),
   addrow: v => addRow(v==='per'),
   fadd: async v => {
     const [name, d, p] = v.split('|');
@@ -1374,6 +1443,23 @@ document.addEventListener('keydown', e => {
   if(e.key==='Escape'){ if(askDone){ askDone(false); return; } if($('sheet').classList.contains('open')) closeSheet(); else if($('scr').classList.contains('open')) closeScreen(); return; }
   if((e.key==='Enter' || e.key===' ') && e.target.matches('[role=button][data-act]')){ e.preventDefault(); e.target.click(); }
 });
+
+// シートは下にスワイプで閉じる
+(() => {
+  const body = $('sheet').querySelector('.body'); let y0 = null, dy = 0;
+  body.addEventListener('touchstart', e => {
+    if(e.target.closest('.crop, input[type=range]') || (body.scrollTop > 0 && !e.target.closest('.grab'))){ y0 = null; return; }
+    y0 = e.touches[0].clientY; dy = 0;
+  }, {passive:true});
+  body.addEventListener('touchmove', e => {
+    if(y0==null) return; dy = e.touches[0].clientY - y0;
+    if(dy <= 0){ body.style.transform = ''; return; }
+    e.preventDefault(); body.style.transition = 'none'; body.style.transform = `translateY(${dy}px)`;
+  }, {passive:false});
+  body.addEventListener('touchend', () => {
+    if(y0==null) return; body.style.transition = ''; body.style.transform = ''; if(dy > 90) closeSheet(); y0 = null;
+  });
+})();
 
 /* ---------- 起動 ---------- */
 (function boot(){
