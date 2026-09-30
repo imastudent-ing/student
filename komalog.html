@@ -219,6 +219,24 @@
   .askrow{display:flex; gap:8px;}
   .askrow button{flex:1; padding:14px 10px; border-radius:20px; font-size:15px; font-weight:900; background:#fff;}
   .askrow #askYes{background:var(--tx); color:#fff;}
+  .row,.cell{-webkit-user-select:none; user-select:none; -webkit-touch-callout:none;}
+  .row.pressing,.cell.pressing{transform:scale(.97); transition:transform .45s;}
+  .tkb{background:var(--pink); color:#fff; border-radius:10px; padding:0 7px; font-size:11px; line-height:18px; white-space:nowrap;}
+  .cell .tb{position:absolute; top:2px; left:3px; min-width:16px; height:16px; border-radius:8px; background:var(--pink); color:#fff; font-size:9.5px; font-weight:900; display:grid; place-items:center; padding:0 4px; border:1.5px solid #fff; z-index:2; text-shadow:none;}
+  .cell:has(.tb){padding-top:19px;}
+  .talkbtn{display:flex; align-items:center; justify-content:center; gap:8px; width:100%; margin-top:12px; padding:14px; border-radius:22px; background:#fff; font-weight:900; font-size:15px;}
+  .msgs{display:flex; flex-direction:column; gap:10px; padding-bottom:90px;}
+  .msg{display:flex; gap:8px; align-items:flex-end; max-width:85%;}
+  .msg .bb{background:#fff; border-radius:18px 18px 18px 6px; padding:10px 14px; font-size:15px; font-weight:700; line-height:1.5; word-break:break-word;}
+  .msg small{display:block; font-size:11px; color:var(--dim); font-weight:900; margin:0 0 3px 4px;}
+  .msg time{font-size:10.5px; color:var(--dim2); font-weight:700; white-space:nowrap;}
+  .msg.me{align-self:flex-end; flex-direction:row-reverse;}
+  .msg.me .bb{background:var(--pink); color:#fff; border-radius:18px 18px 6px 18px;}
+  .dsep{align-self:center; font-size:11px; font-weight:900; color:var(--dim); background:#fff; padding:3px 12px; border-radius:12px;}
+  .talkbar{position:fixed; left:0; right:0; bottom:0; z-index:5; display:flex; justify-content:center; padding:10px 16px calc(12px + env(safe-area-inset-bottom)); background:linear-gradient(transparent, var(--bg) 30%);}
+  .talkbar form{display:flex; gap:8px; width:100%; max-width:448px;}
+  .talkbar input{flex:1; min-width:0;}
+  .sendb{background:var(--pink); color:#fff; font-weight:900; border-radius:18px; padding:0 18px; font-size:15px;}
   .toast{position:fixed; left:50%; top:calc(18px + env(safe-area-inset-top)); transform:translate(-50%, calc(-100% - 24px - env(safe-area-inset-top))); background:var(--tx); color:#fff; font-weight:900;
     padding:12px 20px; border-radius:30px; z-index:70; transition:transform .3s; font-size:14px; width:max-content; max-width:calc(100vw - 32px); text-align:center;}
   .toast.on{transform:translate(-50%,0);}
@@ -337,12 +355,13 @@ const KEY = 'komalog.v3';
 let demoAnchor = Date.now(); // デモ時刻は「設定した時刻 + 経過時間」で進む
 let lastSaved = null;
 let S = load();
+S.talk = S.talk || {}; S.talkSeen = S.talkSeen || {};
 S.groups.forEach(g => { g.members = g.members.filter(id => S.friendState[id]==='friend'); }); // グループには今の友だちだけ
 function fresh(){
   return {
     v:3, onboarded:false,
     me:{name:'', emoji:'🐣', bg:0, univ:'', fac:'', handle:uid().slice(0,6)},
-    classes:[], recs:[],
+    classes:[], recs:[], talk:{}, talkSeen:{},
     groups:[],
     // 友だちは承認してはじめてつながる
     friendState:{f1:'request', f2:'request', f3:'request', f4:'request', f5:'request'},
@@ -446,6 +465,23 @@ const fRec = (f, c, date) => f.recs.find(r => r.classId===c.id && r.date===date)
 // 同じ授業(授業名・曜日・時限が同じ)を受けている友だち
 const sameUniv = f => !!S.me.univ && f.univ===S.me.univ;
 // 同じ大学の友だちだけを「同じ授業」とみなす(大学が違えば、授業名・時限が同じでも別の授業)
+/* ---------- 授業ごとのトーク(同じ授業の友だちだけ) ---------- */
+const TALK_LINES = ['今日小テストあるらしい','前の方の席とってるよ','レポートの締切いつだっけ？','資料もうアップされてた','ちょっと遅れる〜','先週のノート見せてほしい🙏','今日の範囲むずかった','後ろの方にいる','課題おわった？','来週休講って言ってた'];
+function demoTalk(c){
+  const out = [], n = nowTs(), L = logical();
+  friendsIn(c).forEach(({f}) => {
+    for(let i=0;i<3;i++){
+      const date = ymd(new Date(L.getFullYear(), L.getMonth(), L.getDate()-i)), seed = f.id+key(c)+date;
+      if(hash(seed) > .3) continue;
+      const ts = dateMs(date) + (win(c).s - 60 + Math.floor(hash(seed+'m')*200))*60e3;
+      if(ts <= n) out.push({id:'d'+seed, from:f.id, text:TALK_LINES[Math.floor(hash(seed+'x')*TALK_LINES.length)], ts});
+    }
+  });
+  return out;
+}
+const talkMsgs = c => [...demoTalk(c), ...(S.talk[key(c)] || [])].sort((a,b) => a.ts-b.ts);
+const unread = c => talkMsgs(c).filter(m => m.from!=='me' && m.ts > (S.talkSeen[key(c)] || 0)).length;
+const cnt = n => n>9 ? '9+' : n;
 const friendsIn = c => friends().filter(sameUniv).map(f => ({f, fc:f.classes.find(x => key(x)===key(c))})).filter(x => x.fc);
 
 /* ---------- 見える人 ---------- */
@@ -516,7 +552,7 @@ function classRow(c, date, isNext){
   const sc = r ? 'done' : !can ? 'wait' : ph==='past' ? 'past' : '';
   return `<div class="row ${ph==='now'?'now':''} ${isNext?'next':''}" data-act="cls" data-v="${c.id}|${date}" role="button" tabindex="0" aria-label="${c.period}限 ${esc(c.name)}">
     ${thumbHTML(c, r, c.got)}
-    <div class="mid"><div class="tm">${c.period}限 ${timeText(c)}${ph==='now'?'<span class="nowtag">いま</span>':''}</div>
+    <div class="mid"><div class="tm">${c.period}限 ${timeText(c)}${ph==='now'?'<span class="nowtag">いま</span>':''}${unread(c) ? `<span class="tkb" aria-label="新しいトーク${unread(c)}件">💬 ${cnt(unread(c))}</span>` : ''}</div>
       <div class="name">${esc(c.name)}</div>${who}</div>
     <button class="smile ${sc}" data-act="here" data-v="${c.id}|${date}" aria-label="${label}" aria-pressed="${!!r}">${SMILE}</button></div>`;
 }
@@ -567,7 +603,7 @@ function gridHTML(classes, wd, owner){
       h += `<button class="cell ${r&&(r.photo||r.ph)?'ph':''} ${isToday&&p===curP?'now':''}" style="${bg}" ${act}
           aria-label="${DAYS[d]}${p}限 ${esc(c.name)}${mk?' 来た':''}${came.length?` ${names(came)}が来た`:''}${got?' 単位GET':''}${same?' 同じ授業':''}">
         <span>${esc(c.name)}</span><span class="rm">${esc(c.room||'')}</span>
-        ${same ? '<span class="same">🤝</span>' : ''}${mk ? '<span class="mk">✓</span>' : ''}${got ? '<span class="gt">GET</span>' : ''}${came.length ? `<span class="fr">${faces(came,14)}</span>` : ''}</button>`;
+        ${same ? '<span class="same">🤝</span>' : ''}${isMe && unread(c) ? `<span class="tb" aria-label="新しいトーク">${cnt(unread(c))}</span>` : ''}${mk ? '<span class="mk">✓</span>' : ''}${got ? '<span class="gt">GET</span>' : ''}${came.length ? `<span class="fr">${faces(came,14)}</span>` : ''}</button>`;
     }
   }
   return h + '</div>';
@@ -583,7 +619,7 @@ function weekView(){
   const title = viewWeek===0 ? '今週' : viewWeek===-1 ? '先週' : `${md(wd[0])}の週`;
   return header() + `<div class="card ttc"><div class="wkbar"><button data-act="wk" data-v="-1" aria-label="前の週" ${viewWeek<=minWeek()?'disabled':''}>‹</button><b>${title}</b>
       <button data-act="wk" data-v="1" aria-label="次の週" ${viewWeek>=0?'disabled':''}>›</button></div>${gridHTML(S.classes, wd, 'me')}</div>
-    <p class="note" style="text-align:center">マスをタップで ☺︎ と写真。空いたマスで授業を追加。</p>`;
+    <p class="note" style="text-align:center">マスをタップで詳細、長押しで ☺︎。空いたマスで授業を追加。</p>`;
 }
 
 function render(){
@@ -626,6 +662,7 @@ function paintClass(){
   const date = CS.date, r = recOf(c.id, date), ph = phaseOf(date, c), can = canRecord(date, c), isToday = date===todayStr();
   const fr = friendsIn(c);
   let h = `<h3>${esc(c.name)}</h3><div class="sub">${md(date)}(${DAYS[c.day]}) ${c.period}限 ${timeText(c)}${c.room ? ' ・ 📍'+esc(c.room) : ''}</div>`;
+  { const u = unread(c); h += `<button class="talkbtn" data-act="talk" data-v="${c.id}">💬 この授業のトーク${u ? ` <span class="tkb">${cnt(u)}</span>` : ''}</button>`; }
   if(fr.length) h += `<div class="fline">${fr.map(({f,fc}) => { const x = isToday && fRec(f, fc, date);
     return `<button class="fchip ${x?'ok':''}" data-act="friend" data-v="${f.id}">${avatar(f.emoji,f.bg,28)}${f.name}${x ? ' <small>来た</small>' : ''}</button>`; }).join('')}</div>`;
   if(r) h += `<div class="herest"><span class="smile done">${SMILE}</span>来た <small>${r.late ? 'あとから記録' : hm(r.ts)}</small><button class="undo" data-act="undo">取り消す</button></div>`;
@@ -1025,7 +1062,46 @@ function paintScreen(h, resetScroll){
   $('app').inert = true; $('nav').inert = true;
   if(resetScroll) sc.querySelector('.back button').focus({preventScroll:true});
 }
+let TK = null;
+function openTalk(cid){ TK = cid; renderTalk(true); }
+function renderTalk(reset){
+  const c = S.classes.find(x => x.id===TK); if(!c){ closeScreen(); return; }
+  const k = key(c), ms = talkMsgs(c), fr = friendsIn(c).map(x => x.f);
+  S.talkSeen[k] = nowTs(); save(true);
+  const draft = $('tkIn') ? $('tkIn').value : '';
+  let h = `<div class="back"><button data-act="close" aria-label="戻る">${BACK}</button><div style="min-width:0"><h3 style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(c.name)}</h3>
+    <div class="sub">${DAYS[c.day]}${c.period}限 ・ ${fr.length ? `${names(fr)} とあなた` : 'まだ同じ授業の友だちはいません'}</div></div></div>
+    <p class="rule" style="margin:-4px 6px 14px">このトークは、この授業を受けている友だちだけが見られます。</p><div class="msgs">`;
+  let last = '';
+  ms.forEach(m => {
+    const d = ymd(new Date(m.ts - 4*3600e3));
+    if(d!==last){ h += `<span class="dsep">${d===todayStr() ? 'きょう' : md(d)}</span>`; last = d; }
+    const f = m.from==='me' ? null : fById(m.from);
+    h += m.from==='me' ? `<div class="msg me"><div class="bb">${esc(m.text)}</div><time>${hm(m.ts)}</time></div>`
+      : `<div class="msg">${f ? avatar(f.emoji,f.bg,32) : ''}<div><small>${f ? f.name : ''}</small><div class="bb">${esc(m.text)}</div></div><time>${hm(m.ts)}</time></div>`;
+  });
+  if(!ms.length) h += '<div class="empty">まだメッセージはありません</div>';
+  h += `</div><div class="talkbar"><form id="tkForm"><input class="tx" id="tkIn" placeholder="メッセージ" maxlength="200" autocomplete="off" aria-label="メッセージ"><button class="sendb" type="submit">送信</button></form></div>`;
+  paintScreen(h, reset);
+  $('tkIn').value = draft;
+  const sc = $('scr'); sc.scrollTop = sc.scrollHeight;
+  $('tkForm').onsubmit = e => { e.preventDefault(); sendTalk(); };
+}
+function sendTalk(){
+  const c = S.classes.find(x => x.id===TK); const inp = $('tkIn'); const text = inp.value.trim(); if(!c || !text) return;
+  const k = key(c); (S.talk[k] = S.talk[k] || []).push({id:uid(), from:'me', text, ts:nowTs()});
+  if(!save()){ return; }
+  inp.value = ''; renderTalk(false); $('tkIn').focus();
+  const fr = friendsIn(c).map(x => x.f);
+  if(fr.length){ // デモ: 同じ授業の友だちが返事をする
+    const f = fr[Math.floor(Math.random()*fr.length)];
+    const rep = ['りょ〜','わかる','ありがと！','それな','あとで見せるね','おっけー'][Math.floor(Math.random()*6)];
+    setTimeout(() => { S.talk[k].push({id:uid(), from:f.id, text:rep, ts:nowTs()}); save(true);
+      if(TK===c.id && $('scr').classList.contains('open')) renderTalk(false); else { render(); toast(`💬 ${f.name}: ${rep}`); } }, 2500);
+  }
+}
 function closeScreen(){
+  TK = null;
   $('scr').classList.remove('open'); $('app').inert = false; $('nav').inert = false; render();
   const o = scrOpener; scrOpener = null;
   if(o){ const n = o.el && document.contains(o.el) ? o.el : document.querySelector(o.act==='me' ? '.me-btn' : `[data-act="${o.act}"]`); if(n) n.focus({preventScroll:true}); }
@@ -1099,6 +1175,7 @@ const ACT = {
     S.classes = S.classes.filter(x => x.id!==v); S.recs = S.recs.filter(r => r.classId!==v); save(); closeSheet(); render(); },
   sclose: () => closeSheet(),
   close: () => closeScreen(),
+  talk: v => { closeSheet(); openTalk(v); },
   friends: () => { closeSheet(); renderFriends(true); },
   me: () => { closeSheet(); renderMe(true); },
   approve: v => { S.friendState[v] = 'friend'; if(!save()){ renderFriends(false); return; } renderFriends(false); render(); toast(`${fById(v).name} とつながりました`); },
@@ -1153,6 +1230,25 @@ document.addEventListener('click', e => {
 document.addEventListener('change', e => {
   if(e.target.id==='ePer' && $('eS')){ const P = PER()[+e.target.value-1]; $('eS').value = P[0].padStart(5,'0'); $('eE').value = P[1].padStart(5,'0'); }
 });
+// 長押しで ☺︎(授業の行・時間割のマス)
+let lp = null, lpFired = false;
+document.addEventListener('pointerdown', e => {
+  lpFired = false;
+  const el = e.target.closest('#app [data-act=cls]'); if(!el || e.target.closest('.smile')) return;
+  el.classList.add('pressing');
+  lp = {el, x:e.clientX, y:e.clientY, t:setTimeout(() => { lpFired = true; el.classList.remove('pressing'); longPress(el.dataset.v); lp = null; }, 500)};
+});
+const lpCancel = () => { if(lp){ clearTimeout(lp.t); lp.el.classList.remove('pressing'); lp = null; } };
+document.addEventListener('pointerup', lpCancel); document.addEventListener('pointercancel', lpCancel);
+document.addEventListener('pointermove', e => { if(lp && Math.hypot(e.clientX-lp.x, e.clientY-lp.y) > 10) lpCancel(); });
+document.addEventListener('click', e => { if(lpFired){ lpFired = false; e.stopPropagation(); e.preventDefault(); } }, true);
+document.addEventListener('contextmenu', e => { if(e.target.closest('#app [data-act=cls]')) e.preventDefault(); });
+function longPress(v){
+  const [cid, date] = v.split('|'); const c = S.classes.find(x => x.id===cid); if(!c) return;
+  if(navigator.vibrate) try{ navigator.vibrate(15); }catch(e){}
+  if(recOf(cid, date)){ toast('もう ☺︎ を押してあります'); return; }
+  ACT.here(v);
+}
 document.addEventListener('keydown', e => {
   if(e.key==='Escape'){ if(askDone){ askDone(false); return; } if($('sheet').classList.contains('open')) closeSheet(); else if($('scr').classList.contains('open')) closeScreen(); return; }
   if((e.key==='Enter' || e.key===' ') && e.target.matches('[role=button][data-act]')){ e.preventDefault(); e.target.click(); }
