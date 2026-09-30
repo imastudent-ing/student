@@ -2,662 +2,1364 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#f4f4f4">
 <title>KOMALOG</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Zen+Maru+Gothic:wght@500;700;900&display=swap" rel="stylesheet">
 <style>
   :root{
-    --bg:#f4f4f4; --card:#ececec; --card2:#e6e6e6; --line:#e2e2e2; --white:#fff;
-    --tx:#111; --dim:#8e8e8e; --dim2:#b5b5b5;
-    --pink:#e45fd6; --pink2:#f5c6ee; --pink3:#fbe3f7; --rose:#e2677f;
-    --mint:#5fd6bd; --yel:#fbeea8; --red:#ef5a5a; --grn:#3fbf8f;
+    --bg:#f4f4f4; --card:#ececec; --card2:#e4e4e4; --line:#e2e2e2; --white:#fff;
+    --tx:#111; --dim:#8a8a8a; --dim2:#b3b3b3;
+    --pink:#e24fd2; --pink2:#f5c6ee; --pink3:#fce6f8; --rose:#e2677f;
+    --mint:#5fd6bd; --yel:#fff3c4; --red:#ef5a5a; --grn:#2fae80;
     --r:30px;
   }
   *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
   html,body{margin:0; padding:0; background:var(--bg); color:var(--tx);
     font-family:'Zen Maru Gothic','Hiragino Maru Gothic ProN','Hiragino Kaku Gothic ProN',system-ui,sans-serif;}
-  body{min-height:100vh; display:flex; justify-content:center;}
+  body{min-height:100vh; display:flex; justify-content:center; overflow-x:hidden;}
   body::after{content:""; position:fixed; inset:0; pointer-events:none; z-index:99;
-    box-shadow:inset 0 0 0 3px #ee8ce4, inset 0 0 38px rgba(238,140,228,.45);}
-  button{font-family:inherit; color:inherit; cursor:pointer; border:none; background:none; padding:0;}
-  #app{width:100%; max-width:480px; min-height:100vh; padding:calc(18px + env(safe-area-inset-top)) 16px 130px; position:relative;}
+    box-shadow:inset 0 0 0 3px #ee8ce4, inset 0 0 38px rgba(238,140,228,.4);}
+  button{font-family:inherit; color:inherit; cursor:pointer; border:none; background:none; padding:0; font-size:inherit;}
+  button:disabled{cursor:default;}
+  #app{width:100%; max-width:480px; min-height:100vh; padding:calc(16px + env(safe-area-inset-top)) 16px 140px;}
 
-  /* header */
-  .hd{display:flex; justify-content:space-between; align-items:center; padding:10px 14px 0;}
-  .logo{font-family:'Anton',Impact,sans-serif; font-size:44px; color:var(--mint); letter-spacing:.5px; line-height:1;
+  /* ---------- header ---------- */
+  .hd{display:flex; justify-content:space-between; align-items:center; padding:8px 12px 0;}
+  .logo{font-family:'Anton',Impact,'Arial Narrow',sans-serif; font-size:44px; color:var(--mint); letter-spacing:.5px; line-height:1;
     transform:scaleY(1.12); transform-origin:left center;}
-  .me-btn{width:62px; height:62px; border-radius:50%; background:#fff; display:grid; place-items:center;
-    box-shadow:0 6px 20px rgba(0,0,0,.08);}
-  .av{border-radius:50%; display:grid; place-items:center; overflow:hidden; flex-shrink:0;}
-  .me-btn .av{width:42px; height:42px; font-size:22px;}
-  .hint{display:flex; align-items:center; gap:10px; margin:16px 14px 18px; color:var(--dim); font-weight:700; font-size:16px;}
-  .hint .ic{width:26px; height:26px; border-radius:50%; background:var(--pink); display:grid; place-items:center;}
+  .me-btn{width:62px; height:62px; border-radius:50%; background:#fff; display:grid; place-items:center; box-shadow:0 6px 20px rgba(0,0,0,.08);}
+  .av{border-radius:50%; display:grid; place-items:center; overflow:hidden; flex-shrink:0; line-height:1;}
+  .hint{display:flex; align-items:center; gap:10px; margin:14px 12px 16px; color:var(--dim); font-weight:900; font-size:15px;}
+  .hint .ic{width:26px; height:26px; border-radius:50%; background:var(--pink); display:grid; place-items:center; flex-shrink:0;}
+  .demo-chip{margin-left:auto; font-size:11px; font-weight:900; color:var(--pink); background:var(--pink3); padding:5px 10px; border-radius:20px; white-space:nowrap;}
 
-  /* cards */
-  .card{background:var(--card); border:1px solid var(--line); border-radius:var(--r); padding:22px 24px; margin-bottom:12px;}
-  .hero{display:flex; align-items:center; gap:10px; margin-bottom:30px;}
-  .hero h2{margin:0 0 6px; font-size:22px; font-weight:900;}
-  .hero p{margin:0; color:var(--dim); font-size:14px; line-height:1.5; font-weight:700;}
-  .hero .mascot{flex-shrink:0; width:96px;}
-  .row{display:flex; align-items:center; gap:14px; padding:14px 16px 14px 14px; width:100%; text-align:left;}
-  .thumb{width:74px; height:74px; border-radius:18px; flex-shrink:0; border:2px solid #fff; box-shadow:0 1px 4px rgba(0,0,0,.08);
-    display:grid; place-items:center; font-size:34px; position:relative; overflow:hidden; background-size:cover; background-position:center;}
-  .thumb .mini{position:absolute; right:4px; bottom:4px; width:24px; height:24px; font-size:14px; border:2px solid #fff;}
+  /* ---------- week strip ---------- */
+  .wkbar{display:flex; align-items:center; justify-content:space-between; margin:0 8px 8px; font-weight:900; font-size:13px; color:var(--dim);}
+  .wkbar button{width:32px; height:32px; border-radius:50%; background:#fff; font-size:18px; font-weight:900; color:#333;}
+  .wkbar button:disabled{opacity:.25;}
+  .wk{display:flex; gap:7px; margin-bottom:18px;}
+  .wk button{flex:1; background:#fff; border-radius:22px; padding:9px 0 8px; text-align:center; display:flex; flex-direction:column; align-items:center; gap:2px; border:2px solid transparent;}
+  .wk button small{font-size:12px; font-weight:900; color:var(--dim);}
+  .wk button b{font-size:19px; font-weight:900;}
+  .wk button.today{border-color:var(--pink2);}
+  .wk button.today small{color:var(--pink);}
+  .wk button.on{background:var(--tx); color:#fff;}
+  .wk button.on small{color:#ccc;}
+  .wdots{display:flex; gap:3px; height:6px;}
+  .wdots i{width:5px; height:5px; border-radius:50%; background:var(--pink);}
+
+  /* ---------- cards ---------- */
+  .card{background:var(--card); border:1px solid var(--line); border-radius:var(--r); padding:20px 22px; margin-bottom:12px;}
+  .sec-t{font-size:15px; color:var(--dim); font-weight:900; margin:24px 8px 10px; display:flex; justify-content:space-between; align-items:center; gap:10px;}
+  .sec-t .r{font-size:12px; display:flex; align-items:center; gap:8px;}
+  .note{font-size:12px; color:var(--dim); font-weight:700; margin:8px 4px 0; line-height:1.6;}
+  .empty{text-align:center; color:var(--dim); font-weight:900; padding:22px 10px; font-size:14px; line-height:1.6;}
+
+  /* who's here */
+  .who{padding:18px 18px 14px;}
+  .who-h{display:flex; align-items:center; gap:8px; margin:0 4px 12px;}
+  .who-h b{font-size:19px; font-weight:900;}
+  .who-h span{margin-left:auto; font-size:12px; font-weight:900; color:var(--pink); background:#fff; padding:5px 11px; border-radius:20px;}
+  .who-row{display:flex; gap:10px; overflow-x:auto; scrollbar-width:none; padding:2px 2px 4px;}
+  .who-row::-webkit-scrollbar{display:none;}
+  .who-p{width:74px; flex-shrink:0; display:flex; flex-direction:column; align-items:center; gap:4px; text-align:center;}
+  .ring{position:relative; padding:3px; border-radius:50%; border:2.5px solid #d9d9d9;}
+  .ring.on{border-color:var(--pink);}
+  .ring .ck{position:absolute; right:-3px; bottom:-2px; width:21px; height:21px; border-radius:50%; background:var(--pink); color:#fff; font-size:11px; font-weight:900; display:grid; place-items:center; border:2px solid #fff; font-style:normal;}
+  .who-p b{font-size:13px; font-weight:900;}
+  .who-p small{font-size:10.5px; font-weight:900; color:var(--dim); width:100%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .who-p small.on{color:var(--pink);}
+
+  .sug{display:flex; align-items:center; gap:12px; background:var(--pink3); border:1.5px solid var(--pink2); border-radius:26px; padding:12px 12px 12px 16px; margin-bottom:10px;}
+  .sug .stk{flex-shrink:0;}
+  .sug p{margin:0; flex:1; font-size:14px; font-weight:700; line-height:1.45;}
+  .sug p b{font-weight:900;}
+  .sug button{background:var(--pink); color:#fff; font-weight:900; font-size:13px; padding:11px 14px; border-radius:20px; white-space:nowrap; flex-shrink:0;}
+  .sug button.sent{background:#fff; color:var(--pink);}
+
+  /* day header + record dots */
+  .dayhd{display:flex; align-items:flex-end; justify-content:space-between; margin:26px 8px 4px; gap:10px;}
+  .dayhd h2{margin:0; font-size:22px; font-weight:900;}
+  .dayhd .rec{display:flex; align-items:center; gap:8px; font-size:12px; font-weight:900; color:var(--dim);}
+  .legend{display:flex; gap:12px; flex-wrap:wrap; margin:6px 8px 12px; font-size:11px; font-weight:900; color:var(--dim);}
+  .legend span{display:flex; align-items:center; gap:4px;}
+  .dts{display:grid; gap:4px; grid-auto-flow:column; grid-template-rows:repeat(3,10px);}
+  .dts.line{grid-template-rows:10px;}
+  .dt{width:10px; height:10px; border-radius:50%; display:block; border:2px solid #c9c9c9; background:transparent;}
+  .dt.in{background:var(--pink); border-color:var(--pink);}
+  .dt.photo{background:var(--pink); border-color:var(--pink); border-radius:2px;}
+  .dt.yet{border:none; background:#dedede; transform:scale(.55);}
+
+  /* slot cards */
+  .slot{position:relative; border-radius:var(--r); padding:16px 18px 16px; margin-bottom:12px; background:var(--c,#fff); overflow:hidden;
+    display:flex; flex-direction:column; gap:4px; min-height:156px; text-align:left; width:100%; cursor:pointer;}
+  .slot > *{position:relative; z-index:1;}
+  .slot.now{box-shadow:0 0 0 3px var(--pink), 0 10px 24px rgba(226,79,210,.18);}
+  .slot.ph{min-height:300px; color:#fff; background-color:#999; background-size:cover; background-position:center;}
+  .slot.ph::before{content:""; position:absolute; inset:0; z-index:0; background:linear-gradient(180deg,rgba(0,0,0,.30),rgba(0,0,0,0) 32%,rgba(0,0,0,0) 50%,rgba(0,0,0,.62));}
+  .slot .phemo{position:absolute; inset:0; display:grid; place-items:center; font-size:96px; z-index:0; opacity:.95;}
+  .slot .top{display:flex; align-items:center; gap:6px; font-size:12px; font-weight:900; flex-wrap:wrap;}
+  .pl{background:rgba(255,255,255,.78); color:#333; padding:5px 10px; border-radius:20px;}
+  .pl.now{background:var(--pink); color:#fff;}
+  .pl.st{margin-left:auto;}
+  .pl.st.in{background:var(--tx); color:#fff;}
+  .pl.st.none{background:rgba(255,255,255,.55); color:#777;}
+  .slot .ttl{font-size:23px; font-weight:900; line-height:1.25; margin-top:8px; word-break:break-all;}
+  .slot .rm{font-size:13px; font-weight:700; opacity:.68;}
+  .slot.ph .rm{opacity:.9;}
+  .slot .cm{font-size:15px; font-weight:900; margin-top:4px; text-shadow:0 1px 6px rgba(0,0,0,.25);}
+  .slot .bot{display:flex; align-items:center; gap:10px; margin-top:auto; padding-top:10px;}
+  .slot .fl{flex:1; min-width:0; display:flex; align-items:center; gap:8px; font-size:12.5px; font-weight:900;}
+  .slot .fl span.t{white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .slot .aud{font-size:11px; font-weight:900; opacity:.8;}
+  .go{background:var(--tx); color:#fff; border-radius:24px; padding:13px 22px; font-weight:900; font-size:16px; flex-shrink:0; box-shadow:0 4px 12px rgba(0,0,0,.12);}
+  .go.lite{background:rgba(255,255,255,.9); color:var(--tx); font-size:14px; padding:11px 16px;}
+  .later{font-size:13px; font-weight:900; opacity:.6; flex-shrink:0;}
+  .slot.free{background:transparent; border:2px dashed #d8d8d8; min-height:0; padding:12px 16px;}
+  .slot.lunch{background:var(--yel); min-height:0; padding:12px 16px;}
+  .slot.after{background:#fff; min-height:0; padding:12px 16px;}
+  .slot.free.ph,.slot.lunch.ph,.slot.after.ph{min-height:230px; border:none;}
+  .slot.free .ttl,.slot.lunch .ttl,.slot.after .ttl{font-size:16px; margin-top:4px;}
+  .slot.sm .bot{padding-top:6px;}
+  .mini{background:#fff; border-radius:18px; padding:9px 14px; font-weight:900; font-size:13px; flex-shrink:0; box-shadow:0 2px 8px rgba(0,0,0,.06);}
+  .slot.lunch .mini{background:#fff;}
+  .rxs{display:flex; gap:4px; align-items:center; background:rgba(255,255,255,.88); color:#333; border-radius:20px; padding:4px 10px; font-size:13px; font-weight:900; flex-shrink:0;}
+  .stamp{position:absolute; right:16px; top:48px; z-index:2; transform:rotate(-11deg); border:3px solid var(--pink); color:var(--pink);
+    font-family:'Anton',Impact,sans-serif; padding:1px 10px 2px; border-radius:10px; font-size:19px; letter-spacing:1px; background:rgba(255,255,255,.88); line-height:1.2;}
+  .stamp small{display:block; font-family:'Zen Maru Gothic',sans-serif; font-weight:900; font-size:9px; letter-spacing:0; text-align:center; margin-top:-2px;}
+
+  /* avatars stack */
+  .stk{display:flex; padding-left:8px;}
+  .stk .fa{position:relative; margin-left:-8px;}
+  .stk .fa .av{border:2px solid #fff;}
+  .stk .fa.on .av{border-color:var(--pink);}
+  .stk .fa i{position:absolute; right:-3px; bottom:-3px; width:15px; height:15px; border-radius:50%; background:var(--pink); color:#fff; font-size:8px; font-style:normal; display:grid; place-items:center; border:1.5px solid #fff; font-weight:900;}
+
+  /* friend rows */
+  .row{display:flex; align-items:center; gap:12px; padding:13px 14px 13px 13px; width:100%; text-align:left; cursor:pointer;}
+  .thumb{width:70px; height:70px; border-radius:18px; flex-shrink:0; border:2px solid #fff; box-shadow:0 1px 4px rgba(0,0,0,.08);
+    display:grid; place-items:center; font-size:32px; overflow:hidden; background-size:cover; background-position:center;}
   .row .mid{flex:1; min-width:0;}
-  .row .name{font-size:19px; font-weight:900; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
-  .row .st{font-size:14px; font-weight:900; margin-top:4px; color:var(--dim); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .row .name{font-size:18px; font-weight:900; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .fac{font-size:11px; font-weight:900; color:var(--dim); background:#fff; padding:2px 8px; border-radius:10px; margin-left:4px; vertical-align:3px;}
+  .row .st{font-size:13.5px; font-weight:900; margin-top:4px; color:var(--dim); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
   .row .st.new{color:var(--pink);}
-  .row .st small{color:var(--dim2); font-weight:700; margin-left:10px; font-size:13px;}
-  .dots{display:grid; grid-template-columns:repeat(5,9px); gap:4px; flex-shrink:0;}
-  .dots i{width:9px; height:9px; border-radius:50%; background:#dcdcdc; display:block;}
-  .dots i.on{background:var(--pink2);}
-  .dots i.today{background:var(--pink);}
-  .smile{width:46px; height:46px; border-radius:50%; background:var(--pink2); border:1.5px solid var(--rose);
-    display:grid; place-items:center; flex-shrink:0; transition:transform .15s;}
+  .row .st small{color:var(--dim2); font-weight:700; margin-left:8px; font-size:12px;}
+  .dwrap{display:flex; flex-direction:column; align-items:center; gap:4px; flex-shrink:0;}
+  .dwrap em{font-style:normal; font-size:10px; font-weight:900; color:var(--dim);}
+  .smile{width:46px; height:46px; border-radius:50%; background:var(--pink2); border:1.5px solid var(--rose); display:grid; place-items:center; flex-shrink:0; transition:transform .15s;}
   .smile.done{background:var(--pink);}
-  .smile.done svg path,.smile.done svg circle{stroke:#fff; fill:#fff;}
+  .smile.done svg *{stroke:#fff;} .smile.done svg circle{fill:#fff;}
+  .smile:disabled{opacity:.35;}
   .smile:active{transform:scale(.88);}
   .pop{animation:pop .45s ease;}
   @keyframes pop{0%{transform:scale(1)}40%{transform:scale(1.3) rotate(-10deg)}100%{transform:scale(1)}}
-  .chev{flex-shrink:0; opacity:.85;}
-  .sec-t{font-size:15px; color:var(--dim); font-weight:900; margin:26px 8px 10px; display:flex; justify-content:space-between; align-items:center;}
+  .chev{flex-shrink:0;}
+
+  /* reactions bar (friend posts) */
+  .rx{display:flex; gap:6px; align-items:center; flex-wrap:wrap; margin-top:10px;}
+  .rx button{width:40px; height:40px; border-radius:50%; background:rgba(255,255,255,.9); font-size:19px; border:2px solid transparent;}
+  .rx button.on{border-color:var(--pink); background:var(--pink3);}
+  .rx button.say{width:auto; padding:0 14px; border-radius:20px; font-size:13px; font-weight:900; color:#333;}
+  .said{font-size:12px; font-weight:900; margin-top:6px; background:rgba(255,255,255,.88); color:var(--pink); display:inline-block; padding:4px 10px; border-radius:14px; align-self:flex-start;}
 
   /* bottom nav */
-  .nav{position:fixed; left:0; right:0; bottom:0; padding:0 16px calc(22px + env(safe-area-inset-bottom)); display:flex; justify-content:center; z-index:20; pointer-events:none;}
+  .nav{position:fixed; left:0; right:0; bottom:0; padding:0 16px calc(20px + env(safe-area-inset-bottom)); display:flex; justify-content:center; z-index:20; pointer-events:none;}
   .nav-in{width:100%; max-width:448px; display:flex; justify-content:space-between; align-items:center; pointer-events:auto;}
-  .circ{width:70px; height:70px; border-radius:50%; background:#fff; display:grid; place-items:center; box-shadow:0 8px 24px rgba(0,0,0,.08); position:relative;}
-  .circ .badge{position:absolute; top:12px; right:14px; width:12px; height:12px; border-radius:50%; background:var(--pink); border:2px solid #fff;}
-  .pill{background:#fff; border-radius:40px; padding:8px; display:flex; gap:4px; box-shadow:0 8px 24px rgba(0,0,0,.08);}
-  .pill button{padding:14px 26px; border-radius:30px; font-size:18px; font-weight:900; color:#555;}
+  .circ{width:70px; height:70px; border-radius:50%; background:#fff; display:grid; place-items:center; box-shadow:0 8px 24px rgba(0,0,0,.09); position:relative;}
+  .circ .badge{position:absolute; top:13px; right:15px; width:13px; height:13px; border-radius:50%; background:var(--pink); border:2px solid #fff;}
+  .pill{background:#fff; border-radius:40px; padding:8px; display:flex; gap:4px; box-shadow:0 8px 24px rgba(0,0,0,.09);}
+  .pill button{padding:14px 20px; border-radius:30px; font-size:17px; font-weight:900; color:#666; white-space:nowrap;}
   .pill button.on{background:var(--card2); color:var(--tx);}
 
-  /* timetable */
-  .tt{display:grid; grid-template-columns:28px repeat(5,1fr); gap:5px;}
-  .tt .h{font-size:13px; font-weight:900; color:var(--dim); text-align:center; padding:4px 0;}
+  /* timetable grid */
+  .ttc{padding:16px 12px 14px;}
+  .ttc-h{display:flex; justify-content:space-between; align-items:center; margin:0 6px 12px; gap:8px;}
+  .ttc-h b{font-size:18px; font-weight:900;}
+  .lnk{font-size:12px; font-weight:900; color:var(--pink); background:#fff; padding:6px 11px; border-radius:16px;}
+  .tt{display:grid; grid-template-columns:24px repeat(5,minmax(0,1fr)); gap:5px;}
+  .tt .h{font-size:13px; font-weight:900; color:var(--dim); text-align:center; padding:2px 0 4px;}
   .tt .h.today{color:var(--pink);}
   .tt .p{font-size:12px; font-weight:900; color:var(--dim2); display:grid; place-items:center;}
-  .cell{min-height:66px; border-radius:14px; background:#fff; border:1.5px dashed #e3e3e3; padding:6px 5px; font-size:11px; font-weight:900;
-    line-height:1.25; display:flex; flex-direction:column; justify-content:space-between; position:relative; text-align:left; overflow:hidden; word-break:break-all;}
-  .cell.has{border:none; color:#222;}
+  .cell{min-height:64px; border-radius:14px; background:#fff; padding:6px 5px; font-size:11px; font-weight:900; line-height:1.25; display:flex; flex-direction:column; justify-content:space-between;
+    position:relative; text-align:left; overflow:hidden; word-break:break-all;}
   .cell .rm{font-size:9.5px; font-weight:700; opacity:.6;}
-  .cell .mk{position:absolute; top:4px; right:4px; width:9px; height:9px; border-radius:50%; background:var(--pink); border:1.5px solid #fff;}
-  .cell .gt{position:absolute; bottom:4px; right:5px; font-size:10px;}
-  .cell.now{outline:2.5px solid var(--pink); outline-offset:1px;}
-  .cell.empty-add{color:#d0d0d0; font-size:18px; align-items:center; justify-content:center;}
+  .cell .mk{position:absolute; top:4px; right:4px; width:14px; height:14px; border-radius:50%; background:var(--pink); color:#fff; font-size:8px; display:grid; place-items:center; border:1.5px solid #fff;}
+  .cell .gt{position:absolute; bottom:4px; right:4px; font-size:8.5px; font-family:'Anton',Impact,sans-serif; color:var(--pink); border:1.5px solid var(--pink); border-radius:5px; padding:0 3px; transform:rotate(-8deg); background:#fff; letter-spacing:.3px;}
+  .cell.now{box-shadow:0 0 0 2.5px var(--pink);}
+  .cell.add{border:1.5px dashed #dedede; background:transparent; color:#cfcfcf; font-size:18px; align-items:center; justify-content:center;}
+  .cell.blank{background:transparent;}
 
-  /* stats */
-  .stats{display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:12px;}
-  .stat{background:#fff; border-radius:22px; padding:14px 8px; text-align:center;}
-  .stat b{display:block; font-size:24px; font-weight:900;}
-  .stat b small{font-size:13px; color:var(--dim);}
-  .stat span{font-size:11.5px; color:var(--dim); font-weight:900;}
-  .bar{height:10px; border-radius:6px; background:#e2e2e2; overflow:hidden; margin-top:10px;}
-  .bar i{display:block; height:100%; background:linear-gradient(90deg,var(--mint),var(--pink)); border-radius:6px;}
-
-  /* log posts */
-  .post{background:#fff; border-radius:26px; overflow:hidden; margin-bottom:12px;}
-  .post .ph{aspect-ratio:4/3; background-size:cover; background-position:center; display:grid; place-items:center; font-size:60px; position:relative;}
-  .post .ph .loc{position:absolute; left:12px; bottom:12px; background:rgba(0,0,0,.45); color:#fff; font-size:12px; font-weight:900; padding:5px 10px; border-radius:20px;}
-  .post .bd{padding:12px 16px 14px; display:flex; gap:12px; align-items:center;}
-  .post .bd .t{flex:1; min-width:0;}
-  .post .bd .t b{font-size:15px; font-weight:900; display:block;}
-  .post .bd .t span{font-size:12px; color:var(--dim); font-weight:700;}
-  .post .cm{padding:0 16px 14px; font-size:14px; font-weight:700;}
-  .chip{display:inline-block; font-size:11px; font-weight:900; padding:3px 9px; border-radius:20px; background:var(--pink3); color:var(--pink); margin-left:6px; vertical-align:2px;}
-  .chip.g{background:#dff6ee; color:var(--grn);}
-  .chip.r{background:#fde4e4; color:var(--red);}
-  .chip.gr{background:#eee; color:var(--dim);}
-
-  /* credit list */
-  .cr{display:flex; align-items:center; gap:12px; padding:12px 4px; border-bottom:1px solid #e0e0e0;}
+  /* list rows */
+  .cr{display:flex; align-items:center; gap:12px; padding:12px 2px; border-bottom:1px solid #dcdcdc;}
   .cr:last-child{border-bottom:none;}
-  .cr .sw{width:12px; height:36px; border-radius:6px; flex-shrink:0;}
+  .cr .sw{width:10px; height:38px; border-radius:6px; flex-shrink:0;}
   .cr .t{flex:1; min-width:0;}
   .cr .t b{font-size:15px; font-weight:900; display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
   .cr .t span{font-size:12px; color:var(--dim); font-weight:700;}
+  .addb{background:var(--tx); color:#fff; font-weight:900; font-size:13px; padding:9px 13px; border-radius:16px; white-space:nowrap; flex-shrink:0;}
+  .addb:disabled{background:#ddd; color:#999;}
+  .addb.done{background:#fff; color:var(--dim);}
+  .tog{font-weight:900; font-size:12px; padding:8px 11px; border-radius:14px; background:#fff; color:var(--dim); white-space:nowrap; flex-shrink:0; border:1.5px solid #e2e2e2;}
+  .tog.on{background:var(--pink3); color:var(--pink); border-color:var(--pink2);}
+  .tog:disabled{opacity:.35;}
+  .together{font-size:12px; font-weight:900; color:var(--pink); margin-top:2px;}
+  .beta{font-size:11px; font-weight:900; color:#fff; background:var(--mint); padding:3px 9px; border-radius:10px;}
 
   /* screens / sheets */
-  .screen{position:fixed; inset:0; background:var(--bg); z-index:30; overflow-y:auto; transform:translateX(100%); transition:transform .28s cubic-bezier(.2,.8,.2,1);}
-  .screen.open{transform:none;}
-  .screen .in{max-width:480px; margin:0 auto; padding:calc(18px + env(safe-area-inset-top)) 16px 60px;}
-  .back{display:flex; align-items:center; gap:10px; padding:8px 4px 14px;}
-  .back button{width:48px; height:48px; border-radius:50%; background:#fff; display:grid; place-items:center; box-shadow:0 4px 14px rgba(0,0,0,.06);}
-  .back h3{margin:0; font-size:20px; font-weight:900; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
-  .shade{position:fixed; inset:0; background:rgba(20,20,20,.35); z-index:40; opacity:0; pointer-events:none; transition:opacity .2s;}
+  .screen{position:fixed; inset:0; background:var(--bg); z-index:30; overflow-y:auto; transform:translateX(105%); transition:transform .28s cubic-bezier(.2,.8,.2,1); visibility:hidden;}
+  .screen.open{transform:none; visibility:visible;}
+  .screen .in{max-width:480px; margin:0 auto; padding:calc(16px + env(safe-area-inset-top)) 16px 60px;}
+  .back{display:flex; align-items:center; gap:10px; padding:6px 2px 14px;}
+  .back > button{width:48px; height:48px; border-radius:50%; background:#fff; display:grid; place-items:center; box-shadow:0 4px 14px rgba(0,0,0,.06); flex-shrink:0;}
+  .back h3{margin:0; font-size:20px; font-weight:900; flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .shade{position:fixed; inset:0; background:rgba(20,20,20,.38); z-index:40; opacity:0; pointer-events:none; transition:opacity .2s;}
   .shade.open{opacity:1; pointer-events:auto;}
-  .sheet{position:fixed; left:0; right:0; bottom:0; z-index:41; transform:translateY(105%); transition:transform .28s cubic-bezier(.2,.8,.2,1); display:flex; justify-content:center;}
-  .sheet.open{transform:none;}
-  .sheet .in{width:100%; max-width:480px; background:var(--bg); border-radius:32px 32px 0 0; padding:12px 20px calc(24px + env(safe-area-inset-bottom)); max-height:88vh; overflow-y:auto;}
-  .grab{width:44px; height:5px; border-radius:3px; background:#d4d4d4; margin:0 auto 14px;}
-  .sheet h3{margin:0 0 14px; font-size:20px; font-weight:900;}
-  label.f{display:block; font-size:13px; font-weight:900; color:var(--dim); margin:12px 4px 6px;}
+  .sheet{position:fixed; left:0; right:0; bottom:0; z-index:41; transform:translateY(105%); transition:transform .28s cubic-bezier(.2,.8,.2,1); display:flex; justify-content:center; visibility:hidden;}
+  .sheet.open{transform:none; visibility:visible;}
+  .sheet .in{width:100%; max-width:480px; background:var(--bg); border-radius:32px 32px 0 0; padding:12px 20px calc(24px + env(safe-area-inset-bottom)); max-height:90vh; overflow-y:auto;}
+  .grab{width:44px; height:5px; border-radius:3px; background:#d0d0d0; margin:0 auto 14px;}
+  .sheet h3{margin:0 0 4px; font-size:21px; font-weight:900;}
+  .sub{font-weight:700; color:var(--dim); font-size:13.5px;}
+  label.f{display:block; font-size:13px; font-weight:900; color:var(--dim); margin:14px 4px 6px;}
   input.tx,textarea.tx,select.tx{width:100%; padding:14px 16px; border-radius:18px; border:1.5px solid var(--line); background:#fff; font-size:16px; font-family:inherit; font-weight:700; color:var(--tx); outline:none;}
-  input.tx:focus,textarea.tx:focus,select.tx:focus{border-color:var(--pink2);}
-  textarea.tx{resize:none; height:76px;}
-  .seg{display:flex; background:#fff; border-radius:20px; padding:5px; gap:4px;}
-  .seg button{flex:1; padding:11px 4px; border-radius:16px; font-size:14px; font-weight:900; color:var(--dim);}
-  .seg button.on{background:var(--pink3); color:var(--pink);}
-  .seg button.on.g{background:#dff6ee; color:var(--grn);}
-  .seg button.on.r{background:#fde4e4; color:var(--red);}
+  input.tx:focus,textarea.tx:focus,select.tx:focus{border-color:var(--pink);}
+  textarea.tx{resize:none; height:72px;}
+  .chips{display:flex; gap:8px; flex-wrap:wrap;}
+  .chips button{padding:10px 14px; border-radius:18px; background:#fff; font-size:13.5px; font-weight:900; color:#555; border:1.5px solid #e6e6e6;}
+  .chips button.on{background:var(--pink3); color:var(--pink); border-color:var(--pink2);}
   .colors{display:flex; gap:10px; flex-wrap:wrap;}
-  .colors button{width:34px; height:34px; border-radius:50%; border:3px solid #fff; box-shadow:0 0 0 1.5px #ddd;}
-  .colors button.on{box-shadow:0 0 0 2.5px var(--tx);}
-  .btn{display:block; width:100%; padding:17px; border-radius:24px; background:var(--tx); color:#fff; font-size:17px; font-weight:900; margin-top:18px;}
-  .btn.pk{background:var(--pink); }
+  .colors button{width:36px; height:36px; border-radius:50%; border:3px solid #fff; box-shadow:0 0 0 1.5px #ddd;}
+  .colors button.on{box-shadow:0 0 0 3px var(--tx);}
+  .btn{display:block; width:100%; padding:17px; border-radius:24px; background:var(--tx); color:#fff; font-size:17px; font-weight:900; margin-top:18px; text-align:center;}
+  .btn.pk{background:var(--pink);}
   .btn.ghost{background:#fff; color:var(--tx);}
-  .btn.danger{background:none; color:var(--red); font-size:14px; margin-top:8px; padding:10px;}
+  .btn.danger{background:none; color:var(--red); font-size:14px; margin-top:6px; padding:10px;}
   .btn:disabled{opacity:.35;}
-  .shot{aspect-ratio:4/3; border-radius:26px; background:#fff; border:2px dashed var(--pink2); display:grid; place-items:center; overflow:hidden; background-size:cover; background-position:center; text-align:center; color:var(--pink); font-weight:900;}
-  .shot .big{font-size:44px; display:block; margin-bottom:6px;}
-  .notif{display:flex; gap:12px; align-items:center; padding:12px 6px; border-bottom:1px solid #e4e4e4;}
-  .notif .av{width:44px; height:44px; font-size:22px;}
+  .bigin{display:flex; align-items:center; justify-content:center; gap:10px; width:100%; padding:22px; border-radius:28px; background:var(--tx); color:#fff; font-size:22px; font-weight:900; margin-top:16px;}
+  .bigin.done{background:#fff; color:var(--tx); border:2px solid var(--tx); font-size:17px; padding:16px;}
+  .shot{width:100%; aspect-ratio:4/3; border-radius:26px; background:#fff; border:2px dashed var(--pink2); display:grid; place-items:center; overflow:hidden;
+    background-size:cover; background-position:center; text-align:center; color:var(--pink); font-weight:900; margin-top:6px;}
+  .shot .big{font-size:40px; display:block; margin-bottom:6px;}
+  .shot.has{border:none;}
+  .phrow{display:flex; gap:8px; margin-top:8px;}
+  .phrow button{flex:1; padding:11px; border-radius:16px; background:#fff; font-weight:900; font-size:13px;}
+  .rule{background:#fff; border-radius:18px; padding:10px 14px; font-size:12px; font-weight:700; color:#666; line-height:1.6; margin-top:10px;}
+  .rule b{color:var(--tx);}
+  .crop{position:relative; width:100%; aspect-ratio:4/3; border-radius:24px; overflow:hidden; background:#222; touch-action:none; margin-top:8px;}
+  .crop canvas{width:100%; height:100%; display:block; cursor:grab;}
+  .crop .grid{position:absolute; inset:0; pointer-events:none; background:
+    linear-gradient(90deg,transparent 33%,rgba(255,255,255,.35) 33%,rgba(255,255,255,.35) calc(33% + 1px),transparent calc(33% + 1px),transparent 66%,rgba(255,255,255,.35) 66%,rgba(255,255,255,.35) calc(66% + 1px),transparent calc(66% + 1px)),
+    linear-gradient(180deg,transparent 33%,rgba(255,255,255,.35) 33%,rgba(255,255,255,.35) calc(33% + 1px),transparent calc(33% + 1px),transparent 66%,rgba(255,255,255,.35) 66%,rgba(255,255,255,.35) calc(66% + 1px),transparent calc(66% + 1px));}
+  input[type=range]{width:100%; accent-color:var(--pink); margin-top:14px;}
+  .notif{display:flex; gap:12px; align-items:center; padding:12px 6px; border-bottom:1px solid #e4e4e4; width:100%; text-align:left;}
   .notif p{margin:0; flex:1; font-size:14px; font-weight:700; line-height:1.45;}
   .notif p small{display:block; color:var(--dim2); font-size:12px;}
-  .empty{text-align:center; color:var(--dim2); font-weight:900; padding:30px 10px; font-size:14px;}
-  .toast{position:fixed; left:50%; top:calc(20px + env(safe-area-inset-top)); transform:translate(-50%,-140%); background:var(--tx); color:#fff; font-weight:900;
-    padding:12px 20px; border-radius:30px; z-index:60; transition:transform .3s; font-size:14px; white-space:nowrap;}
+  .req{display:flex; gap:12px; align-items:center; background:#fff; border-radius:24px; padding:12px 14px; margin-bottom:10px;}
+  .req p{margin:0; flex:1; font-size:14px; font-weight:900;}
+  .req p small{display:block; font-weight:700; color:var(--dim); font-size:12px;}
+  .toast{position:fixed; left:50%; top:calc(18px + env(safe-area-inset-top)); transform:translate(-50%,-160%); background:var(--tx); color:#fff; font-weight:900;
+    padding:12px 20px; border-radius:30px; z-index:70; transition:transform .3s; font-size:14px; max-width:calc(100vw - 32px); text-align:center;}
   .toast.on{transform:translate(-50%,0);}
   .emoji-pick{display:flex; gap:8px; flex-wrap:wrap;}
   .emoji-pick button{width:46px; height:46px; border-radius:50%; background:#fff; font-size:24px; border:2px solid transparent;}
   .emoji-pick button.on{border-color:var(--pink);}
-  .note{font-size:12px; color:var(--dim); font-weight:700; margin:10px 4px 0; line-height:1.5;}
+  .kv{display:grid; grid-template-columns:1fr auto; gap:8px 12px; font-size:14px; font-weight:900;}
+  .kv span:nth-child(odd){color:var(--dim);}
+
+  /* onboarding */
+  .onb{position:fixed; inset:0; z-index:50; background:var(--bg); overflow-y:auto;}
+  .onb .in{max-width:480px; margin:0 auto; padding:calc(40px + env(safe-area-inset-top)) 22px 40px; min-height:100%; display:flex; flex-direction:column;}
+  .onb h1{font-size:26px; font-weight:900; margin:18px 0 8px; line-height:1.4;}
+  .onb .lead{color:var(--dim); font-weight:700; font-size:15px; line-height:1.7; margin:0;}
+  .inv{display:flex; align-items:center; gap:12px; background:#fff; border-radius:24px; padding:14px 16px; margin-top:24px; font-weight:900; font-size:14px;}
+  .pick{display:flex; align-items:center; gap:12px; width:100%; background:#fff; border-radius:22px; padding:12px 14px; margin-bottom:8px; text-align:left; border:2px solid transparent;}
+  .pick.on{border-color:var(--pink); background:var(--pink3);}
+  .pick .t{flex:1; min-width:0;}
+  .pick .t b{display:block; font-size:15px; font-weight:900;}
+  .pick .t span{font-size:12px; font-weight:700; color:var(--dim);}
+  .pick .box{width:26px; height:26px; border-radius:50%; border:2px solid #ccc; display:grid; place-items:center; color:#fff; font-size:14px; font-weight:900; flex-shrink:0;}
+  .pick.on .box{background:var(--pink); border-color:var(--pink);}
+  .steps{display:flex; gap:6px; margin-bottom:6px;}
+  .steps i{height:5px; flex:1; border-radius:3px; background:#ddd;}
+  .steps i.on{background:var(--pink);}
+  .sr{position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0);}
 </style>
 </head>
 <body>
 <div id="app"></div>
 
-<div class="screen" id="scr"><div class="in" id="scrIn"></div></div>
-<div class="shade" id="shade"></div>
-<div class="sheet" id="sheet"><div class="in"><div class="grab"></div><div id="sheetIn"></div></div></div>
-<div class="toast" id="toast"></div>
-<input type="file" id="fileIn" accept="image/*" capture="environment" hidden>
+<div class="screen" id="scr" role="dialog" aria-modal="true"><div class="in" id="scrIn"></div></div>
+<div class="shade" id="shade" data-act="sclose"></div>
+<div class="sheet" id="sheet" role="dialog" aria-modal="true"><div class="in"><div class="grab"></div><div id="sheetIn"></div></div></div>
+<div class="onb" id="onb" hidden><div class="in" id="onbIn"></div></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<input type="file" id="fileIn" accept="image/*" hidden>
 
-<nav class="nav"><div class="nav-in">
-  <button class="circ" id="bellBtn" aria-label="通知">
-    <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+<nav class="nav" id="nav"><div class="nav-in">
+  <button class="circ" data-act="bell" aria-label="お知らせ">
+    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
     <span class="badge" id="bellBadge" hidden></span>
   </button>
-  <div class="pill">
-    <button data-tab="tt">時間割</button>
-    <button data-tab="log">ログ</button>
+  <div class="pill" role="tablist">
+    <button data-act="tab" data-v="home" role="tab">きょう</button>
+    <button data-act="tab" data-v="tt" role="tab">時間割</button>
   </div>
-  <button class="circ" id="plusBtn" aria-label="出席を記録">
-    <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="3.2" stroke-linecap="round"><path d="M12 4v16M4 12h16"/></svg>
+  <button class="circ" data-act="plus" aria-label="いまのコマを記録">
+    <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="3.2" stroke-linecap="round"><path d="M12 4v16M4 12h16"/></svg>
   </button>
 </div></nav>
 
 <script>
-/* ============ 定数 ============ */
+'use strict';
+/* =========================================================
+   定数
+   ========================================================= */
 const DAYS = ['月','火','水','木','金'];
-const PERIODS = [
-  {n:1, s:'9:00',  e:'10:30'},
-  {n:2, s:'10:40', e:'12:10'},
-  {n:3, s:'13:00', e:'14:30'},
-  {n:4, s:'14:40', e:'16:10'},
-  {n:5, s:'16:20', e:'17:50'},
-  {n:6, s:'18:00', e:'19:30'},
-];
-const COLORS = ['#fbd5ef','#cdeee4','#fbeea8','#d6e4ff','#ffd9c7','#e5d8ff','#d9f2c9'];
+const PRESETS = {
+  90:  [['9:00','10:30'],['10:40','12:10'],['13:00','14:30'],['14:40','16:10'],['16:20','17:50'],['18:00','19:30']],
+  100: [['9:00','10:40'],['10:50','12:30'],['13:20','15:00'],['15:10','16:50'],['17:00','18:40'],['18:50','20:30']],
+};
+const COLORS = ['#fbd5ef','#cdeee4','#fff0a8','#d6e4ff','#ffdcc9','#e5d8ff','#d9f2c9'];
 const BGS = [
   'linear-gradient(135deg,#ffb88c,#de6262)','linear-gradient(135deg,#5fd6bd,#2a8f9c)','linear-gradient(135deg,#f6d365,#fda085)',
-  'linear-gradient(135deg,#a18cd1,#fbc2eb)','linear-gradient(135deg,#89f7fe,#66a6ff)','linear-gradient(135deg,#232526,#414345)',
+  'linear-gradient(135deg,#a18cd1,#fbc2eb)','linear-gradient(135deg,#89f7fe,#66a6ff)','linear-gradient(135deg,#3a3d40,#6b6f73)',
   'linear-gradient(135deg,#fccb90,#d57eeb)',
 ];
 const ME_EMOJI = ['🐣','🐻','🐱','🦊','🐸','🐼','🍙','⭐️','🌙','🎧'];
-const GRAD_CREDITS = 124;
-const STATUS = {taking:{t:'履修中',c:''}, got:{t:'単位取得',c:'g'}, failed:{t:'落単',c:'r'}};
+const FACULTIES = ['文学部','法学部','経済学部','商学部','理工学部','総合政策学部','国際経営学部','国際情報学部'];
+const EMO = ['😊','🔥','👀','😂','🍙'];
+const CAP = {
+  p:     [['授業前の机','📓'],['前の席とれた','🪑'],['今日は小テスト…','✏️'],['板書が多い日','📝'],['窓際さいこう','🪟'],['カフェラテと','☕️'],['新しいノート','📒'],['ねむい','😪']],
+  lunch: [['学食のカレー','🍛'],['コンビニおにぎり','🍙'],['中庭でお昼','🌳'],['ラーメン行った','🍜']],
+  after: [['ゼミ終わりの空','🌇'],['サークル行ってくる','🎸'],['図書館こもる','📚']],
+  free:  [['ラウンジで課題','💻'],['空きコマ散歩','🚶']],
+};
+const MY_SEED = [
+  [0,1,'英語コミュニケーション','2-301'],[0,3,'統計学入門','5-102'],[1,2,'心理学概論','大講義室A'],[1,4,'社会学','3-201'],
+  [2,2,'プログラミング基礎','情報演習室'],[2,4,'経済学原論','3-205'],[3,1,'韓国語Ⅰ','2-104'],[3,3,'メディア論','3-401'],
+  [4,2,'スポーツ科学','体育館'],[4,3,'基礎ゼミ','研究棟402'],
+];
+// デモの友だち(本番では承認した友だちのデータがサーバーから届く)
+const FDEF = [
+  {id:'f1', name:'そうご', emoji:'🌅', bg:0, fac:'商学部', rate:.85, got:['英語コミュニケーション'], cls:[
+    [0,1,'英語コミュニケーション','2-301'],[0,2,'簿記原理','8-201'],[1,2,'心理学概論','大講義室A'],[2,2,'プログラミング基礎','情報演習室'],
+    [2,3,'マーケティング論','8-305'],[3,2,'経営学入門','8-101'],[4,3,'基礎ゼミ','研究棟402'],[4,4,'哲学','3-102']]},
+  {id:'f2', name:'ゆい', emoji:'🍾', bg:4, fac:'文学部', rate:.8, got:['統計学入門'], cls:[
+    [0,3,'統計学入門','5-102'],[1,2,'心理学概論','大講義室A'],[1,3,'日本文学史','3-305'],[2,1,'フランス語Ⅰ','2-202'],
+    [2,4,'経済学原論','3-205'],[3,1,'韓国語Ⅰ','2-104'],[3,3,'メディア論','3-401'],[4,2,'美術史','3-110']]},
+  {id:'f3', name:'けんと', emoji:'🏀', bg:5, fac:'法学部', rate:.65, got:[], cls:[
+    [0,1,'英語コミュニケーション','2-301'],[0,4,'民法総論','法学棟201'],[1,1,'憲法','法学棟101'],[1,4,'社会学','3-201'],
+    [2,3,'刑法総論','法学棟102'],[3,2,'政治学原論','3-301'],[3,3,'メディア論','3-401'],[4,2,'スポーツ科学','体育館']]},
+  {id:'f4', name:'まな', emoji:'🎨', bg:3, fac:'総合政策学部', rate:.9, got:[], cls:[
+    [0,2,'デザイン論','7-101'],[0,3,'統計学入門','5-102'],[1,3,'デザイン演習','アトリエ'],[2,2,'プログラミング基礎','情報演習室'],
+    [3,4,'色彩論','7-202'],[4,3,'基礎ゼミ','研究棟402']]},
+  {id:'f5', name:'はると', emoji:'🎸', bg:6, fac:'理工学部', rate:.75, got:[], cls:[
+    [0,1,'線形代数','理工1-201'],[0,3,'統計学入門','5-102'],[1,1,'微分積分','理工1-101'],[2,3,'化学概論','理工2-301'],
+    [3,2,'データ構造','理工3-201'],[4,1,'物理学実験','実験棟']]},
+];
 
-/* ============ 日付ユーティリティ(1日は午前4時から) ============ */
-function logicalNow(){ return new Date(Date.now() - 4*3600e3); }
-function ymd(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
-function todayStr(){ return ymd(logicalNow()); }
-function dayIdx(d=logicalNow()){ const w=d.getDay(); return (w>=1&&w<=5)? w-1 : -1; } // 月=0 … 金=4, 土日=-1
-function weekDates(){ // 今週の月〜金の日付文字列
-  const d=logicalNow(); const w=d.getDay(); const diff = w===0 ? -6 : 1-w;
-  return DAYS.map((_,i)=>{ const x=new Date(d); x.setDate(d.getDate()+diff+i); return ymd(x); });
-}
-function toMin(hm){ const [h,m]=hm.split(':').map(Number); return h*60+m; }
-function currentPeriod(){ // 授業中 or 次の授業のコマ番号
-  const n=new Date(); const m=n.getHours()*60+n.getMinutes();
-  for(const p of PERIODS){ if(m < toMin(p.e)) return p.n; }
-  return null;
-}
-function ago(ts){
-  const s=(Date.now()-ts)/1000;
-  if(s<60) return 'たった今';
-  if(s<3600) return Math.floor(s/60)+'分前';
-  if(s<86400) return Math.floor(s/3600)+' 時間前';
-  return Math.floor(s/86400)+'日前';
-}
-const uid=()=>Math.random().toString(36).slice(2,10);
-const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+/* =========================================================
+   ユーティリティ
+   ========================================================= */
+const uid = () => Math.random().toString(36).slice(2,10);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const key = c => `${c.name}|${c.day}|${c.period}`;
+function hash(s){ let h=2166136261; for(let i=0;i<s.length;i++){ h^=s.charCodeAt(i); h=Math.imul(h,16777619); } return (h>>>0)/4294967296; }
+const toMin = hm => { const [h,m]=hm.split(':').map(Number); return h*60+m; };
+const fmtMin = m => `${Math.floor(m/60)%24}:${String(m%60).padStart(2,'0')}`;
+const ymd = d => d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+const dateMs = s => { const [y,m,d]=s.split('-').map(Number); return new Date(y,m-1,d).getTime(); };
+const dayOfDate = s => { const w=new Date(dateMs(s)).getDay(); return (w>=1&&w<=5)? w-1 : -1; };
+const md = s => { const [,m,d]=s.split('-').map(Number); return `${m}/${d}`; };
+function names(list){ const n=list.map(f=>f.name); return n.length<=2 ? n.join('・') : `${n.slice(0,2).join('・')} ほか${n.length-2}人`; }
 
-/* ============ 状態 ============ */
-const KEY='komalog.v1';
+/* =========================================================
+   状態(この端末に保存)
+   ========================================================= */
+const KEY = 'komalog.v2';
+let demoAnchor = Date.now(); // デモ時刻は「設定した時刻 + 経過時間」で進む
 let S = load();
-function load(){
-  try{ const j=JSON.parse(localStorage.getItem(KEY)); if(j && j.me) return j; }catch(e){}
+
+function fresh(){
+  const r = new Date(); const w = r.getDay(); const m = r.getHours()*60 + r.getMinutes();
+  const realOk = w>=1 && w<=5 && m>=8*60+30 && m<=18*60;
   return {
-    me:{name:'あなた', emoji:'🐣', bg:0},
-    classes:[
-      {id:uid(), day:0, period:1, name:'英語コミュニケーション', room:'2-301', credits:2, status:'taking', color:COLORS[3]},
-      {id:uid(), day:0, period:3, name:'統計学入門', room:'5-102', credits:2, status:'taking', color:COLORS[1]},
-      {id:uid(), day:1, period:2, name:'心理学概論', room:'大講義室A', credits:2, status:'taking', color:COLORS[0]},
-      {id:uid(), day:2, period:2, name:'プログラミング基礎', room:'情報演習室', credits:2, status:'taking', color:COLORS[2]},
-      {id:uid(), day:2, period:4, name:'経済学原論', room:'3-205', credits:2, status:'taking', color:COLORS[4]},
-      {id:uid(), day:3, period:1, name:'第二外国語(韓国語)', room:'2-104', credits:1, status:'taking', color:COLORS[5]},
-      {id:uid(), day:4, period:3, name:'基礎ゼミ', room:'研究棟 402', credits:2, status:'taking', color:COLORS[6]},
-    ],
-    logs:[], // {id, classId, date, ts, photo, comment}
-    past:{got:28, failed:2}, // 過去の取得単位(前期まで)
-    fmeta:{}, // friendId -> {seen, reacted}
-    reactions:[], // 自分の投稿へのリアクション(デモ)
-    notifSeen:0,
+    v:2, onboarded:false,
+    me:{name:'', emoji:'🐣', bg:0, fac:'', handle:uid().slice(0,6)},
+    classes:[], posts:[],
+    groups:[{id:'g1', name:'統計のメンバー', members:['f2','f4']},{id:'g2', name:'軽音サークル', members:['f1','f3']}],
+    friendState:{f1:'friend', f2:'friend', f3:'friend', f4:'friend', f5:'request'},
+    sentReq:[], seen:{}, sent:{}, nudged:{}, notifs:[], notifSeen:0,
+    settings:{ttAud:'friends', postAud:'friends', preset:90, demo:{on:!realOk, day:(w>=1&&w<=5)? w-1 : 2, min:11*60+20}},
+    metrics:{openDays:[], checkins:0, photos:0, invites:0, reactions:0, nudges:0},
   };
+}
+function load(){
+  try{ const j = JSON.parse(localStorage.getItem(KEY)); if(j && j.v===2) return Object.assign(fresh(), j); }catch(e){}
+  return fresh();
 }
 function save(){
-  try{ localStorage.setItem(KEY, JSON.stringify(S)); }
-  catch(e){ toast('保存容量がいっぱいです。古い写真を削除してね'); }
+  try{ localStorage.setItem(KEY, JSON.stringify(S)); return true; }
+  catch(e){ toast('端末の保存容量がいっぱいです。古い写真を消してね'); return false; }
 }
 
-/* ============ デモの友だち ============ */
-const FRIENDS = buildFriends();
+/* =========================================================
+   時刻(1日は午前4時から。デモ時刻にも対応)
+   ========================================================= */
+function now(){
+  const dm = S.settings.demo;
+  if(!dm.on) return new Date();
+  const r = new Date(Date.now() - 4*3600e3); const w = r.getDay();
+  const base = new Date(r.getFullYear(), r.getMonth(), r.getDate() + (w===0 ? -6 : 1-w) + dm.day, 0, dm.min);
+  return new Date(base.getTime() + (Date.now() - demoAnchor));
+}
+const nowTs = () => now().getTime();
+const logical = () => new Date(nowTs() - 4*3600e3);
+const todayStr = () => ymd(logical());
+function dayIdx(){ const w = logical().getDay(); return (w>=1&&w<=5)? w-1 : -1; }
+function nowMin(){ const n = now(); let m = n.getHours()*60 + n.getMinutes(); if(n.getHours()<4) m += 1440; return m; }
+function weekDates(off=0){
+  const L = logical(); const w = L.getDay(); const diff = (w===0 ? -6 : 1-w) + off*7;
+  return DAYS.map((_,i) => ymd(new Date(L.getFullYear(), L.getMonth(), L.getDate()+diff+i)));
+}
+function ago(ts){
+  const s = (nowTs()-ts)/1000;
+  if(s < 60) return 'たった今';
+  if(s < 3600) return Math.floor(s/60)+'分前';
+  if(s < 86400) return Math.floor(s/3600)+'時間前';
+  return Math.floor(s/86400)+'日前';
+}
+const PER = () => PRESETS[S.settings.preset] || PRESETS[90];
+function nowLabel(){
+  const m = nowMin(), P = PER();
+  if(m < toMin(P[0][0])) return '授業前';
+  for(let i=0;i<P.length;i++){
+    if(m >= toMin(P[i][0]) && m < toMin(P[i][1])) return `${i+1}限の途中`;
+    if(i===1 && m >= toMin(P[1][1]) && m < toMin(P[2][0])) return '昼休み';
+    if(i<P.length-1 && m >= toMin(P[i][1]) && m < toMin(P[i+1][0])) return '休み時間';
+  }
+  return '放課後';
+}
+
+/* =========================================================
+   1日のコマ(授業・空きコマ・昼休み・放課後)
+   ========================================================= */
+function daySlots(classes, d){
+  const P = PER();
+  const cls = classes.filter(c => c.day===d).sort((a,b) => a.period-b.period);
+  if(!cls.length) return [];
+  const first = cls[0].period, last = cls[cls.length-1].period, out = [];
+  const win = p => ({s:toMin(P[p-1][0]), e:toMin(P[p-1][1])});
+  const lunch = {slot:'lunch', type:'lunch', win:{s:toMin(P[1][1]), e:toMin(P[2][0])}};
+  for(let p=first; p<=last; p++){
+    if(p===3 && first<=2) out.push(lunch);
+    const c = cls.find(x => x.period===p);
+    out.push(c ? {slot:'p'+p, type:'class', period:p, cls:c, win:win(p)} : {slot:'p'+p, type:'free', period:p, win:win(p)});
+  }
+  if(last<=2) out.push(lunch);
+  const le = toMin(P[last-1][1]);
+  out.push({slot:'after', type:'after', win:{s:le, e:le+180}});
+  return out;
+}
+function slotName(s){
+  if(s.type==='class') return `${s.period}限`;
+  if(s.type==='free') return `${s.period}限 空きコマ`;
+  if(s.type==='lunch') return '昼休み';
+  return '放課後';
+}
+const slotTime = s => s.type==='after' ? `${fmtMin(s.win.s)}〜` : `${fmtMin(s.win.s)}–${fmtMin(s.win.e)}`;
+function phaseOf(date, s){
+  const t = todayStr();
+  if(date < t) return 'past'; if(date > t) return 'future';
+  const m = nowMin(); return m < s.win.s ? 'future' : m < s.win.e ? 'now' : 'past';
+}
+function canRecord(date, s){
+  const t = todayStr();
+  if(date > t || date < weekDates(0)[0]) return false;
+  return date < t || nowMin() >= s.win.s - 30;
+}
+function postLabel(classes, p){
+  if(p.slot==='lunch') return '昼休み';
+  if(p.slot==='after') return '放課後';
+  const per = +p.slot.slice(1);
+  const c = classes.find(x => x.day===dayOfDate(p.date) && x.period===per);
+  return c ? `${per}限 ${c.name}` : `${per}限 空きコマ`;
+}
+// 授業コマの記録状態: in=来た / photo=写真あり / none=記録なし / yet=これから  (※「欠席」は存在しない)
+function recState(post, date, s){
+  if(post) return (post.photo || post.ph) ? 'photo' : 'in';
+  return phaseOf(date, s)==='future' ? 'yet' : 'none';
+}
+const REC_TXT = {in:'来た', photo:'写真あり', none:'記録なし', yet:'これから'};
+function dotsHTML(states, line){
+  const k = states.filter(s => s==='in'||s==='photo').length;
+  const label = `記録 ${states.length}コマ中${k}コマ(` + states.map(s=>REC_TXT[s]).join('・') + ')';
+  return `<span class="dts ${line?'line':''}" role="img" aria-label="${label}">${states.map(s=>`<i class="dt ${s}"></i>`).join('')}</span>`;
+}
+const LEGEND = `<div class="legend" aria-hidden="true"><span><i class="dt in"></i>来た</span><span><i class="dt photo"></i>写真あり</span><span><i class="dt none"></i>記録なし</span><span><i class="dt yet"></i>これから</span></div>`;
+
+/* =========================================================
+   デモの友だちデータ(時刻に合わせて生成)
+   ========================================================= */
+let FRIENDS = [];
 function buildFriends(){
-  const wd=weekDates(); const today=todayStr(); const td=dayIdx();
-  const now=Date.now();
-  const mk=(id,name,emoji,bg,classes,attend,credits)=>{
-    const cls=classes.map((c,i)=>({id:id+'c'+i, day:c[0], period:c[1], name:c[2], room:c[3], credits:c[4]||2, status:c[5]||'taking', color:COLORS[i%COLORS.length]}));
-    const logs=[];
-    cls.forEach((c,i)=>{
-      const date=wd[c.day];
-      if(date>today) return;
-      if(date===today){ const p=PERIODS[c.period-1]; const n=new Date(); if(n.getHours()*60+n.getMinutes() < toMin(p.s)) return; }
-      if(!attend(i,c)) return;
-      const hoursAgo = date===today ? 1+ (i%4) : (td<0?5:td-c.day)*24 + (i%5);
-      logs.push({id:id+'l'+i, classId:c.id, date, ts:now-hoursAgo*3600e3, photo:null, comment:['ねむい…','前の席とれた','出席カードギリギリ','今日小テストだった','友だちと受けてる'][i%5], bg:BGS[(i+2)%BGS.length], emo:['📚','🏫','✏️','💻','🧑‍🏫','☕️'][i%6]});
-    });
-    return {id,name,emoji,bg,classes:cls,logs,past:credits};
-  };
-  return [
-    mk('f1','そうごとゆかいな仲間たち','🌅',0,[
-      [0,1,'英語コミュニケーション','2-301'],[0,2,'線形代数','4-201'],[1,2,'心理学概論','大講義室A'],[1,3,'物理学実験','実験棟',2],
-      [2,1,'微分積分','4-101'],[2,2,'プログラミング基礎','情報演習室'],[3,2,'データ構造','4-303'],[3,4,'体育実技','体育館',1],
-      [4,1,'化学概論','5-201'],[4,3,'基礎ゼミ','研究棟 402'],[4,4,'哲学','3-102',2,'got'],
-    ], (i)=>i%4!==3, {got:34, failed:0}),
-    mk('f2','ゆい','🍾',4,[
-      [0,3,'統計学入門','5-102'],[1,2,'心理学概論','大講義室A'],[2,4,'経済学原論','3-205'],[3,1,'第二外国語(韓国語)','2-104',1],[4,5,'映像表現論','メディア棟'],
-    ], (i)=>i!==2, {got:30, failed:4}),
-    mk('f3','けんと','🏀',5,[
-      [0,1,'英語コミュニケーション','2-301'],[0,5,'会計学','6-101'],[1,1,'民法総論','法学棟201'],[2,3,'憲法','法学棟101'],[3,3,'政治学','3-301'],[4,2,'スポーツ科学','体育館',1],
-    ], (i)=>i%2===0, {got:22, failed:8}),
-    mk('f4','まな','🎨',3,[
-      [1,4,'デザイン演習','アトリエ',2],[2,2,'プログラミング基礎','情報演習室'],[3,5,'色彩論','メディア棟'],[4,3,'基礎ゼミ','研究棟 402'],
-    ], ()=>true, {got:38, failed:0}),
-  ];
+  FRIENDS = FDEF.map(fd => {
+    const classes = fd.cls.map((c,i) => ({id:fd.id+'c'+i, day:c[0], period:c[1], name:c[2], room:c[3],
+      color:COLORS[(i*3+fd.bg)%COLORS.length], got:fd.got.includes(c[2]), shareGot:fd.got.includes(c[2])}));
+    const f = {...fd, classes}; f.posts = genPosts(f); return f;
+  });
 }
-function fmeta(id){ return S.fmeta[id] || (S.fmeta[id]={seen:0, reacted:0}); }
+function genPosts(f){
+  const today = todayStr(), m = nowMin(), P = PER(), posts = [];
+  const mk = (date, slot, t, capKind, seed, classId, forcePhoto) => {
+    const i = Math.floor(hash(seed+'i') * CAP[capKind].length);
+    const photo = forcePhoto || hash(seed+'p') < .5;
+    posts.push({id:`${f.id}-${date}-${slot}`, owner:f.id, date, slot, classId, checkin:!!classId, ts:dateMs(date)+t*60e3,
+      ph: photo ? {bg:BGS[(i+slot.length)%BGS.length], emo:CAP[capKind][i][1]} : null,
+      comment: (photo || hash(seed+'c') < .4) ? CAP[capKind][i][0] : '', aud:'friends'});
+  };
+  for(const off of [0,-1,-2]){
+    weekDates(off).forEach((date,d) => {
+      if(date > today) return;
+      const cls = f.classes.filter(c => c.day===d).sort((a,b) => a.period-b.period);
+      if(!cls.length) return;
+      cls.forEach(c => {
+        const seed = f.id+date+c.period;
+        const t = toMin(P[c.period-1][0]) - 8 + Math.floor(hash(seed+'t')*14);
+        if(date===today && m < t) return;
+        if(hash(seed) > f.rate) return;
+        mk(date, 'p'+c.period, t, 'p', seed, c.id, false);
+      });
+      const first = cls[0].period, last = cls[cls.length-1].period;
+      const lt = toMin(P[1][1]) + 12 + Math.floor(hash(f.id+date+'lt')*20);
+      if(first<=2 && last>=3 && !(date===today && m<lt) && hash(f.id+date+'L') < .55) mk(date, 'lunch', lt, 'lunch', f.id+date+'L', null, true);
+      const at = toMin(P[last-1][1]) + 15;
+      if(!(date===today && m<at) && hash(f.id+date+'A') < .3) mk(date, 'after', at, 'after', f.id+date+'A', null, true);
+    });
+  }
+  return posts.sort((a,b) => a.ts-b.ts);
+}
+const friends = () => FRIENDS.filter(f => S.friendState[f.id]==='friend');
+const fById = id => FRIENDS.find(f => f.id===id);
+const fPost = (f, date, slot) => f.posts.find(p => p.date===date && p.slot===slot);
+const myPost = (date, slot) => S.posts.find(p => p.date===date && p.slot===slot);
+const friendsWith = c => c ? friends().filter(f => f.classes.some(x => key(x)===key(c))) : [];
+// その時間に「お互い空いている」友だち(その日キャンパスにいて、そのコマに授業がない)
+function freeFriends(d, s){
+  return friends().filter(f => {
+    const cl = f.classes.filter(c => c.day===d); if(!cl.length) return false;
+    const ps = cl.map(c => c.period), first = Math.min(...ps), last = Math.max(...ps);
+    if(s.type==='lunch') return first<=2 && last>=3;
+    if(s.type==='free') return first<=s.period && s.period<=last && !ps.includes(s.period);
+    return false;
+  });
+}
 
-/* ============ 共通レンダ部品 ============ */
-function avatar(emoji,bg,size=42){ return `<div class="av" style="width:${size}px;height:${size}px;font-size:${size*.52}px;background:${BGS[bg]||BGS[0]}">${emoji}</div>`; }
-const SMILE = `<svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#222" stroke-width="1.4" stroke-linecap="round"><circle cx="9.2" cy="10" r=".9" fill="#222"/><circle cx="14.8" cy="10" r=".9" fill="#222"/><path d="M7.5 13.6c1.1 1.9 2.7 2.8 4.5 2.8s3.4-.9 4.5-2.8"/></svg>`;
-const CHEV = `<svg class="chev" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m9 5 7 7-7 7"/></svg>`;
+/* =========================================================
+   共通パーツ
+   ========================================================= */
+const avatar = (emoji, bg, size=42) => `<span class="av" style="width:${size}px;height:${size}px;font-size:${Math.round(size*.52)}px;background:${BGS[bg]||BGS[0]}">${emoji}</span>`;
+function faceStack(list, date, slot, size=28){
+  return `<span class="stk">${list.slice(0,4).map(f => { const on = slot && fPost(f,date,slot)?.checkin;
+    return `<span class="fa ${on?'on':''}">${avatar(f.emoji,f.bg,size)}${on?'<i>✓</i>':''}</span>`; }).join('')}</span>`;
+}
+const SMILE = `<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#222" stroke-width="1.4" stroke-linecap="round"><circle cx="9.2" cy="10" r=".9" fill="#222"/><circle cx="14.8" cy="10" r=".9" fill="#222"/><path d="M7.5 13.6c1.1 1.9 2.7 2.8 4.5 2.8s3.4-.9 4.5-2.8"/></svg>`;
+const CHEV = `<svg class="chev" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 5 7 7-7 7"/></svg>`;
 const BACK = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m15 5-7 7 7 7"/></svg>`;
-const STAR = `<svg viewBox="0 0 120 110" class="mascot"><g stroke="#222" stroke-width="3" stroke-linecap="round" fill="none">
+const STAR = w => `<svg viewBox="0 0 120 110" width="${w}" aria-hidden="true"><g stroke="#222" stroke-width="3" stroke-linecap="round" fill="none">
   <path d="M60 14 72 42 101 44 79 63 86 92 60 76 34 92 41 63 19 44 48 42Z" fill="#fbeea8" stroke-linejoin="round"/>
   <path d="M28 18l6 7M92 18l-6 7M8 58l10-3M112 58l-10-3M60 100v8"/>
   <path d="M55 46v7M66 44v7" stroke-width="3.4"/><ellipse cx="60" cy="61" rx="4" ry="3.2"/></g></svg>`;
-const CAM_IC = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.2"/></svg>`;
+const SPARK = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#e24fd2" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 3v5M12 16v5M3 12h5M16 12h5M6 6l2.5 2.5M15.5 15.5 18 18M18 6l-2.5 2.5M8.5 15.5 6 18"/></svg>`;
+const CAM = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.2"/></svg>`;
+function audOptions(){ return [['friends','👥 友だち全員'], ...S.groups.map(g => ['g:'+g.id, '🏷 '+g.name]), ['private','🔒 自分だけ']]; }
+function audLabel(a){ const o = audOptions().find(x => x[0]===a); return o ? o[1] : '👥 友だち全員'; }
+const photoStyle = p => p.photo ? `background-image:url('${p.photo}')` : p.ph ? `background:${p.ph.bg}` : '';
+const phEmo = p => (!p.photo && p.ph) ? `<span class="phemo" aria-hidden="true">${p.ph.emo}</span>` : '';
 
-function weekDots(classes,logs){
-  const wd=weekDates(); const today=todayStr();
-  const list=[...classes].sort((a,b)=>a.day-b.day||a.period-b.period).slice(0,15);
-  const att=new Set(logs.map(l=>l.classId+'@'+l.date));
-  return `<div class="dots" style="grid-template-rows:repeat(${Math.min(3,Math.ceil(list.length/5))},9px); grid-auto-flow:column;">`+
-    list.map(c=>{ const d=wd[c.day]; const on=att.has(c.id+'@'+d); return `<i class="${on?(d===today?'today':'on'):''}"></i>`; }).join('')+`</div>`;
+/* =========================================================
+   画面: きょう
+   ========================================================= */
+let tab = 'home', viewWeek = 0, viewDay = null;
+function selDay(){ if(viewDay==null){ const d = dayIdx(); viewDay = d<0 ? 4 : d; } return viewDay; }
+
+function header(){
+  const t = todayStr(), d = dayIdx();
+  const dm = S.settings.demo;
+  const lbl = d<0 ? `${md(t)}(${'日月火水木金土'[logical().getDay()]})・週末` : `${md(t)}(${DAYS[d]})・いまは${nowLabel()}`;
+  return `<div class="hd"><div class="logo">KOMALOG</div>
+    <button class="me-btn" data-act="settings" aria-label="プロフィールと設定">${avatar(S.me.emoji,S.me.bg,42)}</button></div>
+    <div class="hint"><span class="ic">${CAM}</span>${lbl}
+      ${dm.on ? `<button class="demo-chip" data-act="settings">デモ時刻 ${DAYS[dm.day]} ${fmtMin(dm.min)}</button>` : ''}</div>`;
 }
-function stats(classes,logs,past){
-  const wd=weekDates(); const today=todayStr(); const n=new Date(); const nm=n.getHours()*60+n.getMinutes();
-  const done=classes.filter(c=>{ const d=wd[c.day]; if(d<today) return true; if(d>today) return false; return nm>=toMin(PERIODS[c.period-1].s); });
-  const att=new Set(logs.map(l=>l.classId+'@'+l.date));
-  const attended=done.filter(c=>att.has(c.id+'@'+wd[c.day])).length;
-  const got=(past?.got||0)+classes.filter(c=>c.status==='got').reduce((a,c)=>a+Number(c.credits||0),0);
-  const failed=(past?.failed||0)+classes.filter(c=>c.status==='failed').reduce((a,c)=>a+Number(c.credits||0),0);
-  const taking=classes.filter(c=>c.status==='taking').reduce((a,c)=>a+Number(c.credits||0),0);
-  return {rate: done.length? Math.round(attended/done.length*100) : null, attended, done:done.length, got, failed, taking};
+
+function weekStrip(wd, d){
+  const t = todayStr();
+  const title = viewWeek===0 ? '今週' : viewWeek===-1 ? '先週' : `${md(wd[0])}の週`;
+  return `<div class="wkbar"><button data-act="wk" data-v="-1" aria-label="前の週" ${viewWeek<=-2?'disabled':''}>‹</button><span>${title}</span>
+      <button data-act="wk" data-v="1" aria-label="次の週" ${viewWeek>=0?'disabled':''}>›</button></div>
+    <div class="wk">${wd.map((dt,i) => { const n = S.posts.filter(p => p.date===dt).length;
+      return `<button data-act="day" data-v="${i}" class="${i===d?'on':''} ${dt===t?'today':''}" aria-label="${DAYS[i]}曜 ${md(dt)}${dt===t?' 今日':''} 記録${n}件" aria-pressed="${i===d}">
+        <small>${dt===t?'今日':DAYS[i]}</small><b>${+dt.slice(8)}</b><span class="wdots">${'<i></i>'.repeat(Math.min(4,n))}</span></button>`; }).join('')}</div>`;
 }
-function statsHTML(st){
-  return `<div class="stats">
-    <div class="stat"><b>${st.rate==null?'—':st.rate}<small>${st.rate==null?'':'%'}</small></b><span>今週の出席率</span></div>
-    <div class="stat"><b>${st.got}<small>/${GRAD_CREDITS}</small></b><span>取得単位</span></div>
-    <div class="stat"><b>${st.taking}</b><span>履修中の単位</span></div>
-  </div>
-  <div class="card" style="padding:16px 20px">
-    <div style="display:flex;justify-content:space-between;font-weight:900;font-size:13px;color:var(--dim)"><span>卒業まで</span><span>あと ${Math.max(0,GRAD_CREDITS-st.got)} 単位${st.failed?` ・ 落単 ${st.failed}`:''}</span></div>
-    <div class="bar"><i style="width:${Math.min(100,st.got/GRAD_CREDITS*100)}%"></i></div>
-  </div>`;
+
+function whoCard(){
+  const fr = friends(); const t = todayStr(), d = dayIdx();
+  if(!fr.length) return `<div class="card who"><div class="who-h"><b>今日、誰がいる？</b></div>
+    <div class="empty">まだ友だちがいません。<br><button class="lnk" data-act="settings">友だちを招待する</button></div></div>`;
+  const P = PER(), m = nowMin();
+  const curP = P.findIndex(p => m >= toMin(p[0]) && m < toMin(p[1])) + 1;
+  const list = fr.map(f => {
+    const ps = f.posts.filter(p => p.date===t);
+    const cur = curP ? f.classes.find(c => c.day===d && c.period===curP) : null;
+    let cap, on = ps.some(p => p.checkin);
+    if(cur && ps.some(p => p.slot==='p'+curP)) cap = `${curP}限 ${cur.name}`;
+    else if(ps.length) cap = postLabel(f.classes, ps[ps.length-1]);
+    else cap = f.classes.some(c => c.day===d) ? '記録なし' : '今日は授業なし';
+    return {f, cap, on: on || ps.length>0, last: ps.length ? ps[ps.length-1].ts : 0};
+  }).sort((a,b) => (b.on-a.on) || (b.last-a.last));
+  const here = list.filter(x => x.on).length;
+  return `<div class="card who"><div class="who-h">${SPARK}<b>今日、誰がいる？</b><span>来てる ${here}人</span></div>
+    <div class="who-row">${list.map(x => `<button class="who-p" data-act="friend" data-v="${x.f.id}" aria-label="${x.f.name}: ${x.cap}">
+      <span class="ring ${x.on?'on':''}">${avatar(x.f.emoji,x.f.bg,52)}${x.on?'<i class="ck">✓</i>':''}</span>
+      <b>${x.f.name}</b><small class="${x.on?'on':''}">${esc(x.cap)}</small></button>`).join('')}</div></div>`;
 }
-function timetableHTML(classes,logs,{editable=false}={}){
-  const wd=weekDates(); const today=todayStr(); const td=dayIdx(); const cp=currentPeriod();
-  const att=new Set(logs.map(l=>l.classId+'@'+l.date));
-  const maxP=Math.max(5,...classes.map(c=>c.period));
-  let h=`<div class="tt"><div></div>`+DAYS.map((d,i)=>`<div class="h ${i===td?'today':''}">${d}</div>`).join('');
-  for(let p=1;p<=maxP;p++){
-    h+=`<div class="p">${p}</div>`;
-    for(let d=0;d<5;d++){
-      const c=classes.find(x=>x.day===d&&x.period===p);
-      if(c){
-        const on=att.has(c.id+'@'+wd[d]);
-        const now = d===td && p===cp;
-        h+=`<button class="cell has ${now?'now':''}" style="background:${c.color}" data-cls="${c.id}">
-          <span>${esc(c.name)}</span><span class="rm">${esc(c.room||'')}</span>
-          ${on?'<span class="mk"></span>':''}${c.status==='got'?'<span class="gt">✅</span>':c.status==='failed'?'<span class="gt">💀</span>':''}</button>`;
-      } else {
-        h+= editable ? `<button class="cell empty-add" data-add="${d}-${p}">+</button>` : `<div class="cell" style="border-style:solid;border-color:#eee;background:transparent"></div>`;
-      }
+
+function suggestions(){
+  const d = dayIdx(); if(d<0) return [];
+  const t = todayStr(), m = nowMin(), out = [];
+  const slots = daySlots(S.classes, d);
+  for(const s of slots){
+    if(s.type!=='class' || m > s.win.e - 15 || m < s.win.s - 45) continue;
+    if(myPost(t, s.slot)) continue;
+    const here = friendsWith(s.cls).filter(f => fPost(f,t,s.slot)?.checkin);
+    if(!here.length) continue;
+    out.push({k:`go:${t}:${s.slot}`, to:here, text:`<b>${names(here)}</b> がもう<b>${esc(s.cls.name)}</b>に来てる`,
+      btn:'🏃 俺も今から行く', msg:'俺も今から行く！', kind:'go'});
+    break;
+  }
+  for(const s of slots){
+    if(!(s.type==='free' || s.type==='lunch') || m >= s.win.e) continue;
+    const fr = freeFriends(d, s); if(!fr.length) continue;
+    const isNow = m >= s.win.s;
+    const label = s.type==='lunch' ? '昼休み' : `${s.period}限の空きコマ`;
+    const lunch = s.type==='lunch';
+    out.push({k:`free:${t}:${s.slot}`, to:fr, text:`${isNow?'いま':'次の'}${label}、<b>${names(fr)}</b> も空いてる`,
+      btn: lunch ? (isNow ? '🍙 ご飯行こう' : '🍙 終わったらご飯') : '☕️ 集まろ',
+      msg: lunch ? (isNow ? 'いまからご飯行こう！' : '終わったらご飯行こう！') : '空きコマどこいる？集まろ〜', kind: lunch ? 'lunch' : 'free'});
+    break;
+  }
+  return out;
+}
+function suggestHTML(){
+  return suggestions().map(s => { const sent = S.nudged[s.k];
+    return `<div class="sug">${faceStack(s.to, null, null, 30)}<p>${s.text}</p>
+      <button class="${sent?'sent':''}" data-act="nudge" data-v="${esc(s.k)}" ${sent?'disabled':''}>${sent?'送った ✓':s.btn}</button></div>`; }).join('');
+}
+
+function mySlotCard(date, s){
+  const p = myPost(date, s.slot), ph = phaseOf(date, s), d = dayOfDate(date);
+  const isNow = ph==='now';
+  const photo = p && p.photo;
+  const open = `data-act="slot" data-v="${date}|${s.slot}"`;
+  const nowPl = isNow ? '<span class="pl now">いま</span>' : '';
+  const rx = p && p.reactions && p.reactions.length ? `<span class="rxs" aria-label="リアクション${p.reactions.length}件">${p.reactions.slice(-3).map(r=>r.e).join('')} ${p.reactions.length}</span>` : '';
+  const aud = p ? `<span class="aud">${audLabel(p.aud)}</span>` : '';
+  if(s.type==='class'){
+    const c = s.cls, fr = friendsWith(c);
+    const st = recState(p, date, s);
+    const on = fr.filter(f => fPost(f,date,s.slot)?.checkin);
+    let fl = '';
+    if(fr.length){
+      const txt = on.length ? `${names(on)} ${ph==='past'&&date!==todayStr()?'も来てた':'が来てる'}` : `${names(fr)} も履修中`;
+      fl = `${faceStack(fr, date, s.slot)}<span class="t">${txt}</span>`;
+    }
+    let right;
+    if(p) right = rx || (photo ? '' : `<button class="go lite" ${open}>📷 写真</button>`);
+    else if(canRecord(date, s)) right = `<button class="go" data-act="go" data-v="${date}|${s.slot}">${date===todayStr()?'来た！':'記録する'}</button>`;
+    else right = `<span class="later">${ph==='future' ? fmtMin(s.win.s)+'〜' : ''}</span>`;
+    return `<div class="slot ${photo?'ph':''} ${isNow?'now':''}" style="${photo ? `background-image:url('${photo}')` : `--c:${c.color}`}" ${open} role="button" tabindex="0"
+        aria-label="${s.period}限 ${esc(c.name)} ${REC_TXT[st]}">
+      <div class="top"><span class="pl">${s.period}限 ${slotTime(s)}</span>${nowPl}<span class="pl st ${st==='in'||st==='photo'?'in':'none'}">${st==='photo'?'📷 ':st==='in'?'✓ ':''}${REC_TXT[st]}</span></div>
+      <div class="ttl">${esc(c.name)}</div><div class="rm">📍 ${esc(c.room||'教室未設定')}</div>
+      ${p && p.comment ? `<div class="cm">${esc(p.comment)}</div>` : ''}
+      ${c.got ? `<span class="stamp">単位GET<small>${c.shareGot?'友だちに公開':'自分だけ'}</small></span>` : ''}
+      <div class="bot"><div class="fl">${fl}</div>${aud}${right}</div></div>`;
+  }
+  // 空きコマ・昼休み・放課後
+  const fr = (s.type==='free'||s.type==='lunch') && date===todayStr() ? freeFriends(d, s) : [];
+  const cls = s.type==='lunch' ? 'lunch' : s.type==='after' ? 'after' : 'free';
+  const fl = fr.length ? `${faceStack(fr, null, null, 26)}<span class="t">${names(fr)} も空いてる</span>` : '';
+  let right = '';
+  if(p) right = rx;
+  else if(canRecord(date, s)) right = `<button class="mini" ${open}>＋ 一枚残す</button>`;
+  const hasPh = p && (p.photo || p.ph);
+  return `<div class="slot sm ${cls} ${hasPh?'ph':''} ${isNow?'now':''}" style="${p ? photoStyle(p) : ''}" ${open} role="button" tabindex="0" aria-label="${slotName(s)}">
+    ${p ? phEmo(p) : ''}
+    <div class="top"><span class="pl">${slotName(s)} ${slotTime(s)}</span>${nowPl}</div>
+    ${p && p.comment ? `<div class="cm">${esc(p.comment)}</div>` : !p ? `<div class="ttl">${s.type==='lunch'?'🍙 お昼なにする？':s.type==='after'?'🌇 今日の締めの一枚':'☕️ 空きコマ'}</div>` : ''}
+    ${(fl || right || aud) ? `<div class="bot"><div class="fl">${fl}</div>${p?aud:''}${right}</div>` : ''}</div>`;
+}
+
+function friendRow(f, date){
+  const t = todayStr(), d = dayOfDate(date);
+  const ps = f.posts.filter(p => p.date===date);
+  const slots = daySlots(f.classes, d).filter(s => s.type==='class');
+  const states = slots.map(s => recState(fPost(f,date,s.slot), date, s));
+  const k = states.filter(s => s==='in'||s==='photo').length;
+  const last = ps[ps.length-1];
+  let st;
+  if(last){
+    const lbl = postLabel(f.classes, last);
+    st = last.ts > (S.seen[f.id]||0) ? `<div class="st new">${esc(lbl)}${last.classId?'に来た':'の一枚'}${last.ph?' 📷':''}</div>`
+      : `<div class="st">閲覧済み<small>${ago(last.ts)}</small></div>`;
+  } else if(date > t) st = `<div class="st">予定 ${slots.length}コマ</div>`;
+  else st = `<div class="st">${slots.length ? '記録なし' : 'この日は授業なし'}</div>`;
+  const lp = [...ps].reverse().find(p => p.ph || p.photo);
+  const thumb = lp ? `<div class="thumb" style="${photoStyle(lp)}">${lp.ph ? lp.ph.emo : ''}</div>` : `<div class="thumb" style="background:${BGS[f.bg]}">${f.emoji}</div>`;
+  const sm = last && (S.sent[last.id]||{e:[]}).e.includes('😊');
+  return `<div class="card row" data-act="friend" data-v="${f.id}" role="button" tabindex="0">${thumb}
+    <div class="mid"><div class="name">${f.name}<span class="fac">${f.fac}</span></div>${st}</div>
+    ${slots.length ? `<div class="dwrap">${dotsHTML(states)}<em>${k}/${slots.length}</em></div>` : ''}
+    <button class="smile ${sm?'done':''}" data-act="smile" data-v="${last?last.id:''}" ${last?'':'disabled'} aria-label="${f.name}の最新の投稿に😊" aria-pressed="${!!sm}">${SMILE}</button>${CHEV}</div>`;
+}
+
+function homeView(){
+  const wd = weekDates(viewWeek), d = selDay(), date = wd[d], t = todayStr(), isToday = date===t;
+  let h = header() + weekStrip(wd, d);
+  if(isToday) h += whoCard() + suggestHTML();
+  const slots = daySlots(S.classes, d);
+  const cs = slots.filter(s => s.type==='class');
+  const states = cs.map(s => recState(myPost(date, s.slot), date, s));
+  const k = states.filter(s => s==='in'||s==='photo').length;
+  h += `<div class="dayhd"><h2>${isToday ? 'きょうのわたし' : `${md(date)}(${DAYS[d]})のわたし`}</h2>
+    ${cs.length ? `<span class="rec">${dotsHTML(states, true)} ${k}/${cs.length} 記録</span>` : ''}</div>`;
+  if(cs.length) h += LEGEND + slots.map(s => mySlotCard(date, s)).join('');
+  else h += `<div class="card" style="text-align:center">${STAR(84)}<div class="empty" style="padding:8px 0 4px">${S.classes.length ? 'この日は授業なし。' : 'まだ時間割がありません。<br>まずは1コマだけでOK！'}</div>
+    ${S.classes.length ? '' : '<button class="btn" data-act="tab" data-v="tt">時間割に授業を追加</button>'}</div>`;
+  if(isToday || date < t){
+    const fr = friends().filter(f => f.classes.some(c => c.day===d) || f.posts.some(p => p.date===date));
+    if(fr.length){
+      const rows = fr.map(f => { const ps = f.posts.filter(p => p.date===date); const last = ps.length ? ps[ps.length-1].ts : 0;
+        return {f, last, isNew: last > (S.seen[f.id]||0)}; }).sort((a,b) => (b.isNew-a.isNew) || (b.last-a.last));
+      h += `<div class="sec-t"><span>友だちの${isToday?'きょう':md(date)}</span></div>` + rows.map(r => friendRow(r.f, date)).join('');
     }
   }
-  return h+`</div>`;
-}
-function postHTML(l,cls,owner){
-  const c=cls.find(x=>x.id===l.classId);
-  const p=PERIODS[(c?.period||1)-1];
-  const phStyle = l.photo ? `background-image:url(${l.photo})` : `background:${l.bg||BGS[1]}`;
-  return `<div class="post">
-    <div class="ph" style="${phStyle}">${l.photo?'':(l.emo||'🏫')}<span class="loc">📍 ${esc(c?.room||'教室')}</span></div>
-    <div class="bd">${avatar(owner.emoji,owner.bg,40)}<div class="t"><b>${esc(c?.name||'授業')}<span class="chip">出席</span></b>
-      <span>${esc(owner.name)} ・ ${c?DAYS[c.day]+'曜'+c.period+'限 '+p.s+'〜':''} ・ ${ago(l.ts)}</span></div></div>
-    ${l.comment?`<div class="cm">${esc(l.comment)}</div>`:''}
-  </div>`;
+  h += `<p class="note" style="text-align:center;margin-top:18px">「来た」は本人の自己申告です。大学の正式な出席記録ではありません。<br>記録がないことは欠席を意味しません。</p>`;
+  return h;
 }
 
-/* ============ メイン画面 ============ */
-let tab = 'log';
-function render(){
-  document.querySelectorAll('.pill button').forEach(b=>b.classList.toggle('on', b.dataset.tab===tab));
-  const app=document.getElementById('app');
-  const header=`<div class="hd"><div class="logo">KOMALOG</div>
-    <button class="me-btn" id="meBtn">${avatar(S.me.emoji,S.me.bg,42)}</button></div>
-    <button class="hint" id="hintBtn"><span class="ic">${CAM_IC}</span>教室を撮って出席</button>`;
-  app.innerHTML = header + (tab==='log' ? logView() : ttView());
-  document.getElementById('meBtn').onclick=openMe;
-  document.getElementById('hintBtn').onclick=()=>openCapture();
-  app.querySelectorAll('[data-friend]').forEach(el=>el.onclick=e=>{
-    if(e.target.closest('.smile')) return;
-    openFriend(el.dataset.friend);
-  });
-  app.querySelectorAll('.smile').forEach(el=>el.onclick=()=>react(el));
-  app.querySelectorAll('[data-cls]').forEach(el=>el.onclick=()=>openClass(el.dataset.cls));
-  app.querySelectorAll('[data-add]').forEach(el=>el.onclick=()=>{ const [d,p]=el.dataset.add.split('-').map(Number); editClass(null,d,p); });
-  const heroBtn=document.getElementById('heroBtn'); if(heroBtn) heroBtn.onclick=()=>{tab='tt'; render();};
-  updateBell();
+/* =========================================================
+   画面: 時間割
+   ========================================================= */
+let showAllPool = false;
+function gridHTML(){
+  const wd = weekDates(0), td = dayIdx(), P = PER(), m = nowMin();
+  const curP = P.findIndex(p => m >= toMin(p[0]) && m < toMin(p[1])) + 1;
+  const maxP = Math.max(5, ...S.classes.map(c => c.period));
+  let h = `<div class="tt"><div></div>` + DAYS.map((x,i) => `<div class="h ${i===td?'today':''}">${x}</div>`).join('');
+  for(let p=1; p<=maxP; p++){
+    h += `<div class="p">${p}</div>`;
+    for(let d=0; d<5; d++){
+      const c = S.classes.find(x => x.day===d && x.period===p);
+      if(c){
+        const rec = myPost(wd[d], 'p'+p);
+        h += `<button class="cell ${d===td&&p===curP?'now':''}" style="background:${c.color}" data-act="cell" data-v="${c.id}" aria-label="${DAYS[d]}${p}限 ${esc(c.name)}${rec?' 今週来た':''}">
+          <span>${esc(c.name)}</span><span class="rm">${esc(c.room||'')}</span>${rec?'<span class="mk">✓</span>':''}${c.got?'<span class="gt">GET</span>':''}</button>`;
+      } else h += `<button class="cell add" data-act="addcell" data-v="${d}-${p}" aria-label="${DAYS[d]}${p}限に授業を追加">+</button>`;
+    }
+  }
+  return h + '</div>';
 }
-
-function logView(){
-  const td=dayIdx(); const today=todayStr();
-  const mine=S.classes.filter(c=>c.day===td);
-  const doneToday=S.logs.filter(l=>l.date===today).length;
-  const heroText = td<0 ? '今日は授業なし。ゆっくり休もう。<br>1日は午前4時から翌午前4時までです。'
-    : `今日は${DAYS[td]}曜日・${mine.length}コマ。${doneToday?`${doneToday}コマ出席済み🎉`:'まだ出席してないよ'}<br>1日は午前4時から翌午前4時までです。`;
-  let h=`<button class="card hero" id="heroBtn" style="width:100%;text-align:left"><div style="flex:1"><h2>${esc(S.me.name)}の時間割</h2><p>${heroText}</p></div>${STAR}</button>`;
-  // 友だち一覧(新しい出席がある順)
-  const rows=FRIENDS.map(f=>{
-    const last=f.logs.reduce((a,l)=>Math.max(a,l.ts),0);
-    const m=fmeta(f.id); const isNew = last>m.seen;
-    return {f,last,isNew};
-  }).sort((a,b)=>(b.isNew-a.isNew)||(b.last-a.last));
-  h+=rows.map(({f,last,isNew})=>{
-    const todays=f.logs.filter(l=>l.date===today);
-    let st;
-    if(isNew){
-      const l=f.logs.find(x=>x.ts===last); const c=f.classes.find(x=>x.id===l.classId);
-      st=`<div class="st new">${todays.length?`${c?c.period+'限':''}に出席`:'新しい出席'}</div>`;
-    } else st=`<div class="st">閲覧済み${last?`<small>${ago(last)}</small>`:''}</div>`;
-    const thumbPhoto = f.logs.length ? `background:${BGS[f.bg]}` : 'background:#fff';
-    return `<div class="card row" data-friend="${f.id}" role="button">
-      <div class="thumb" style="${thumbPhoto}">${f.emoji}</div>
-      <div class="mid"><div class="name">${esc(f.name)}</div>${st}</div>
-      ${weekDots(f.classes,f.logs)}
-      <button class="smile ${fmeta(f.id).reacted?'done':''}" data-react="${f.id}" aria-label="リアクション">${SMILE}</button>
-      ${CHEV}</div>`;
-  }).join('');
-  // 自分の最近の出席
-  const myRecent=[...S.logs].sort((a,b)=>b.ts-a.ts).slice(0,3);
-  if(myRecent.length){
-    h+=`<div class="sec-t"><span>あなたの出席ログ</span></div>`+myRecent.map(l=>postHTML(l,S.classes,S.me)).join('');
+function friendClassPool(){
+  const map = new Map();
+  friends().forEach(f => f.classes.forEach(c => { const k = key(c); if(!map.has(k)) map.set(k, {c, fr:[]}); map.get(k).fr.push(f); }));
+  return [...map.values()].filter(x => !S.classes.some(m => key(m)===key(x.c)))
+    .sort((a,b) => b.fr.length-a.fr.length || a.c.day-b.c.day || a.c.period-b.c.period);
+}
+function poolRow(x){
+  const clash = S.classes.find(m => m.day===x.c.day && m.period===x.c.period);
+  return `<div class="cr"><span class="sw" style="background:${x.c.color}"></span>
+    <div class="t"><b>${esc(x.c.name)}</b><span>${DAYS[x.c.day]}${x.c.period}限 ・ ${esc(x.c.room)}</span></div>${faceStack(x.fr, null, null, 26)}
+    <button class="addb" data-act="addk" data-v="${esc(key(x.c))}" ${clash?'disabled':''}>${clash?'かぶり':'＋ 追加'}</button></div>`;
+}
+function ttView(){
+  let h = header();
+  h += `<div class="card ttc"><div class="ttc-h"><b>今週の時間割</b><button class="lnk" data-act="settings">${audLabel(S.settings.ttAud)}に公開</button></div>
+    ${gridHTML()}<p class="note"><span style="color:var(--pink)">✓</span> 今週「来た」を記録　<span style="color:var(--pink);font-family:Anton,Impact">GET</span> 単位GET　＋ で授業を追加</p></div>`;
+  const pool = friendClassPool();
+  if(pool.length){
+    h += `<div class="sec-t"><span>友だちの授業から追加</span><span class="r">入力なしでワンタップ</span></div>
+      <div class="card" style="padding:4px 16px">${(showAllPool ? pool : pool.slice(0,4)).map(poolRow).join('')}
+      ${pool.length>4 ? `<button class="btn ghost" style="margin:6px 0 12px;padding:12px;font-size:14px" data-act="more">${showAllPool?'閉じる':`ほか${pool.length-4}件を見る`}</button>` : ''}</div>`;
+  }
+  if(S.classes.length){
+    const got = S.classes.filter(c => c.got).length;
+    h += `<div class="sec-t"><span>学期のしめくくり</span><span class="beta">学期末に</span></div>
+      <div class="card" style="padding:14px 18px 8px">
+        <p class="note" style="margin:0 0 6px">取れた授業に「単位GET」スタンプを押せます。<b>初期設定は自分だけ</b>。見せたい授業だけ友だちに公開できます。取れなかった授業や成績は表示されません。</p>
+        ${[...S.classes].sort((a,b) => a.day-b.day || a.period-b.period).map(c => {
+          const tog = c.got ? friendsWith(c).filter(f => f.classes.find(x => key(x)===key(c))?.shareGot) : [];
+          return `<div class="cr"><span class="sw" style="background:${c.color}"></span><div class="t"><b>${esc(c.name)}</b>
+            <span>${DAYS[c.day]}${c.period}限</span>${tog.length ? `<div class="together">🎉 ${names(tog)} と一緒に取れた！</div>` : ''}</div>
+            <button class="tog ${c.got?'on':''}" data-act="got" data-v="${c.id}" aria-pressed="${!!c.got}">${c.got?'✓ 単位GET':'単位GET'}</button>
+            <button class="tog ${c.shareGot?'on':''}" data-act="share" data-v="${c.id}" ${c.got?'':'disabled'} aria-pressed="${!!c.shareGot}">${c.shareGot?'👥 公開中':'🔒 自分だけ'}</button></div>`; }).join('')}
+        ${got ? `<p class="note">自分だけに表示: ${got}コマ 単位GET</p>` : ''}</div>`;
   }
   return h;
 }
 
-function ttView(){
-  const st=stats(S.classes,S.logs,S.past);
-  return `<div class="card" style="padding:16px 12px 14px; background:var(--card)">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin:0 6px 12px">
-        <b style="font-size:18px;font-weight:900">今週の時間割</b><span style="font-size:12px;color:var(--dim);font-weight:900"><span style="color:var(--pink)">●</span> 出席済み　✅ 単位取得</span></div>
-      ${timetableHTML(S.classes,S.logs,{editable:true})}
-    </div>
-    ${statsHTML(st)}
-    <div class="sec-t"><span>単位</span><span style="font-size:12px">タップで変更</span></div>
-    <div class="card" style="padding:6px 18px">${creditList(S.classes,true)}</div>`;
-}
-function creditList(classes,editable){
-  if(!classes.length) return `<div class="empty">まだ授業がありません</div>`;
-  return [...classes].sort((a,b)=>a.day-b.day||a.period-b.period).map(c=>{
-    const s=STATUS[c.status]||STATUS.taking;
-    return `<div class="cr" ${editable?`data-cls="${c.id}" role="button"`:''}><span class="sw" style="background:${c.color}"></span>
-      <div class="t"><b>${esc(c.name)}</b><span>${DAYS[c.day]}${c.period} ・ ${c.credits}単位</span></div>
-      <span class="chip ${s.c}">${s.t}</span></div>`;
-  }).join('');
+/* =========================================================
+   レンダリング
+   ========================================================= */
+function render(){
+  document.querySelectorAll('.pill button').forEach(b => { const on = b.dataset.v===tab; b.classList.toggle('on', on); b.setAttribute('aria-selected', on); });
+  document.getElementById('app').innerHTML = tab==='home' ? homeView() : ttView();
+  updateBell();
 }
 
-/* ============ リアクション ============ */
-function react(el){
-  const id=el.dataset.react; const m=fmeta(id);
-  m.reacted = m.reacted ? 0 : Date.now();
-  el.classList.toggle('done', !!m.reacted);
-  el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop');
-  if(m.reacted) toast('😊 を送りました');
-  save();
+/* =========================================================
+   記録(来た / 写真 / ひとこと)
+   ========================================================= */
+function slotOf(date, slot){ return daySlots(S.classes, dayOfDate(date)).find(s => s.slot===slot); }
+function quickCheckin(date, slot){
+  const s = slotOf(date, slot); if(!s || myPost(date, slot) || !canRecord(date, s)) return;
+  const p = {id:uid(), date, slot, classId:s.cls ? s.cls.id : null, checkin:true, ts:nowTs(), photo:null, comment:'', aud:S.settings.postAud, reactions:[]};
+  S.posts.push(p); S.metrics.checkins++; save(); render();
+  toast(`✓ ${s.cls ? s.cls.name : slotName(s)} に来た！ カードから写真も足せます`);
+  simReact(p);
 }
 
-/* ============ 友だち詳細 ============ */
+let draft = null;
+function openPost(date, slot){
+  const s = slotOf(date, slot); if(!s) return;
+  const p = myPost(date, slot);
+  if(!p && !canRecord(date, s)){ toast(phaseOf(date,s)==='future' ? `${fmtMin(s.win.s)}の30分前から記録できます` : '今週より前の日は記録できません'); return; }
+  draft = {date, slot, s, id:p ? p.id : null, photo:p ? p.photo : null, comment:p ? p.comment : '', aud:p ? p.aud : S.settings.postAud};
+  renderPostSheet(); openSheet();
+}
+function renderPostSheet(){
+  const {s, date} = draft; const p = draft.id ? S.posts.find(x => x.id===draft.id) : null;
+  const isClass = s.type==='class';
+  const title = isClass ? s.cls.name : slotName(s);
+  const fr = isClass ? friendsWith(s.cls) : [];
+  let h = `<h3>${esc(title)}</h3><div class="sub">${md(date)}(${DAYS[dayOfDate(date)]}) ${isClass?s.period+'限 ':''}${slotTime(s)}${isClass && s.cls.room ? ' ・ 📍'+esc(s.cls.room) : ''}</div>`;
+  if(fr.length) h += `<div style="display:flex;align-items:center;gap:8px;margin-top:10px">${faceStack(fr, date, s.slot)}<span style="font-size:13px;font-weight:900;color:var(--pink)">${names(fr)} も履修中</span></div>`;
+  if(isClass){
+    h += p ? `<div class="bigin done">✓ 来た　<small style="font-weight:700;color:var(--dim)">${fmtMin(new Date(p.ts).getHours()*60+new Date(p.ts).getMinutes())} に記録</small></div>`
+           : `<button class="bigin" data-act="psave" data-v="checkin">来た！</button><p class="note" style="text-align:center">ワンタップでOK。写真とひとことは任意です。</p>`;
+  }
+  h += `<label class="f">写真(任意)</label>`;
+  h += draft.photo
+    ? `<div class="shot has" style="background-image:url('${draft.photo}')" role="img" aria-label="添付した写真"></div>
+       <div class="phrow"><button data-act="pphoto">撮り直す・選び直す</button><button data-act="pdelphoto">写真を外す</button></div>`
+    : `<button class="shot" data-act="pphoto"><div><span class="big">📷</span>${isClass?'机の上の一枚でOK':'この時間の一枚を残す'}<div style="font-size:12px;color:var(--dim);margin-top:4px">撮影 or 写真を選ぶ → 投稿前にトリミング</div></div></button>`;
+  h += `<div class="rule">📌 <b>撮影のルール</b>：人の顔、スライド・配布資料・板書は写さないでね。授業中の撮影は先生の指示に従ってください。机・飲み物・窓の外などで十分です。</div>`;
+  h += `<label class="f">ひとこと(任意)</label><textarea class="tx" id="pCm" maxlength="60" placeholder="${isClass?'前の席とれた / ねむい など':'学食のカレー / 図書館こもる など'}">${esc(draft.comment)}</textarea>`;
+  h += `<label class="f">公開範囲</label><div class="chips">${audOptions().map(([v,l]) => `<button data-act="paud" data-v="${v}" class="${draft.aud===v?'on':''}" aria-pressed="${draft.aud===v}">${esc(l)}</button>`).join('')}</div>`;
+  h += `<button class="btn pk" data-act="psave">${p ? '保存する' : isClass ? '来た！ で投稿' : '投稿する'}</button>`;
+  if(p) h += `<button class="btn danger" data-act="pdel">この記録を取り消す</button>`;
+  h += `<p class="note" style="text-align:center">「来た」は自己申告の記録です。大学の出席とは関係ありません。</p>`;
+  document.getElementById('sheetIn').innerHTML = h;
+  const cm = document.getElementById('pCm'); cm.oninput = () => { draft.comment = cm.value; };
+}
+function savePost(onlyCheckin){
+  const {s, date} = draft;
+  const comment = onlyCheckin ? draft.comment : (document.getElementById('pCm')?.value || '').trim();
+  if(s.type!=='class' && !draft.photo && !comment){ toast('写真かひとことを入れてね'); return; }
+  let p = draft.id ? S.posts.find(x => x.id===draft.id) : null;
+  const isNew = !p;
+  const hadPhoto = p && p.photo;
+  const backup = p ? {...p} : null;
+  if(!p){ p = {id:uid(), date, slot:draft.slot, classId:s.cls ? s.cls.id : null, checkin:s.type==='class', ts:nowTs(), reactions:[]}; S.posts.push(p); }
+  Object.assign(p, {photo:draft.photo, comment, aud:draft.aud});
+  if(!save()){ // 容量オーバー: 変更を戻す
+    if(isNew) S.posts = S.posts.filter(x => x !== p); else Object.assign(p, backup);
+    return;
+  }
+  if(isNew && s.type==='class') S.metrics.checkins++;
+  if(draft.photo && !hadPhoto) S.metrics.photos++;
+  save(); closeSheet(); render();
+  toast(isNew ? (s.type==='class' ? `✓ ${s.cls.name} に来た！` : '一枚残しました') : '保存しました');
+  if(isNew || (draft.photo && !hadPhoto)) simReact(p);
+}
+
+/* ---------- 写真: 選択 → トリミング(4:3) ---------- */
+let crop = null;
+document.getElementById('fileIn').onchange = e => {
+  const file = e.target.files[0]; e.target.value = ''; if(!file) return;
+  const url = URL.createObjectURL(file); const img = new Image();
+  img.onload = () => { URL.revokeObjectURL(url); openCrop(img); };
+  img.onerror = () => { URL.revokeObjectURL(url); toast('画像を読み込めませんでした'); };
+  img.src = url;
+};
+function openCrop(img){
+  const W = 800, H = 600;
+  const base = Math.max(W/img.width, H/img.height);
+  crop = {img, W, H, base, zoom:1, x:(W - img.width*base)/2, y:(H - img.height*base)/2};
+  document.getElementById('sheetIn').innerHTML = `<h3>トリミング</h3><div class="sub">ドラッグで位置、スライダーで拡大。人の顔や資料が入らないように。</div>
+    <div class="crop"><canvas id="cv" width="${W}" height="${H}"></canvas><div class="grid"></div></div>
+    <input type="range" id="zm" min="1" max="3" step="0.01" value="1" aria-label="拡大">
+    <div class="phrow"><button data-act="ccancel">やめる</button><button data-act="cok" style="background:var(--pink);color:#fff">この範囲で使う</button></div>`;
+  const cv = document.getElementById('cv');
+  drawCrop();
+  let drag = null;
+  cv.onpointerdown = e => { cv.setPointerCapture(e.pointerId); drag = {x:e.clientX, y:e.clientY}; };
+  cv.onpointermove = e => { if(!drag) return; const k = W / cv.clientWidth;
+    crop.x += (e.clientX-drag.x)*k; crop.y += (e.clientY-drag.y)*k; drag = {x:e.clientX, y:e.clientY}; drawCrop(); };
+  cv.onpointerup = cv.onpointercancel = () => { drag = null; };
+  document.getElementById('zm').oninput = e => {
+    const oldS = crop.base*crop.zoom; crop.zoom = +e.target.value; const nS = crop.base*crop.zoom;
+    crop.x = W/2 - (W/2 - crop.x) * nS/oldS; crop.y = H/2 - (H/2 - crop.y) * nS/oldS; drawCrop();
+  };
+}
+function drawCrop(){
+  const c = crop, cv = document.getElementById('cv'); if(!cv) return;
+  const sc = c.base*c.zoom, dw = c.img.width*sc, dh = c.img.height*sc;
+  c.x = Math.min(0, Math.max(c.W - dw, c.x)); c.y = Math.min(0, Math.max(c.H - dh, c.y));
+  const ctx = cv.getContext('2d'); ctx.fillStyle = '#222'; ctx.fillRect(0,0,c.W,c.H);
+  ctx.drawImage(c.img, c.x, c.y, dw, dh);
+}
+
+/* ---------- デモ: 友だちの反応(本番では実際の友だちから届く) ---------- */
+function simReact(post){
+  if(post.aud==='private' || post.simmed) return;
+  post.simmed = true; save();
+  let pool = post.classId ? friendsWith(S.classes.find(c => c.id===post.classId)) : [];
+  if(post.aud && post.aud.startsWith('g:')){ const g = S.groups.find(x => 'g:'+x.id===post.aud); const mem = g ? g.members : [];
+    pool = (pool.length ? pool : friends()).filter(f => mem.includes(f.id)); if(!pool.length) pool = friends().filter(f => mem.includes(f.id)); }
+  if(!pool.length) pool = friends();
+  if(!pool.length) return;
+  const f = pool[Math.floor(Math.random()*pool.length)];
+  setTimeout(() => {
+    const p = S.posts.find(x => x.id===post.id); if(!p) return;
+    const e = EMO[Math.floor(Math.random()*EMO.length)];
+    (p.reactions = p.reactions || []).push({from:f.id, e, ts:nowTs()});
+    addNotif(f.id, `が あなたの${postLabel(S.classes, p)}に ${e}`);
+    save(); if(!document.getElementById('sheet').classList.contains('open')) render();
+    toast(`${f.emoji} ${f.name} が ${e} しました`);
+  }, 3500 + Math.random()*2500);
+}
+function addNotif(from, text){ S.notifs.push({id:uid(), from, text, ts:nowTs()}); if(S.notifs.length > 80) S.notifs.shift(); }
+
+function sendNudge(k){
+  const sg = suggestions().find(x => x.k===k); if(!sg || S.nudged[k]) return;
+  S.nudged[k] = nowTs(); S.metrics.nudges++; save(); render();
+  toast(`${names(sg.to)} に「${sg.msg}」を送りました`);
+  const f = sg.to[0];
+  const rep = {go:['はやく〜 前の席とっといた','待ってる！'], lunch:['いいね！学食前集合で','行く〜🍜'], free:['図書館2Fいるよ','ラウンジいる！']}[sg.kind];
+  setTimeout(() => { const r = rep[Math.floor(Math.random()*rep.length)]; addNotif(f.id, `「${r}」`); save(); updateBell(); toast(`${f.emoji} ${f.name}「${r}」`); }, 2600);
+}
+
+/* =========================================================
+   友だちの画面
+   ========================================================= */
+let FV = null;
 function openFriend(id){
-  const f=FRIENDS.find(x=>x.id===id); if(!f) return;
-  fmeta(f.id).seen=Date.now(); save();
-  const st=stats(f.classes,f.logs,f.past);
-  const posts=[...f.logs].sort((a,b)=>b.ts-a.ts);
-  const shared=f.classes.filter(c=>S.classes.some(m=>m.name===c.name&&m.day===c.day&&m.period===c.period));
-  openScreen(`<div class="back"><button data-close>${BACK}</button>${avatar(f.emoji,f.bg,44)}<h3>${esc(f.name)}</h3></div>
-    ${shared.length?`<div class="card" style="padding:14px 20px;background:var(--pink3);border-color:var(--pink2)"><b style="color:var(--pink);font-weight:900;font-size:14px">🤝 同じ授業 ${shared.length}コマ</b><div style="font-size:13px;font-weight:700;margin-top:4px">${shared.map(c=>esc(`${DAYS[c.day]}${c.period} ${c.name}`)).join(' / ')}</div></div>`:''}
-    <div class="card" style="padding:16px 12px 14px">${timetableHTML(f.classes,f.logs)}</div>
-    ${statsHTML(st)}
-    <div class="sec-t"><span>出席ログ</span></div>
-    ${posts.length?posts.map(l=>postHTML(l,f.classes,f)).join(''):'<div class="empty">今週の出席はまだありません</div>'}
-    <div class="sec-t"><span>単位</span></div>
-    <div class="card" style="padding:6px 18px">${creditList(f.classes,false)}</div>`);
-  document.querySelectorAll('#scrIn [data-cls]').forEach(el=>el.onclick=()=>{
-    const c=f.classes.find(x=>x.id===el.dataset.cls);
-    const n=f.logs.filter(l=>l.classId===c.id).length;
-    toast(`${c.name}・${c.room}・今週 ${n?'出席':'未出席'}`);
-  });
-  render();
+  const f = fById(id); if(!f || S.friendState[id]!=='friend') return;
+  FV = {id, week:viewWeek, day:tab==='home' ? selDay() : (dayIdx()<0 ? 4 : dayIdx())};
+  const lt = f.posts.length ? f.posts[f.posts.length-1].ts : 0;
+  S.seen[id] = Math.max(S.seen[id]||0, lt); save();
+  renderFriend(true); openScreen();
 }
-function openScreen(html){
-  document.getElementById('scrIn').innerHTML=html;
-  const s=document.getElementById('scr'); s.scrollTop=0; s.classList.add('open');
-  s.querySelectorAll('[data-close]').forEach(b=>b.onclick=closeScreen);
+function friendSlotCard(f, date, s){
+  const p = fPost(f, date, s.slot), ph = phaseOf(date, s);
+  const isClass = s.type==='class';
+  if(!isClass && !p) return '';
+  const st = isClass ? recState(p, date, s) : null;
+  const hasPh = p && (p.photo || p.ph);
+  const mine = isClass && S.classes.find(m => key(m)===key(s.cls));
+  const style = hasPh ? photoStyle(p) : isClass ? `--c:${s.cls.color}` : '';
+  let h = `<div class="slot ${isClass?'':'sm '+(s.type==='lunch'?'lunch':s.type==='after'?'after':'free')} ${hasPh?'ph':''}" style="${style};cursor:default">
+    ${p ? phEmo(p) : ''}
+    <div class="top"><span class="pl">${isClass ? s.period+'限 '+slotTime(s) : slotName(s)}</span>${ph==='now'?'<span class="pl now">いま</span>':''}
+      ${isClass ? `<span class="pl st ${st==='in'||st==='photo'?'in':'none'}">${REC_TXT[st]}</span>` : ''}</div>
+    ${isClass ? `<div class="ttl">${esc(s.cls.name)}</div><div class="rm">📍 ${esc(s.cls.room)}${mine?' ・ 🤝 あなたも履修':''}</div>` : ''}
+    ${p && p.comment ? `<div class="cm">${esc(p.comment)}</div>` : ''}
+    ${isClass && s.cls.shareGot ? '<span class="stamp">単位GET</span>' : ''}
+    ${p ? `<div class="bot" style="flex-direction:column;align-items:stretch;gap:0"><span class="aud" style="opacity:.85">${ago(p.ts)}</span>${rxBar(p)}</div>` : ''}</div>`;
+  return h;
 }
-function closeScreen(){ document.getElementById('scr').classList.remove('open'); render(); }
+function rxBar(p){
+  const sent = S.sent[p.id] || {e:[], t:[]};
+  return `<div class="rx">${EMO.map(e => `<button class="${sent.e.includes(e)?'on':''}" data-act="rx" data-v="${p.id}|${e}" aria-label="${e}" aria-pressed="${sent.e.includes(e)}">${e}</button>`).join('')}
+    <button class="say" data-act="say" data-v="${p.id}">💬 ひとこと</button></div>
+    ${sent.t.length ? `<span class="said">あなた「${sent.t.map(esc).join('」「')}」</span>` : ''}`;
+}
+function renderFriend(resetScroll){
+  const f = fById(FV.id); if(!f) return;
+  const wd = weekDates(FV.week), date = wd[FV.day], t = todayStr();
+  // 共通点
+  const same = f.classes.filter(c => S.classes.some(m => key(m)===key(c)));
+  const mutual = [];
+  for(let d=0; d<5; d++){
+    daySlots(S.classes, d).forEach(s => { if((s.type==='free'||s.type==='lunch') && freeFriends(d, s).includes(f)) mutual.push(`${DAYS[d]}${s.type==='lunch'?'昼':s.period}`); });
+  }
+  let h = `<div class="back"><button data-act="close" aria-label="戻る">${BACK}</button>${avatar(f.emoji,f.bg,44)}<h3>${f.name}<span class="fac">${f.fac}</span></h3></div>`;
+  h += `<div class="card" style="background:var(--pink3);border-color:var(--pink2);padding:14px 18px">
+    <div style="font-weight:900;font-size:14px;color:var(--pink)">🤝 同じ授業 ${same.length}コマ</div>
+    <div style="font-size:13px;font-weight:700;margin-top:2px">${same.length ? same.map(c => esc(`${DAYS[c.day]}${c.period} ${c.name}`)).join(' / ') : 'なし。別の学部の時間割をのぞいてみよう'}</div>
+    <div style="font-weight:900;font-size:14px;color:var(--pink);margin-top:8px">☕️ お互い空いてる時間</div>
+    <div style="font-size:13px;font-weight:700;margin-top:2px">${mutual.length ? mutual.join('・') : 'なし'}</div></div>`;
+  h += `<div class="wkbar"><button data-act="fwk" data-v="-1" ${FV.week<=-2?'disabled':''} aria-label="前の週">‹</button><span>${FV.week===0?'今週':FV.week===-1?'先週':md(wd[0])+'の週'}</span><button data-act="fwk" data-v="1" ${FV.week>=0?'disabled':''} aria-label="次の週">›</button></div>
+    <div class="wk">${wd.map((dt,i) => { const n = f.posts.filter(p => p.date===dt).length;
+      return `<button data-act="fday" data-v="${i}" class="${i===FV.day?'on':''} ${dt===t?'today':''}" aria-pressed="${i===FV.day}"><small>${dt===t?'今日':DAYS[i]}</small><b>${+dt.slice(8)}</b><span class="wdots">${'<i></i>'.repeat(Math.min(4,n))}</span></button>`; }).join('')}</div>`;
+  const slots = daySlots(f.classes, FV.day);
+  const cards = slots.map(s => friendSlotCard(f, date, s)).join('');
+  h += cards || `<div class="card"><div class="empty">この日は授業なし</div></div>`;
+  // 時間割(自分にも追加できる)
+  h += `<div class="sec-t"><span>${f.name}の時間割</span><span class="r">ワンタップで自分にも追加</span></div><div class="card" style="padding:4px 16px">`;
+  h += [...f.classes].sort((a,b) => a.day-b.day || a.period-b.period).map(c => {
+    const have = S.classes.some(m => key(m)===key(c));
+    const clash = !have && S.classes.find(m => m.day===c.day && m.period===c.period);
+    return `<div class="cr"><span class="sw" style="background:${c.color}"></span><div class="t"><b>${esc(c.name)}${c.shareGot?' <span style="color:var(--pink);font-size:11px">単位GET</span>':''}</b><span>${DAYS[c.day]}${c.period}限 ・ ${esc(c.room)}</span></div>
+      <button class="addb ${have?'done':''}" data-act="addk" data-v="${esc(key(c))}" ${have||clash?'disabled':''}>${have?'履修中':clash?'かぶり':'＋ 追加'}</button></div>`;
+  }).join('') + '</div>';
+  const sc = document.getElementById('scr'); const top = sc.scrollTop;
+  document.getElementById('scrIn').innerHTML = h;
+  sc.scrollTop = resetScroll ? 0 : top;
+}
+function openSay(pid){
+  const p = FRIENDS.flatMap(f => f.posts).find(x => x.id===pid); if(!p) return;
+  const f = fById(p.owner); const isToday = p.date===todayStr();
+  const opts = [...(isToday ? ['俺も今から行く','終わったらご飯行こう'] : []), 'おつかれ〜','ノート見せて🙏','いい写真！','次いっしょに受けよ'];
+  document.getElementById('sheetIn').innerHTML = `<h3>${f.name}にひとこと</h3><div class="sub">${esc(postLabel(f.classes,p))} への返信</div>
+    <div class="chips" style="margin-top:14px">${opts.map(o => `<button data-act="phrase" data-v="${pid}|${esc(o)}">${esc(o)}</button>`).join('')}</div>`;
+  openSheet();
+}
+function sendPhrase(pid, text){
+  const s = S.sent[pid] || (S.sent[pid] = {e:[], t:[]});
+  if(!s.t.includes(text)) s.t.push(text);
+  S.metrics.reactions++; save(); closeSheet(); if(FV) renderFriend(false);
+  const p = FRIENDS.flatMap(f => f.posts).find(x => x.id===pid); const f = p && fById(p.owner);
+  toast(`「${text}」を送りました`);
+  if(f && (text.includes('行く') || text.includes('ご飯'))){
+    setTimeout(() => { const r = text.includes('ご飯') ? 'いいね！学食前で〜' : '前の席とっとく！'; addNotif(f.id, `「${r}」`); save(); updateBell(); toast(`${f.emoji} ${f.name}「${r}」`); }, 2600);
+  }
+}
+function toggleRx(pid, e){
+  const s = S.sent[pid] || (S.sent[pid] = {e:[], t:[]});
+  const i = s.e.indexOf(e);
+  if(i>=0) s.e.splice(i,1); else { s.e.push(e); S.metrics.reactions++; }
+  save(); return i<0;
+}
 
-/* ============ シート ============ */
-function openSheet(html){
-  document.getElementById('sheetIn').innerHTML=html;
-  document.getElementById('sheet').classList.add('open');
-  document.getElementById('shade').classList.add('open');
-}
-function closeSheet(){
-  document.getElementById('sheet').classList.remove('open');
-  document.getElementById('shade').classList.remove('open');
-}
-document.getElementById('shade').onclick=closeSheet;
-
-/* ============ 授業の詳細 / 編集 ============ */
-function openClass(id){
-  const c=S.classes.find(x=>x.id===id); if(!c) return;
-  const p=PERIODS[c.period-1];
-  const logs=S.logs.filter(l=>l.classId===id).sort((a,b)=>b.ts-a.ts);
-  const friendsIn=FRIENDS.filter(f=>f.classes.some(x=>x.name===c.name&&x.day===c.day&&x.period===c.period));
-  const attendedToday=logs.some(l=>l.date===weekDates()[c.day]);
-  openSheet(`<h3><span class="sw" style="display:inline-block;width:14px;height:14px;border-radius:50%;background:${c.color};margin-right:8px;vertical-align:0"></span>${esc(c.name)}</h3>
-    <div style="font-weight:700;color:var(--dim);font-size:14px;margin-top:-6px">${DAYS[c.day]}曜${c.period}限 ${p.s}〜${p.e} ・ ${esc(c.room||'')} ・ ${c.credits}単位</div>
-    ${friendsIn.length?`<div style="display:flex;align-items:center;gap:6px;margin-top:12px">${friendsIn.map(f=>avatar(f.emoji,f.bg,30)).join('')}<span style="font-size:13px;font-weight:900;color:var(--pink)">${friendsIn.map(f=>esc(f.name)).join('、')} も履修中</span></div>`:''}
-    <label class="f">単位</label>
-    <div class="seg" id="stSeg">${Object.entries(STATUS).map(([k,v])=>`<button data-st="${k}" class="${c.status===k?'on '+v.c:''}">${v.t}</button>`).join('')}</div>
-    <p class="note">単位の結果は友だちにも共有されます。</p>
-    <button class="btn pk" id="attBtn">${attendedToday?'✓ 今週は出席済み ・ もう一度撮る':'📸 教室を撮って出席'}</button>
-    <label class="f">出席の記録(${logs.length}回)</label>
-    ${logs.length?logs.slice(0,5).map(l=>`<div class="cr"><div class="thumb" style="width:48px;height:48px;border-radius:14px;font-size:20px;${l.photo?`background-image:url(${l.photo})`:'background:#fff'}">${l.photo?'':'✓'}</div><div class="t"><b>${l.date.slice(5).replace('-','/')} 出席</b><span>${esc(l.comment||'')}</span></div><button class="chip gr" data-dellog="${l.id}">削除</button></div>`).join(''):'<div class="empty" style="padding:14px">まだ出席の記録がありません</div>'}
-    <button class="btn ghost" id="editBtn">授業を編集</button>`);
-  document.querySelectorAll('#stSeg button').forEach(b=>b.onclick=()=>{
-    c.status=b.dataset.st; save(); render(); openClass(id);
-    if(c.status==='got') toast('🎉 単位取得!みんなに共有しました');
-    if(c.status==='failed') toast('💀 落単…みんなが慰めてくれるはず');
-  });
-  document.getElementById('attBtn').onclick=()=>{ closeSheet(); setTimeout(()=>openCapture(id),220); };
-  document.getElementById('editBtn').onclick=()=>editClass(c);
-  document.querySelectorAll('[data-dellog]').forEach(b=>b.onclick=()=>{ S.logs=S.logs.filter(l=>l.id!==b.dataset.dellog); save(); render(); openClass(id); });
-}
-
-function editClass(c,day,period){
-  const isNew=!c;
-  const d = c ? {...c} : {day, period, name:'', room:'', credits:2, status:'taking', color:COLORS[S.classes.length%COLORS.length]};
-  openSheet(`<h3>${isNew?'授業を追加':'授業を編集'}</h3>
-    <label class="f">授業名</label><input class="tx" id="eName" value="${esc(d.name)}" placeholder="例:心理学概論" maxlength="30">
+/* =========================================================
+   授業の追加・編集
+   ========================================================= */
+function editClass(c, day, period){
+  const isNew = !c;
+  const d = c ? {...c} : {day, period, name:'', room:'', color:COLORS[S.classes.length % COLORS.length]};
+  document.getElementById('sheetIn').innerHTML = `<h3>${isNew?'授業を追加':'授業を編集'}</h3>
+    <label class="f" for="eName">授業名</label><input class="tx" id="eName" value="${esc(d.name)}" placeholder="例:心理学概論" maxlength="30">
     <div style="display:flex;gap:10px">
-      <div style="flex:1"><label class="f">曜日</label><select class="tx" id="eDay">${DAYS.map((x,i)=>`<option value="${i}" ${i===d.day?'selected':''}>${x}曜</option>`).join('')}</select></div>
-      <div style="flex:1"><label class="f">時限</label><select class="tx" id="ePer">${PERIODS.map(p=>`<option value="${p.n}" ${p.n===d.period?'selected':''}>${p.n}限</option>`).join('')}</select></div>
+      <div style="flex:1"><label class="f" for="eDay">曜日</label><select class="tx" id="eDay">${DAYS.map((x,i) => `<option value="${i}" ${i===d.day?'selected':''}>${x}曜</option>`).join('')}</select></div>
+      <div style="flex:1"><label class="f" for="ePer">時限</label><select class="tx" id="ePer">${PER().map((p,i) => `<option value="${i+1}" ${i+1===d.period?'selected':''}>${i+1}限 ${p[0]}</option>`).join('')}</select></div>
     </div>
-    <div style="display:flex;gap:10px">
-      <div style="flex:2"><label class="f">教室</label><input class="tx" id="eRoom" value="${esc(d.room)}" placeholder="例:2-301" maxlength="20"></div>
-      <div style="flex:1"><label class="f">単位数</label><input class="tx" id="eCr" type="number" min="0" max="10" value="${d.credits}"></div>
-    </div>
+    <label class="f" for="eRoom">教室(任意)</label><input class="tx" id="eRoom" value="${esc(d.room)}" placeholder="例:2-301" maxlength="20">
     <label class="f">カラー</label>
-    <div class="colors" id="eCol">${COLORS.map(x=>`<button data-c="${x}" class="${x===d.color?'on':''}" style="background:${x}"></button>`).join('')}</div>
-    <button class="btn" id="eSave">${isNew?'追加する':'保存する'}</button>
-    ${isNew?'':'<button class="btn danger" id="eDel">この授業を削除</button>'}`);
-  let color=d.color;
-  document.querySelectorAll('#eCol button').forEach(b=>b.onclick=()=>{ color=b.dataset.c; document.querySelectorAll('#eCol button').forEach(x=>x.classList.toggle('on',x===b)); });
-  document.getElementById('eSave').onclick=()=>{
-    const name=document.getElementById('eName').value.trim();
-    if(!name){ toast('授業名を入れてね'); return; }
-    const nd={name, day:+document.getElementById('eDay').value, period:+document.getElementById('ePer').value,
-      room:document.getElementById('eRoom').value.trim(), credits:Math.max(0,+document.getElementById('eCr').value||0), color};
-    const clash=S.classes.find(x=>x.day===nd.day&&x.period===nd.period&&(!c||x.id!==c.id));
-    if(clash){ toast(`${DAYS[nd.day]}${nd.period}は「${clash.name}」が入ってます`); return; }
-    if(c) Object.assign(c,nd); else S.classes.push({id:uid(), status:'taking', ...nd});
-    save(); closeSheet(); render();
-  };
-  const del=document.getElementById('eDel');
-  if(del) del.onclick=()=>{
-    if(!confirm(`「${c.name}」を削除しますか?出席の記録も消えます。`)) return;
-    S.classes=S.classes.filter(x=>x.id!==c.id); S.logs=S.logs.filter(l=>l.classId!==c.id);
-    save(); closeSheet(); render();
-  };
+    <div class="colors" id="eCol">${COLORS.map(x => `<button data-act="ecol" data-v="${x}" class="${x===d.color?'on':''}" style="background:${x}" aria-label="色"></button>`).join('')}</div>
+    <button class="btn" data-act="esave" data-v="${c?c.id:''}">${isNew?'追加する':'保存する'}</button>
+    ${isNew ? '' : `<button class="btn danger" data-act="edel" data-v="${c.id}">この授業を削除</button>`}`;
+  editColor = d.color; openSheet();
+}
+let editColor = null;
+function saveClass(id){
+  const c = id ? S.classes.find(x => x.id===id) : null;
+  const name = document.getElementById('eName').value.trim();
+  if(!name){ toast('授業名を入れてね'); return; }
+  const nd = {name, day:+document.getElementById('eDay').value, period:+document.getElementById('ePer').value,
+    room:document.getElementById('eRoom').value.trim(), color:editColor};
+  const clash = S.classes.find(x => x.day===nd.day && x.period===nd.period && (!c || x.id!==c.id));
+  if(clash){ toast(`${DAYS[nd.day]}${nd.period}限は「${clash.name}」が入っています`); return; }
+  if(c){
+    const moved = c.day!==nd.day || c.period!==nd.period;
+    if(moved && S.posts.some(p => p.classId===c.id) && !confirm('曜日・時限を変えると、この授業のこれまでの記録は元のコマに残ります。変更しますか?')) return;
+    Object.assign(c, nd);
+  } else S.classes.push({id:uid(), got:false, shareGot:false, ...nd});
+  save(); closeSheet(); render(); toast(c ? '保存しました' : `${name} を追加しました`);
+}
+function addFromKey(k){
+  if(S.classes.some(m => key(m)===k)) return;
+  const src = friends().flatMap(f => f.classes).find(c => key(c)===k); if(!src) return;
+  if(S.classes.some(m => m.day===src.day && m.period===src.period)){ toast('そのコマには別の授業が入っています'); return; }
+  S.classes.push({id:uid(), name:src.name, day:src.day, period:src.period, room:src.room, color:COLORS[S.classes.length % COLORS.length], got:false, shareGot:false});
+  save(); render(); if(FV && document.getElementById('scr').classList.contains('open') && document.querySelector('#scrIn .wk')) renderFriend(false);
+  toast(`✓ ${src.name}(${DAYS[src.day]}${src.period})を追加しました`);
 }
 
-/* ============ 出席を撮影 ============ */
-let capPhoto=null;
-function openCapture(classId){
-  if(!S.classes.length){ toast('まず時間割に授業を追加してね'); tab='tt'; render(); return; }
-  capPhoto=null;
-  const td=dayIdx(); const cp=currentPeriod();
-  const guess = classId || (S.classes.find(c=>c.day===td&&c.period===cp) || S.classes.find(c=>c.day===td&&c.period>=(cp||9)) || S.classes.find(c=>c.day===td) || S.classes[0]).id;
-  const sorted=[...S.classes].sort((a,b)=>(a.day===td?-1:0)-(b.day===td?-1:0)||a.day-b.day||a.period-b.period);
-  openSheet(`<h3>出席を記録</h3>
-    <button class="shot" id="shot" style="width:100%"><div><span class="big">📸</span>タップして教室を撮影<div style="font-size:12px;color:var(--dim);margin-top:4px">黒板・スライド・教室の様子など</div></div></button>
-    <label class="f">授業</label>
-    <select class="tx" id="cCls">${sorted.map(c=>`<option value="${c.id}" ${c.id===guess?'selected':''}>${DAYS[c.day]}${c.period} ${esc(c.name)}${c.day===td?'(今日)':''}</option>`).join('')}</select>
-    <label class="f">ひとこと</label>
-    <textarea class="tx" id="cCm" maxlength="80" placeholder="前の席とれた / 今日小テストだった など"></textarea>
-    <button class="btn pk" id="cPost">出席をシェア</button>
-    <p class="note">写真なしでも出席できます。記録は時間割の友だちに共有されます。</p>`);
-  document.getElementById('shot').onclick=()=>document.getElementById('fileIn').click();
-  document.getElementById('cPost').onclick=()=>{
-    const cid=document.getElementById('cCls').value; const c=S.classes.find(x=>x.id===cid);
-    const date = c.day===td ? todayStr() : weekDates()[c.day];
-    S.logs.push({id:uid(), classId:cid, date, ts:Date.now(), photo:capPhoto, comment:document.getElementById('cCm').value.trim(), bg:BGS[1], emo:'🏫'});
-    save(); closeSheet(); tab='log'; render();
-    toast(`✓ ${c.name} に出席しました`);
-    window.scrollTo({top:document.body.scrollHeight, behavior:'smooth'});
-  };
-}
-document.getElementById('fileIn').onchange=e=>{
-  const file=e.target.files[0]; e.target.value=''; if(!file) return;
-  const img=new Image(); const url=URL.createObjectURL(file);
-  img.onload=()=>{
-    const max=720; const r=Math.min(1,max/Math.max(img.width,img.height));
-    const cv=document.createElement('canvas'); cv.width=Math.round(img.width*r); cv.height=Math.round(img.height*r);
-    cv.getContext('2d').drawImage(img,0,0,cv.width,cv.height);
-    capPhoto=cv.toDataURL('image/jpeg',.72); URL.revokeObjectURL(url);
-    const s=document.getElementById('shot'); if(s){ s.style.backgroundImage=`url(${capPhoto})`; s.innerHTML=''; }
-  };
-  img.onerror=()=>toast('画像を読み込めませんでした');
-  img.src=url;
-};
-
-/* ============ 通知 ============ */
+/* =========================================================
+   お知らせ
+   ========================================================= */
 function notifications(){
-  const items=[];
-  FRIENDS.forEach(f=>{
-    f.logs.forEach(l=>{ const c=f.classes.find(x=>x.id===l.classId); items.push({ts:l.ts, f, text:`<b>${esc(f.name)}</b> が ${esc(c.name)}(${DAYS[c.day]}${c.period})に出席しました📸`}); });
-    f.classes.filter(c=>c.status!=='taking').forEach((c,i)=>items.push({ts:Date.now()-(30+i*7)*3600e3, f, text:`<b>${esc(f.name)}</b> が ${esc(c.name)} の${c.status==='got'?'単位を取得しました🎉':'単位を落としました💀'}`}));
-  });
-  return items.sort((a,b)=>b.ts-a.ts).slice(0,30);
+  const items = S.notifs.map(n => ({ts:n.ts, f:fById(n.from), text:n.text})).filter(x => x.f && S.friendState[x.f.id]==='friend');
+  const t = todayStr(), n = nowTs();
+  friends().forEach(f => f.posts.filter(p => p.date===t && p.ts<=n).forEach(p => {
+    if(p.classId){ const c = f.classes.find(x => x.id===p.classId);
+      if(S.classes.some(m => key(m)===key(c))) items.push({ts:p.ts, f, text:`が ${c.name} に来ました(同じ授業)`}); }
+    else if(p.ph) items.push({ts:p.ts, f, text:`が ${postLabel(f.classes,p)}の一枚を投稿 📷`});
+  }));
+  return items.sort((a,b) => b.ts-a.ts).slice(0,40);
 }
-function updateBell(){ const n=notifications(); document.getElementById('bellBadge').hidden = !n.length || n[0].ts<=S.notifSeen; }
-document.getElementById('bellBtn').onclick=()=>{
-  const n=notifications(); S.notifSeen=Date.now(); save(); updateBell();
-  openScreen(`<div class="back"><button data-close>${BACK}</button><h3>お知らせ</h3></div>
-    ${n.length?n.map(x=>`<div class="notif" data-friend="${x.f.id}">${avatar(x.f.emoji,x.f.bg,44)}<p>${x.text}<small>${ago(x.ts)}</small></p></div>`).join(''):'<div class="empty">お知らせはありません</div>'}`);
-  document.querySelectorAll('#scrIn [data-friend]').forEach(el=>el.onclick=()=>openFriend(el.dataset.friend));
-};
-
-/* ============ マイページ ============ */
-function openMe(){
-  const st=stats(S.classes,S.logs,S.past);
-  openScreen(`<div class="back"><button data-close>${BACK}</button><h3>プロフィール</h3></div>
-    <div style="text-align:center;margin:10px 0 18px"><div style="display:inline-block">${avatar(S.me.emoji,S.me.bg,96)}</div></div>
-    <label class="f">名前</label><input class="tx" id="mName" value="${esc(S.me.name)}" maxlength="20">
-    <label class="f">アイコン</label><div class="emoji-pick" id="mEmo">${ME_EMOJI.map(e=>`<button class="${e===S.me.emoji?'on':''}">${e}</button>`).join('')}</div>
-    <label class="f">背景</label><div class="colors" id="mBg">${BGS.map((b,i)=>`<button data-i="${i}" class="${i===S.me.bg?'on':''}" style="background:${b}"></button>`).join('')}</div>
-    <label class="f">前期までの単位</label>
-    <div style="display:flex;gap:10px"><div style="flex:1"><input class="tx" id="mGot" type="number" min="0" value="${S.past.got}"><p class="note">取得</p></div>
-      <div style="flex:1"><input class="tx" id="mFail" type="number" min="0" value="${S.past.failed}"><p class="note">落単</p></div></div>
-    <div style="margin-top:14px">${statsHTML(st)}</div>
-    <button class="btn" id="mSave">保存する</button>
-    <button class="btn danger" id="mReset">データをリセット</button>
-    <p class="note" style="text-align:center">これはプロトタイプです。友だちはデモデータで、あなたのデータはこの端末にだけ保存されます。</p>`);
-  document.querySelectorAll('#mEmo button').forEach(b=>b.onclick=()=>{ S.me.emoji=b.textContent; document.querySelectorAll('#mEmo button').forEach(x=>x.classList.toggle('on',x===b)); });
-  document.querySelectorAll('#mBg button').forEach(b=>b.onclick=()=>{ S.me.bg=+b.dataset.i; document.querySelectorAll('#mBg button').forEach(x=>x.classList.toggle('on',x===b)); });
-  document.getElementById('mSave').onclick=()=>{
-    S.me.name=document.getElementById('mName').value.trim()||'あなた';
-    S.past.got=Math.max(0,+document.getElementById('mGot').value||0);
-    S.past.failed=Math.max(0,+document.getElementById('mFail').value||0);
-    save(); closeScreen(); toast('保存しました');
-  };
-  document.getElementById('mReset').onclick=()=>{
-    if(!confirm('時間割・出席記録をすべて消して初期状態に戻しますか?')) return;
-    localStorage.removeItem(KEY); S=load(); closeScreen();
-  };
+function updateBell(){
+  const n = notifications(); const req = FDEF.some(f => S.friendState[f.id]==='request');
+  document.getElementById('bellBadge').hidden = !(req || (n.length && n[0].ts > S.notifSeen));
+}
+function openNotifs(){
+  const n = notifications(); S.notifSeen = nowTs(); save(); updateBell();
+  const reqs = FDEF.filter(f => S.friendState[f.id]==='request');
+  let h = `<div class="back"><button data-act="close" aria-label="戻る">${BACK}</button><h3>お知らせ</h3></div>`;
+  h += reqs.map(f => `<div class="req">${avatar(f.emoji,f.bg,44)}<p>${f.name} から友だち申請<small>${f.fac} ・ 承認すると、お互いの時間割と記録が見えるようになります</small></p>
+    <button class="addb" data-act="approve" data-v="${f.id}">承認</button><button class="tog" data-act="decline" data-v="${f.id}">あとで</button></div>`).join('');
+  h += n.length ? n.map(x => `<button class="notif" data-act="friend" data-v="${x.f.id}">${avatar(x.f.emoji,x.f.bg,44)}<p><b>${x.f.name}</b> ${esc(x.text)}<small>${ago(x.ts)}</small></p></button>`).join('')
+    : '<div class="empty">お知らせはまだありません</div>';
+  document.getElementById('scrIn').innerHTML = h; openScreen(); document.getElementById('scr').scrollTop = 0;
 }
 
-/* ============ その他 ============ */
+/* =========================================================
+   プロフィール・設定
+   ========================================================= */
+let grpDraft = {name:'', members:[]};
+function renderSettings(resetScroll){
+  const st = S.settings, fr = friends(), dm = st.demo;
+  const audSel = (id, v) => `<select class="tx" id="${id}">${audOptions().map(([k,l]) => `<option value="${k}" ${k===v?'selected':''}>${esc(l)}</option>`).join('')}</select>`;
+  const days = S.metrics.openDays.length;
+  let h = `<div class="back"><button data-act="close" aria-label="戻る">${BACK}</button><h3>プロフィール・設定</h3></div>
+    <div style="text-align:center;margin:4px 0 8px">${avatar(S.me.emoji,S.me.bg,92)}<div style="font-weight:900;margin-top:8px">${esc(S.me.name||'あなた')} <span class="fac">${esc(S.me.fac||'学部未設定')}</span></div><div class="note" style="text-align:center">ID: @${esc(S.me.handle)}</div></div>
+    <label class="f" for="mName">名前</label><input class="tx" id="mName" value="${esc(S.me.name)}" maxlength="16">
+    <label class="f" for="mFac">学部</label><input class="tx" id="mFac" value="${esc(S.me.fac)}" list="facs" maxlength="16"><datalist id="facs">${FACULTIES.map(x => `<option value="${x}">`).join('')}</datalist>
+    <label class="f">アイコン</label><div class="emoji-pick">${ME_EMOJI.map(e => `<button data-act="memo" data-v="${e}" class="${e===S.me.emoji?'on':''}">${e}</button>`).join('')}</div>
+    <label class="f">背景</label><div class="colors">${BGS.map((b,i) => `<button data-act="mbg" data-v="${i}" class="${i===S.me.bg?'on':''}" style="background:${b}" aria-label="背景${i+1}"></button>`).join('')}</div>
+
+    <div class="sec-t" style="margin-top:30px"><span>友だち ${fr.length}人</span></div>
+    <div class="card" style="padding:6px 16px">${fr.map(f => `<div class="cr">${avatar(f.emoji,f.bg,38)}<div class="t"><b>${f.name}</b><span>${f.fac}</span></div></div>`).join('') || '<div class="empty">まだいません</div>'}</div>
+    <button class="btn pk" data-act="invite">友だちを招待する</button>
+    <label class="f" for="addId">IDで友だち申請</label>
+    <div style="display:flex;gap:8px"><input class="tx" id="addId" placeholder="@から始まるID" maxlength="20"><button class="addb" data-act="addfr" style="padding:0 18px">申請</button></div>
+    ${S.sentReq.length ? `<p class="note">承認待ち: ${S.sentReq.map(x => '@'+esc(x)).join('、')}</p>` : ''}
+
+    <div class="sec-t" style="margin-top:30px"><span>グループ</span><span class="r">公開範囲に使えます</span></div>
+    <div class="card" style="padding:6px 16px">${S.groups.map(g => `<div class="cr"><div class="t"><b>🏷 ${esc(g.name)}</b><span>${g.members.map(id => fById(id)?.name).filter(Boolean).join('・') || 'メンバーなし'}</span></div><button class="tog" data-act="gdel" data-v="${g.id}">削除</button></div>`).join('') || '<div class="empty">まだありません</div>'}</div>
+    <div class="card" style="padding:14px 16px"><input class="tx" id="gName" placeholder="新しいグループ名(例:ゼミ)" maxlength="16" value="${esc(grpDraft.name)}">
+      <div class="chips" style="margin-top:10px">${fr.map(f => `<button data-act="gmem" data-v="${f.id}" class="${grpDraft.members.includes(f.id)?'on':''}">${f.emoji} ${f.name}</button>`).join('')}</div>
+      <button class="btn" data-act="gadd" style="margin-top:12px;padding:13px">グループを作る</button></div>
+
+    <div class="sec-t" style="margin-top:30px"><span>公開範囲</span></div>
+    <div class="card" style="padding:14px 16px">
+      <label class="f" style="margin-top:0" for="ttAud">時間割を見せる相手</label>${audSel('ttAud', st.ttAud)}
+      <label class="f" for="postAud">「来た」・写真の初期設定</label>${audSel('postAud', st.postAud)}
+      <p class="note">見えるのは承認した友だちだけ。大学全体や知らない人には公開されません。単位GETは初期設定で自分だけです。</p></div>
+
+    <div class="sec-t" style="margin-top:30px"><span>時限の時間</span></div>
+    <div class="chips">${[90,100].map(v => `<button data-act="preset" data-v="${v}" class="${st.preset===v?'on':''}">${v}分授業(1限 ${PRESETS[v][0].join('–')})</button>`).join('')}</div>
+
+    <div class="sec-t" style="margin-top:30px"><span>デモ時刻</span><span class="r">試すとき用</span></div>
+    <div class="card" style="padding:14px 16px">
+      <div class="chips"><button data-act="demo" data-v="0" class="${dm.on?'':'on'}">実際の時刻</button><button data-act="demo" data-v="1" class="${dm.on?'on':''}">デモ時刻を使う</button></div>
+      <div style="display:flex;gap:10px;margin-top:10px">
+        <select class="tx" id="dDay" ${dm.on?'':'disabled'}>${DAYS.map((x,i) => `<option value="${i}" ${i===dm.day?'selected':''}>${x}曜</option>`).join('')}</select>
+        <input class="tx" type="time" id="dTime" value="${String(Math.floor(dm.min/60)).padStart(2,'0')}:${String(dm.min%60).padStart(2,'0')}" ${dm.on?'':'disabled'}></div>
+      <p class="note">夜や週末に開いても、授業中の様子を試せます。友だちはデモデータです。</p></div>
+
+    <div class="sec-t" style="margin-top:30px"><span>記録について</span></div>
+    <div class="card" style="padding:14px 18px"><p class="note" style="margin:0">・「来た」は本人の自己申告です。大学が確認した正式な出席記録ではありません。<br>・記録がないことは「欠席」を意味しません。アプリ内に欠席という表示はありません。<br>・写真は任意。人の顔、スライド・配布資料・板書は写さず、授業中の撮影は先生の指示に従ってください。</p></div>
+
+    <div class="sec-t" style="margin-top:30px"><span>テスト用メモ</span><span class="r">この端末のみ</span></div>
+    <div class="card" style="padding:16px 20px"><div class="kv">
+      <span>開いた日数</span><span>${days}日</span><span>「来た」</span><span>${S.metrics.checkins}回</span><span>写真</span><span>${S.metrics.photos}枚</span>
+      <span>リアクション・ひとこと</span><span>${S.metrics.reactions}回</span><span>さそい(ご飯・今から行く)</span><span>${S.metrics.nudges}回</span><span>招待</span><span>${S.metrics.invites}回</span></div>
+      <p class="note">見たいのは「頼まなくても開くか・写真を残すか・友だちを誘うか」。</p></div>
+    <button class="btn danger" data-act="reset">データをリセット</button>`;
+  const sc = document.getElementById('scr'); const top = sc.scrollTop;
+  document.getElementById('scrIn').innerHTML = h;
+  sc.scrollTop = resetScroll ? 0 : top;
+  const bind = (id, fn) => { const el = document.getElementById(id); if(el) el.onchange = () => { fn(el.value); save(); }; };
+  bind('mName', v => { S.me.name = v.trim(); });
+  bind('mFac', v => { S.me.fac = v.trim(); });
+  bind('ttAud', v => { st.ttAud = v; });
+  bind('postAud', v => { st.postAud = v; });
+  bind('dDay', v => { st.demo.day = +v; applyTime(); });
+  bind('dTime', v => { if(!v) return; st.demo.min = toMin(v); applyTime(); });
+  document.getElementById('gName').oninput = e => { grpDraft.name = e.target.value; };
+}
+function openSettings(){ FV = null; renderSettings(true); openScreen(); }
+function applyTime(){ demoAnchor = Date.now(); buildFriends(); viewDay = null; viewWeek = 0; render(); }
+
+/* =========================================================
+   オンボーディング(まずは1コマから)
+   ========================================================= */
+let ONB = {step:0, pick:new Set()};
+function renderOnb(){
+  const el = document.getElementById('onbIn'); const s = ONB.step;
+  const steps = `<div class="steps">${[0,1,2].map(i => `<i class="${i<=s?'on':''}"></i>`).join('')}</div>`;
+  if(s===0){
+    const inv = fById('f1');
+    el.innerHTML = `${steps}<div class="logo" style="margin-top:30px">KOMALOG</div>
+      <h1>友だちと過ごす大学生活が、<br>時間割の上に残る。</h1>
+      <p class="lead">今日、誰がいる？ 同じ授業の友だちが来てるか、お互い空いてるコマがあるかが分かる。授業の一枚と友だちの反応が、毎日の時間割にたまっていきます。</p>
+      <div style="text-align:center;margin:18px 0 0">${STAR(120)}</div>
+      <div class="inv">${avatar(inv.emoji,inv.bg,44)}<div>${inv.name} から招待が届いています<div class="note" style="margin:2px 0 0">${inv.fac} ・ 承認済みの友だちとだけつながります</div></div></div>
+      <div style="margin-top:auto;padding-top:24px"><button class="btn pk" data-act="onb-next">はじめる</button>
+      <button class="btn ghost" data-act="onb-demo" style="margin-top:10px">デモの時間割で見てみる</button></div>`;
+  } else if(s===1){
+    el.innerHTML = `${steps}<h1>プロフィール</h1><p class="lead">友だちに表示される名前です。</p>
+      <label class="f" for="oName">名前</label><input class="tx" id="oName" maxlength="16" placeholder="例:たろう" value="${esc(S.me.name)}">
+      <label class="f" for="oFac">学部</label><input class="tx" id="oFac" list="ofacs" maxlength="16" placeholder="例:文学部" value="${esc(S.me.fac)}"><datalist id="ofacs">${FACULTIES.map(x => `<option value="${x}">`).join('')}</datalist>
+      <label class="f">アイコン</label><div class="emoji-pick">${ME_EMOJI.map(e => `<button data-act="onb-emo" data-v="${e}" class="${e===S.me.emoji?'on':''}">${e}</button>`).join('')}</div>
+      <div style="margin-top:auto;padding-top:24px"><button class="btn pk" data-act="onb-next">次へ</button><button class="btn danger" style="color:var(--dim)" data-act="onb-back">戻る</button></div>`;
+    const n = document.getElementById('oName'), f = document.getElementById('oFac');
+    n.oninput = () => { S.me.name = n.value.trim(); }; f.oninput = () => { S.me.fac = f.value.trim(); };
+  } else {
+    const pool = friendClassPool();
+    el.innerHTML = `${steps}<h1>まずは1コマだけでOK</h1><p class="lead">友だちが登録した授業から、自分も受けているものを選ぶだけ。あとからいつでも追加できます。</p>
+      <div style="margin-top:16px">${pool.map(x => { const k = key(x.c), on = ONB.pick.has(k);
+        const clash = !on && [...ONB.pick].some(pk => { const [,d,p] = pk.split('|'); return +d===x.c.day && +p===x.c.period; });
+        return `<button class="pick ${on?'on':''}" data-act="onb-pick" data-v="${esc(k)}" ${clash?'disabled style="opacity:.4"':''} aria-pressed="${on}">
+          <span class="sw" style="width:10px;height:38px;border-radius:6px;background:${x.c.color};flex-shrink:0"></span>
+          <span class="t"><b>${esc(x.c.name)}</b><span>${DAYS[x.c.day]}${x.c.period}限 ・ ${esc(x.c.room)}</span></span>${faceStack(x.fr, null, null, 26)}<span class="box">${on?'✓':''}</span></button>`; }).join('')}</div>
+      <div style="position:sticky;bottom:0;padding:16px 0 4px;background:linear-gradient(transparent,var(--bg) 30%)">
+        <button class="btn pk" data-act="onb-done">${ONB.pick.size ? `${ONB.pick.size}コマ追加してはじめる` : 'あとで追加する'}</button>
+        <button class="btn danger" style="color:var(--dim)" data-act="onb-back">戻る</button></div>`;
+  }
+}
+function finishOnb(demo){
+  if(demo){
+    S.classes = MY_SEED.map((c,i) => ({id:uid(), day:c[0], period:c[1], name:c[2], room:c[3], color:COLORS[i%COLORS.length], got:false, shareGot:false}));
+    if(!S.me.name) S.me.name = 'あなた';
+    if(!S.me.fac) S.me.fac = '文学部';
+  } else {
+    const src = friends().flatMap(f => f.classes);
+    [...ONB.pick].forEach((k,i) => { const c = src.find(x => key(x)===k); if(c) S.classes.push({id:uid(), day:c.day, period:c.period, name:c.name, room:c.room, color:COLORS[i%COLORS.length], got:false, shareGot:false}); });
+    if(!S.me.name) S.me.name = 'あなた';
+  }
+  S.onboarded = true; save();
+  document.getElementById('onb').hidden = true;
+  tab = 'home'; viewDay = null; render(); window.scrollTo(0,0);
+  if(!demo) toast(S.classes.length ? '準備OK！ 授業に行ったら「来た！」' : '時間割はあとから追加できます');
+}
+
+/* =========================================================
+   シート / スクリーン / トースト
+   ========================================================= */
+function openSheet(){ document.getElementById('sheet').classList.add('open'); document.getElementById('shade').classList.add('open'); document.getElementById('sheet').querySelector('.in').scrollTop = 0; }
+function closeSheet(){ document.getElementById('sheet').classList.remove('open'); document.getElementById('shade').classList.remove('open'); crop = null; }
+function openScreen(){ document.getElementById('scr').classList.add('open'); }
+function closeScreen(){ document.getElementById('scr').classList.remove('open'); FV = null; render(); }
 let toastT;
-function toast(t){ const el=document.getElementById('toast'); el.textContent=t; el.classList.add('on'); clearTimeout(toastT); toastT=setTimeout(()=>el.classList.remove('on'),2200); }
-document.querySelectorAll('.pill button').forEach(b=>b.onclick=()=>{ tab=b.dataset.tab; render(); window.scrollTo(0,0); });
-document.getElementById('plusBtn').onclick=()=>openCapture();
-render();
+function toast(t){ const el = document.getElementById('toast'); el.textContent = t; el.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => el.classList.remove('on'), 2600); }
+
+/* =========================================================
+   クリック処理(まとめて委譲)
+   ========================================================= */
+const ACT = {
+  tab: v => { tab = v; render(); window.scrollTo(0,0); },
+  day: v => { viewDay = +v; render(); },
+  wk: v => { viewWeek = Math.min(0, Math.max(-2, viewWeek + +v)); render(); },
+  slot: v => { const [d,s] = v.split('|'); openPost(d, s); },
+  go: v => { const [d,s] = v.split('|'); quickCheckin(d, s); },
+  friend: v => openFriend(v),
+  smile: (v, el) => { if(!v) return; const on = toggleRx(v, '😊'); el.classList.toggle('done', on); el.setAttribute('aria-pressed', on);
+    el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop'); if(on) toast('😊 を送りました'); },
+  nudge: v => sendNudge(v),
+  rx: v => { const [pid, e] = v.split('|'); if(toggleRx(pid, e)) toast(`${e} を送りました`); renderFriend(false); },
+  say: v => openSay(v),
+  phrase: v => { const i = v.indexOf('|'); sendPhrase(v.slice(0,i), v.slice(i+1)); },
+  fday: v => { FV.day = +v; renderFriend(false); },
+  fwk: v => { FV.week = Math.min(0, Math.max(-2, FV.week + +v)); renderFriend(false); },
+  addk: v => addFromKey(v),
+  more: () => { showAllPool = !showAllPool; render(); },
+  cell: v => editClass(S.classes.find(c => c.id===v)),
+  addcell: v => { const [d,p] = v.split('-').map(Number); editClass(null, d, p); },
+  ecol: (v, el) => { editColor = v; document.querySelectorAll('#eCol button').forEach(b => b.classList.toggle('on', b===el)); },
+  esave: v => saveClass(v),
+  edel: v => { const c = S.classes.find(x => x.id===v); if(!c || !confirm(`「${c.name}」を削除しますか?この授業の記録も消えます。`)) return;
+    S.classes = S.classes.filter(x => x.id!==v); S.posts = S.posts.filter(p => p.classId!==v); save(); closeSheet(); render(); },
+  got: v => { const c = S.classes.find(x => x.id===v); c.got = !c.got; if(!c.got) c.shareGot = false; save(); render(); if(c.got) toast('🎉 単位GET！(自分だけに表示)'); },
+  share: v => { const c = S.classes.find(x => x.id===v); if(!c.got) return; c.shareGot = !c.shareGot; save(); render(); toast(c.shareGot ? '友だちに公開しました' : '自分だけに戻しました'); },
+  close: () => closeScreen(),
+  sclose: () => closeSheet(),
+  bell: () => openNotifs(),
+  plus: () => plusAction(),
+  settings: () => openSettings(),
+  approve: v => { S.friendState[v] = 'friend'; save(); openNotifs(); render(); toast(`${fById(v).name} と友だちになりました`); },
+  decline: v => { S.friendState[v] = 'later'; save(); openNotifs(); updateBell(); },
+  // 投稿シート
+  pphoto: () => { draft.comment = document.getElementById('pCm')?.value ?? draft.comment; document.getElementById('fileIn').click(); },
+  pdelphoto: () => { draft.comment = document.getElementById('pCm').value; draft.photo = null; renderPostSheet(); },
+  paud: v => { draft.comment = document.getElementById('pCm').value; draft.aud = v; renderPostSheet(); },
+  psave: v => savePost(v==='checkin'),
+  pdel: () => { if(!confirm('この記録を取り消しますか?')) return; S.posts = S.posts.filter(p => p.id!==draft.id); save(); closeSheet(); render(); toast('取り消しました'); },
+  cok: () => { const cv = document.getElementById('cv'); draft.photo = cv.toDataURL('image/jpeg', .72); crop = null; renderPostSheet(); },
+  ccancel: () => { crop = null; renderPostSheet(); },
+  // 設定
+  memo: v => { S.me.emoji = v; save(); renderSettings(false); render(); },
+  mbg: v => { S.me.bg = +v; save(); renderSettings(false); render(); },
+  invite: async () => {
+    const text = `KOMALOGで時間割つなごう！ 今日、誰がいるか分かるよ。ID: @${S.me.handle}`;
+    S.metrics.invites++; save();
+    try{ if(navigator.share){ await navigator.share({text}); return; } await navigator.clipboard.writeText(text); toast('招待メッセージをコピーしました'); }
+    catch(e){ if(e && e.name==='AbortError') return; toast('招待文: ' + text); }
+  },
+  addfr: () => { const v = document.getElementById('addId').value.trim().replace(/^@/, ''); if(!v){ toast('IDを入れてね'); return; }
+    if(!S.sentReq.includes(v)) S.sentReq.push(v); save(); renderSettings(false); toast('申請を送りました。承認されるとお互いの時間割が見えます'); },
+  gmem: v => { const i = grpDraft.members.indexOf(v); if(i>=0) grpDraft.members.splice(i,1); else grpDraft.members.push(v); renderSettings(false); },
+  gadd: () => { const name = grpDraft.name.trim(); if(!name){ toast('グループ名を入れてね'); return; }
+    S.groups.push({id:uid(), name, members:[...grpDraft.members]}); grpDraft = {name:'', members:[]}; save(); renderSettings(false); toast('グループを作りました'); },
+  gdel: v => { const g = S.groups.find(x => x.id===v); if(!g || !confirm(`「${g.name}」を削除しますか?`)) return;
+    S.groups = S.groups.filter(x => x.id!==v);
+    const a = 'g:'+v; if(S.settings.ttAud===a) S.settings.ttAud = 'friends'; if(S.settings.postAud===a) S.settings.postAud = 'friends';
+    S.posts.forEach(p => { if(p.aud===a) p.aud = 'private'; });
+    save(); renderSettings(false); toast('削除しました(そのグループ向けの投稿は「自分だけ」になりました)'); },
+  preset: v => { S.settings.preset = +v; save(); buildFriends(); renderSettings(false); render(); },
+  demo: v => { S.settings.demo.on = v==='1'; save(); applyTime(); renderSettings(false); },
+  reset: () => { if(!confirm('時間割・記録・設定をすべて消して最初からにしますか?')) return;
+    localStorage.removeItem(KEY); location.reload(); },
+  // オンボーディング
+  'onb-next': () => { ONB.step++; renderOnb(); document.getElementById('onb').scrollTop = 0; },
+  'onb-back': () => { ONB.step = Math.max(0, ONB.step-1); renderOnb(); },
+  'onb-demo': () => finishOnb(true),
+  'onb-emo': (v, el) => { S.me.emoji = v; document.querySelectorAll('#onbIn .emoji-pick button').forEach(b => b.classList.toggle('on', b===el)); },
+  'onb-pick': v => { if(ONB.pick.has(v)) ONB.pick.delete(v); else ONB.pick.add(v); const t = document.getElementById('onb').scrollTop; renderOnb(); document.getElementById('onb').scrollTop = t; },
+  'onb-done': () => finishOnb(false),
+};
+document.addEventListener('click', e => {
+  const el = e.target.closest('[data-act]'); if(!el || el.disabled) return;
+  const fn = ACT[el.dataset.act]; if(!fn) return;
+  e.preventDefault(); fn(el.dataset.v, el, e);
+});
+document.addEventListener('keydown', e => {
+  if(e.key==='Escape'){ if(document.getElementById('sheet').classList.contains('open')) closeSheet(); else if(document.getElementById('scr').classList.contains('open')) closeScreen(); return; }
+  if((e.key==='Enter' || e.key===' ') && e.target.matches('[role=button][data-act]')){ e.preventDefault(); e.target.click(); }
+});
+function plusAction(){
+  const d = dayIdx(); if(d<0){ toast('今日は週末。平日に「来た」を記録できます'); return; }
+  const t = todayStr(), m = nowMin();
+  const slots = daySlots(S.classes, d);
+  if(!slots.length){ toast('今日は授業がありません。時間割に追加してね'); tab = 'tt'; render(); return; }
+  const s = slots.find(x => m >= x.win.s && m < x.win.e && x.type!=='after') || slots.find(x => x.type==='class' && m >= x.win.s-30 && m < x.win.s)
+    || slots.find(x => m >= x.win.s && m < x.win.e) || [...slots].reverse().find(x => m >= x.win.s);
+  if(!s){ toast(`今日の最初は ${fmtMin(slots[0].win.s)}〜。30分前から記録できます`); return; }
+  openPost(t, s.slot);
+}
+
+/* =========================================================
+   起動
+   ========================================================= */
+(function boot(){
+  const real = ymd(new Date());
+  if(!S.metrics.openDays.includes(real)){ S.metrics.openDays.push(real); save(); }
+  buildFriends();
+  if(!S.onboarded){ document.getElementById('onb').hidden = false; renderOnb(); }
+  render();
+  setInterval(() => {
+    buildFriends();
+    const busy = document.getElementById('sheet').classList.contains('open') || ['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName);
+    if(!busy) render();
+  }, 60000);
+})();
 </script>
 </body>
 </html>
