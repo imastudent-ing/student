@@ -747,7 +747,8 @@ function refreshView(){
   render();
 }
 let CMV = null;
-function openComments(id){ CMV = id; FPV = null; CS = null; FSID = null; ADD = null; renderComments(true); openSheet(); }
+let CM_BACK = null;
+function openComments(id){ const open = $('sheet').classList.contains('open'); CM_BACK = open ? {fpv:FPV, cs:CS && {cid:CS.cid, date:CS.date}, fsid:FSID} : null; CMV = id; FPV = null; CS = null; FSID = null; ADD = null; renderComments(true); openSheet(); }
 function renderComments(){
   const p = findPost(CMV); if(!p) return;
   const cs = postComments(p.f, p.r);
@@ -759,7 +760,10 @@ function renderComments(){
   $('sheetIn').innerHTML = h; $('pcIn').value = draft;
   $('cmForm').onsubmit = e => { e.preventDefault(); const t = $('pcIn').value.trim(); if(!t) return;
     const id = CMV; (S.pcm[id] = S.pcm[id] || []).push({from:'me', text:t, ts:nowTs()}); if(!save()) return;
-    $('pcIn').value = ''; renderComments(); render();
+    $('pcIn').value = ''; $('pcIn').blur();
+    const back = CM_BACK; CM_BACK = null;
+    if(back && back.fpv) openFriendPost(back.fpv); else if(back && back.cs) openClass(back.cs.cid, back.cs.date); else if(back && back.fsid) openFriend(back.fsid); else closeSheet();
+    render(); toast('💬 ✓');
     const own = findPost(id); const who = own && own.f ? own.f : friends()[0];
     if(who) setTimeout(() => { S.pcm[id].push({from:who.id, text:['ありがと〜','それな','笑','りょ！'][Math.floor(Math.random()*4)], ts:nowTs()}); save(true);
       if(CMV===id && $('sheet').classList.contains('open')) renderComments(); render(); }, 2500); };
