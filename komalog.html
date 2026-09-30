@@ -586,7 +586,7 @@ function todayView(){
     const next = cls.find(c => phaseOf(t, c)==='future');
     if(cls.length) h += cls.map(c => classRow(c, t, c===next)).join('');
     else if(S.classes.length) h += `<div class="empty">きょうは授業なし。<br><button class="lnk" data-act="add" data-v="today">＋ きょうの授業を追加</button></div>`;
-    else h += `<div class="empty">まだ時間割がありません。<br>まずは1コマだけでOK。<br><button class="lnk" data-act="add">＋ 授業を追加</button></div>`;
+    else h += `<div class="empty">まだ時間割がありません。<br><button class="lnk" data-act="add">＋ 授業を追加</button></div>`;
   }
   return h + `<p class="note foot">☺︎ = 自己申告 ・ 押してない ≠ 欠席</p>`;
 }
@@ -885,7 +885,7 @@ function paintAdd(){
   const {d, p} = ADD;
   const pool = slotPool();
   const b = document.querySelector('#sheet .body'), y = b.scrollTop;
-  let h = `<h3>授業を追加</h3><div class="sub">${d!=null ? `${d===dayIdx() && p==null ? 'きょう・' : ''}${DAYS[d]}曜${p!=null ? ` ${p}限` : ''}` : 'まずは1コマだけでもOK'}</div>
+  let h = `<h3>授業を追加</h3><div class="sub">${d!=null ? `${d===dayIdx() && p==null ? 'きょう・' : ''}${DAYS[d]}曜${p!=null ? ` ${p}限` : ''}` : ''}</div>
     <div class="seg"><button data-act="amode" data-v="friends" class="${ADD.mode==='friends'?'on':''}">友だちの授業から</button><button data-act="amode" data-v="manual" class="${ADD.mode==='manual'?'on':''}">自分で入力</button></div>`;
   if(ADD.mode==='friends'){
     const row = x => { const clash = S.classes.some(m => m.day===x.c.day && m.period===x.c.period);
@@ -1048,7 +1048,7 @@ function renderOnb(){
     const u = document.getElementById('oUniv'); u.oninput = () => { S.me.univ = u.value.trim(); };
   } else {
     const groups = byDayTodayFirst(friendPool());
-    el.innerHTML = `${steps}<h1>まずは1コマだけでOK</h1><p class="lead">友だちが登録した授業から、自分も受けているものを選ぶだけ。あとから ＋ で追加できます。</p>
+    el.innerHTML = `${steps}<h1>受けている授業を選ぶ</h1>
       ${groups.map(g => `<div class="f">${g.d===dayIdx() ? 'きょう・' : ''}${DAYS[g.d]}曜</div>` + g.items.map(x => { const k = key(x.c), on = ONB.pick.has(k);
         const clash = !on && [...ONB.pick].some(pk => { const [,d,p] = pk.split('|'); return +d===x.c.day && +p===x.c.period; });
         return `<button class="pick ${on?'on':''}" data-act="onb-pick" data-v="${esc(k)}" ${clash?'disabled':''} aria-pressed="${on}">
