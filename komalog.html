@@ -95,6 +95,9 @@
   .circ{width:70px; height:70px; border-radius:50%; background:#fff; display:grid; place-items:center; box-shadow:0 8px 24px rgba(0,0,0,.09); position:relative;}
   .circ .badge{position:absolute; top:13px; right:14px; width:13px; height:13px; border-radius:50%; background:var(--pink); border:2px solid #fff;}
   .circ.on{background:var(--pink3);}
+  .smile.skip{background:#fff3c4; border-color:#e6c65a; font-size:24px;}
+  .skipbtn{display:block; width:100%; margin-top:8px; padding:13px; border-radius:22px; background:#fff; font-weight:900; font-size:15px; color:#8a6d00;}
+  .post .cm{display:block; padding:0 14px 12px 62px; margin-top:-6px; font-size:14px; font-weight:700; line-height:1.5;}
   .nbadge{position:absolute; top:6px; right:4px; min-width:22px; height:22px; border-radius:11px; background:var(--pink); color:#fff; font-size:11.5px; font-weight:900; display:grid; place-items:center; padding:0 6px; border:2px solid #fff;}
   .post{background:var(--card); border:1px solid var(--line); border-radius:26px; overflow:hidden; margin-bottom:12px; width:100%; text-align:left; display:block;}
   .post .pp{width:100%; aspect-ratio:4/3; background-size:cover; background-position:center; display:grid; place-items:center; font-size:64px;}
@@ -321,6 +324,7 @@ const BGS = [
 const ME_EMOJI = ['🐣','🐻','🐱','🦊','🐸','🐼','🍙','⭐️','🌙','🎧'];
 const UNIVS = ['中央大学','明治大学','法政大学','青山学院大学','立教大学','早稲田大学','慶應義塾大学'];
 const FACULTIES = ['文学部','法学部','経済学部','商学部','理工学部','総合政策学部','国際経営学部','国際情報学部'];
+const SKIP_LINES = [['寝坊した…','🛏️'],['今日はカフェで課題','☕️'],['ラーメン行ってくる','🍜'],['電車止まってる','🚃'],['天気よすぎて公園','🌳'],['バイトのシフト入った','🏪']];
 const DEMO_PH = ['📓','🪑','☕️','🪟','📒','✏️','💻','🥤'];
 const MY_SEED = [
   [0,1,'英語コミュニケーション','2-301'],[0,3,'統計学入門','5-102'],[1,2,'心理学概論','大講義室A'],[1,4,'社会学','3-201'],
@@ -460,7 +464,12 @@ function genRecs(f){
         const seed = f.id+date+c.period;
         const t = win(c).s - 8 + Math.floor(hash(seed+'t')*14);
         if(date===today && m < t) return;
-        if(hash(seed) > f.rate) return;
+        if(hash(seed) > f.rate){ // 出なかった日に、本人が「飛ぶ」を投稿することもある
+          if(hash(seed+'s') < .4){ const i = Math.floor(hash(seed+'k')*SKIP_LINES.length);
+            recs.push({id:`${f.id}-${date}-${c.id}`, classId:c.id, date, kind:'skip', ts:dateMs(date)+(t-25)*60e3, comment:SKIP_LINES[i][0],
+              ph: hash(seed+'q') < .5 ? {bg:BGS[Math.floor(hash(seed+'b')*BGS.length)], emo:SKIP_LINES[i][1]} : null}); }
+          return;
+        }
         const photo = hash(seed+'p') < .5;
         recs.push({id:`${f.id}-${date}-${c.id}`, classId:c.id, date, ts:dateMs(date)+t*60e3,
           ph: photo ? {bg:BGS[Math.floor(hash(seed+'b')*BGS.length)], emo:DEMO_PH[Math.floor(hash(seed+'e')*DEMO_PH.length)]} : null});
@@ -472,6 +481,8 @@ function genRecs(f){
 const friends = () => FRIENDS.filter(f => S.friendState[f.id]==='friend');
 const fById = id => FRIENDS.find(f => f.id===id);
 const fRec = (f, c, date) => f.recs.find(r => r.classId===c.id && r.date===date);
+const isSkip = r => !!r && r.kind==='skip';
+const fHere = (f, c, date) => { const r = fRec(f, c, date); return r && !isSkip(r) ? r : null; };
 // 同じ授業(授業名・曜日・時限が同じ)を受けている友だち
 const sameUniv = f => !!S.me.univ && f.univ===S.me.univ;
 // 同じ大学の友だちだけを「同じ授業」とみなす(大学が違えば、授業名・時限が同じでも別の授業)
@@ -537,7 +548,7 @@ function header(){
 function heroHTML(){
   const d = dayIdx(), t = todayStr(), fr = friends();
   const list = d<0 ? [] : fr.map(f => {
-    const rs = f.recs.filter(r => r.date===t).sort((a,b) => a.ts-b.ts);
+    const rs = f.recs.filter(r => r.date===t && !isSkip(r)).sort((a,b) => a.ts-b.ts);
     const last = rs[rs.length-1];
     return {f, lc: last ? f.classes.find(c => c.id===last.classId) : null, has: f.classes.some(c => c.day===d)};
   }).filter(x => x.has || x.lc).sort((a,b) => (!!b.lc) - (!!a.lc));
@@ -554,17 +565,17 @@ function heroHTML(){
 }
 function classRow(c, date, isNext){
   const r = recOf(c.id, date), ph = phaseOf(date, c), can = canRecord(date, c);
-  const fr = friendsIn(c), came = fr.filter(x => fRec(x.f, x.fc, date));
+  const fr = friendsIn(c), came = fr.filter(x => fHere(x.f, x.fc, date));
   let who = '';
   if(came.length) who = `<div class="who"><span class="v">☺︎</span><span class="t">${names(came.map(x=>x.f))}</span></div>`;
   else if(fr.length) who = `<div class="who gray"><span class="v">🤝</span><span class="t">${names(fr.map(x=>x.f))}</span></div>`;
-  const label = r ? '来た(記録済み)' : can ? '来た を記録' : `${fmtMin(win(c).s-30)} から押せます`;
-  const sc = r ? 'done' : !can ? 'wait' : ph==='past' ? 'past' : '';
+  const label = isSkip(r) ? '飛んだ(記録済み)' : r ? '来た(記録済み)' : can ? '来た を記録' : `${fmtMin(win(c).s-30)} から押せます`;
+  const sc = isSkip(r) ? 'skip' : r ? 'done' : !can ? 'wait' : ph==='past' ? 'past' : '';
   return `<div class="row ${ph==='now'?'now':''} ${isNext?'next':''}" data-act="cls" data-v="${c.id}|${date}" role="button" tabindex="0" aria-label="${c.period}限 ${esc(c.name)}">
     ${thumbHTML(c, r, c.got)}
     <div class="mid"><div class="tm">${c.period}限 ${timeText(c)}${ph==='now'?'<span class="nowtag">いま</span>':''}${unread(c) ? `<span class="tkb" aria-label="新しいトーク${unread(c)}件">💬 ${cnt(unread(c))}</span>` : ''}</div>
       <div class="name">${esc(c.name)}</div>${who}</div>
-    <button class="smile ${sc}" data-act="here" data-v="${c.id}|${date}" aria-label="${label}" aria-pressed="${!!r}">${SMILE}</button></div>`;
+    <button class="smile ${sc}" data-act="here" data-v="${c.id}|${date}" aria-label="${label}" aria-pressed="${!!r}">${isSkip(r) ? '🏃' : SMILE}</button></div>`;
 }
 function todayView(){
   const d = dayIdx(), t = todayStr();
@@ -608,12 +619,12 @@ function gridHTML(classes, wd, owner){
       const got = isMe ? c.got : c.shareGot;
       const same = !isMe && sameUniv(owner) && S.classes.some(x => key(x)===key(c));
       const mk = r && (isMe || isToday); // 友だちの ✓ は今日だけ(過去の出欠表にしない)
-      const came = isMe && isToday ? friendsIn(c).filter(x => fRec(x.f, x.fc, wd[d])).map(x => x.f) : [];
+      const came = isMe && isToday ? friendsIn(c).filter(x => fHere(x.f, x.fc, wd[d])).map(x => x.f) : [];
       const act = isMe ? `data-act="cls" data-v="${c.id}|${wd[d]}"` : sameUniv(owner) ? `data-act="fadd" data-v="${esc(key(c))}"` : '';
       h += `<button class="cell ${r&&(r.photo||r.ph)?'ph':''} ${isToday&&p===curP?'now':''}" style="${bg}" ${act}
-          aria-label="${DAYS[d]}${p}限 ${esc(c.name)}${mk?' 来た':''}${came.length?` ${names(came)}が来た`:''}${got?' 単位GET':''}${same?' 同じ授業':''}">
+          aria-label="${DAYS[d]}${p}限 ${esc(c.name)}${mk?(isSkip(r)?' 飛んだ':' 来た'):''}${came.length?` ${names(came)}が来た`:''}${got?' 単位GET':''}${same?' 同じ授業':''}">
         <span>${esc(c.name)}</span><span class="rm">${esc(c.room||'')}</span>
-        ${same ? '<span class="same">🤝</span>' : ''}${isMe && unread(c) ? `<span class="tb" aria-label="新しいトーク">${cnt(unread(c))}</span>` : ''}${mk ? '<span class="mk">✓</span>' : ''}${got ? '<span class="gt">GET</span>' : ''}${came.length ? `<span class="fr">${faces(came,14)}</span>` : ''}</button>`;
+        ${same ? '<span class="same">🤝</span>' : ''}${isMe && unread(c) ? `<span class="tb" aria-label="新しいトーク">${cnt(unread(c))}</span>` : ''}${mk ? (isSkip(r) ? '<span class="mk" style="background:#fff3c4">🏃</span>' : '<span class="mk">✓</span>') : ''}${got ? '<span class="gt">GET</span>' : ''}${came.length ? `<span class="fr">${faces(came,14)}</span>` : ''}</button>`;
     }
   }
   return h + '</div>';
@@ -644,13 +655,14 @@ function feedItems(){
 const feedNew = () => feedItems().filter(x => x.f && x.r.ts > (S.feedSeen||0)).length;
 function feedView(){
   const items = feedItems(); let h = header(), last = '';
-  if(!items.length) h += '<div class="empty">📷 まだ誰も ☺︎ を押していません</div>';
+  if(!items.length) h += '<div class="empty">📷 まだ投稿はありません</div>';
   items.forEach(({f, c, r}) => {
     if(r.date!==last){ h += `<div class="sec-t">${r.date===todayStr() ? 'きょう' : `${md(r.date)}(${DAYS[c.day]})`}</div>`; last = r.date; }
     const ph = r.photo ? `<div class="pp" style="background-image:url('${r.photo}')"></div>` : r.ph ? `<div class="pp" style="background:${r.ph.bg}">${r.ph.emo}</div>` : '';
     const who = f ? `${avatar(f.emoji,f.bg,38)}<span class="t"><b>${f.name}</b>` : `${meAv(38)}<span class="t"><b>あなた${r.aud==='private' ? ' 🔒' : ''}</b>`;
     const act = f ? `data-act="friend" data-v="${f.id}"` : `data-act="cls" data-v="${c.id}|${r.date}"`;
-    h += `<button class="post" ${act}>${ph}<span class="pm">${who}<span>${c.period}限 ${esc(c.name)}</span></span><time>☺︎ ${r.late ? 'あとから' : hm(r.ts)}</time></span></button>`;
+    const mark = isSkip(r) ? `🏃 ${hm(r.ts)}` : `☺︎ ${r.late ? 'あとから' : hm(r.ts)}`;
+    h += `<button class="post" ${act}>${ph}<span class="pm">${who}<span>${c.period}限 ${esc(c.name)}</span></span><time>${mark}</time></span>${r.comment ? `<span class="cm">${esc(r.comment)}</span>` : ''}</button>`;
   });
   return h;
 }
@@ -698,10 +710,14 @@ function paintClass(){
   const fr = friendsIn(c);
   let h = `<h3>${esc(c.name)}</h3><div class="sub">${md(date)}(${DAYS[c.day]}) ${c.period}限 ${timeText(c)}${c.room ? ' ・ 📍'+esc(c.room) : ''}</div>`;
   { const u = unread(c); h += `<button class="talkbtn" data-act="talk" data-v="${c.id}">💬 トーク${u ? ` <span class="tkb">${cnt(u)}</span>` : ''}</button>`; }
-  if(fr.length) h += `<div class="fline">${fr.map(({f,fc}) => { const x = isToday && fRec(f, fc, date);
+  if(fr.length) h += `<div class="fline">${fr.map(({f,fc}) => { const x = isToday && fHere(f, fc, date);
     return `<button class="fchip ${x?'ok':''}" data-act="friend" data-v="${f.id}">${avatar(f.emoji,f.bg,28)}${f.name}${x ? ' <small>来た</small>' : ''}</button>`; }).join('')}</div>`;
-  if(r) h += `<div class="herest"><span class="smile done">${SMILE}</span>来た <small>${r.late ? 'あとから記録' : hm(r.ts)}</small><button class="undo" data-act="undo">取り消す</button></div>`;
-  else if(can) h += `<button class="herebtn" data-act="here" data-v="${c.id}|${date}">${SMILE}来た</button>`;
+  const canSk = date <= todayStr() && date >= weekDates(0)[0];
+  if(isSkip(r)) h += `<div class="herest"><span class="smile skip">🏃</span>飛んだ <small>${hm(r.ts)}</small><button class="undo" data-act="undo">取り消す</button></div>`;
+  else if(r) h += `<div class="herest"><span class="smile done">${SMILE}</span>来た <small>${r.late ? 'あとから記録' : hm(r.ts)}</small><button class="undo" data-act="undo">取り消す</button></div>`;
+  if(r) h += `<input class="tx" id="cmIn" style="margin-top:10px" placeholder="💬 ひとこと" maxlength="60" value="${esc(r.comment||'')}" aria-label="ひとこと">`;
+  else if(can) h += `<button class="herebtn" data-act="here" data-v="${c.id}|${date}">${SMILE}来た</button><button class="skipbtn" data-act="skip" data-v="${c.id}|${date}">🏃 飛ぶ</button>`;
+  else if(canSk) h += `<button class="skipbtn" data-act="skip" data-v="${c.id}|${date}">🏃 飛ぶ</button><div class="herest wait">☺︎ は ${fmtMin(win(c).s-30)} から</div>`;
   else h += `<div class="herest wait">${ph==='future' ? `${fmtMin(win(c).s-30)} から押せます` : 'この日の記録はもう付けられません'}</div>`;
   if(r && r.photo){
     h += `<div class="f">📷</div><div class="shot" style="background-image:url('${r.photo}')" role="img" aria-label="この日の写真"></div>
@@ -711,6 +727,7 @@ function paintClass(){
   if(c.got || isSemEnd()) h += `<div id="semBox">${semHTML(c)}</div>`;
   h += `<button class="btn ghost" data-act="edit" data-v="${c.id}">✏️ 編集</button>`;
   document.getElementById('sheetIn').innerHTML = h;
+  const cm = $('cmIn'); if(cm) cm.onchange = () => { const rr = recOf(c.id, date); if(!rr) return; rr.comment = cm.value.trim(); if(save()) { render(); toast('💬 のせました'); } };
 }
 function semHTML(c){
   const tog = c.got ? friendsIn(c).filter(x => x.fc.shareGot).map(x => x.f) : [];
@@ -726,15 +743,16 @@ function refreshSem(cid){
   render();
 }
 // ☺︎(来た)を記録。photo を渡すと写真も付ける。容量不足で写真が入らないときは「来た」だけ残す
-function checkIn(cid, date, photo){
+function checkIn(cid, date, photo, kind){
   const c0 = S.classes.find(x => x.id===cid); if(!c0) return null;
   const existed = !!recOf(cid, date);
-  if(!existed && !canRecord(date, c0)) return null;
+  if(!existed && !(kind==='skip' ? (date <= todayStr() && date >= weekDates(0)[0]) : canRecord(date, c0))) return null;
   const apply = withPhoto => {
     const c = S.classes.find(x => x.id===cid); if(!c) return null;
     let r = recOf(cid, date);
     if(!r){
       r = {id:uid(), classId:cid, date, ts:nowTs(), late: date < todayStr() || nowMin() >= win(c).e, photo:null, aud:audFor(c, date)};
+      if(kind==='skip') r.kind = 'skip';
       S.recs.push(r);
     }
     if(withPhoto && photo !== undefined) r.photo = photo;
@@ -812,7 +830,7 @@ function friendSheetHTML(f){
     h += `<div class="f">きょう</div><div class="card" style="padding:4px 16px">` + (today.length ? today.map(c => {
       const r = fRec(f, c, t), ph = phaseOf(t, c);
       return `<div class="li">${thumbHTML(c, r, c.shareGot)}<div class="t"><span>${c.period}限 ${timeText(c)}</span><b>${esc(c.name)}</b></div>
-        <span class="st ${r?'ok':''}">${r ? '☺︎ 来た' : ph==='future' ? '⏳' : ''}</span></div>`; }).join('')
+        <span class="st ${r&&!isSkip(r)?'ok':''}">${isSkip(r) ? '🏃' : r ? '☺︎ 来た' : ph==='future' ? '⏳' : ''}</span></div>`; }).join('')
       : '<div class="empty" style="padding:16px">きょうは授業なし</div>') + '</div>'
       + `<p class="rule">☺︎ = 自己申告 ・ 押してない ≠ 欠席</p>`;
   }
@@ -1174,6 +1192,8 @@ const ACT = {
     const b = [...document.querySelectorAll('#app .smile')].find(x => x.dataset.v===v); if(b) b.classList.add('pop');
     toast(`☺︎ 来た ・ ${audName(r.aud)}に見える`);
   },
+  skip: v => { const [cid, date] = v.split('|'); const r = checkIn(cid, date, undefined, 'skip'); if(!r) return;
+    renderClass(); render(); toast(`🏃 飛んだ ・ ${audName(r.aud)}に見える`); const cm = $('cmIn'); if(cm) cm.focus(); },
   undo: async () => { if(!await ask('☺︎ を取り消しますか？ この日の写真も外れます。', '取り消す') || !CS) return;
     S.recs = S.recs.filter(r => !(r.classId===CS.cid && r.date===CS.date)); save(); renderClass(); render(); },
   pick: () => $('fileIn').click(),
@@ -1281,7 +1301,7 @@ document.addEventListener('contextmenu', e => { if(e.target.closest('#app [data-
 function longPress(v){
   const [cid, date] = v.split('|'); const c = S.classes.find(x => x.id===cid); if(!c) return;
   if(navigator.vibrate) try{ navigator.vibrate(15); }catch(e){}
-  if(recOf(cid, date)){ toast('もう ☺︎ を押してあります'); return; }
+  if(recOf(cid, date)){ toast('もう記録してあります'); return; }
   ACT.here(v);
 }
 document.addEventListener('keydown', e => {
