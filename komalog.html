@@ -321,7 +321,7 @@
 <div class="onb" id="onb" hidden><div class="wrap" id="onbIn"></div></div>
 <div class="ask" id="ask" hidden role="alertdialog" aria-modal="true" aria-labelledby="askMsg"><div class="askbox"><p id="askMsg"></p><div class="askrow"><button id="askNo">やめる</button><button id="askYes">OK</button></div></div></div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
-<input type="file" id="fileIn" accept="image/*" hidden>
+<input type="file" id="fileIn" accept="image/*" capture="environment" hidden>
 <input type="file" id="avIn" accept="image/*" hidden>
 
 <nav class="nav" id="nav"><div class="nav-in">
@@ -946,7 +946,8 @@ let FSID = null;
 function friendSheetHTML(f){
   const d = dayIdx(), t = todayStr();
   const today = d<0 ? [] : f.classes.filter(c => c.day===d).sort((a,b) => a.period-b.period);
-  let h = `<div class="fhead">${avatar(f.emoji,f.bg,60)}<div><h3>${f.name}</h3><span class="fac">${f.univ} ${f.fac}</span></div></div>`;
+  let h = `<div class="fhead">${avatar(f.emoji,f.bg,60)}<div style="flex:1;min-width:0"><h3>${f.name}</h3><span class="fac">${f.univ} ${f.fac}</span></div>
+    <button class="edb" data-act="unfriend" data-v="${f.id}" aria-label="友だちをやめる"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.6-3.6 3.2-5.6 6.5-5.6s5.9 2 6.5 5.6"/><path d="M16 11h6"/></svg></button></div>`;
   if(!sameUniv(f)) h += `<p class="rule">${f.name}はちがう大学。授業の時間も${f.name}の大学のものです。</p>`;
   if(d>=0){
     h += `<div class="f">きょう</div><div class="card" style="padding:4px 16px">` + (today.length ? today.map(c => {
@@ -957,8 +958,7 @@ function friendSheetHTML(f){
       + `<p class="rule">☺︎ = 自己申告 ・ 押してない ≠ 欠席</p>`;
   }
   h += `<div class="f">時間割</div><div class="card ttc">${gridHTML(f.classes, weekDates(0), f)}</div>
-    ${sameUniv(f) ? '<p class="rule">🤝 = 同じ授業 ・ マスをタップで投稿を見る</p>' : ''}
-    <button class="btn quiet" data-act="unfriend" data-v="${f.id}">友だちをやめる</button>`;
+    ${sameUniv(f) ? '<p class="rule">🤝 = 同じ授業 ・ マスをタップで投稿を見る</p>' : ''}`;
   return h;
 }
 function openFriend(id){
@@ -1388,7 +1388,7 @@ const ACT = {
   me: () => { closeSheet(); renderMe(true); },
   approve: v => { S.friendState[v] = 'friend'; if(!save()){ renderFriends(false); return; } renderFriends(false); render(); toast(`${fById(v).name} とつながりました`); },
   decline: v => { S.friendState[v] = 'later'; save(); renderFriends(false); render(); },
-  unfriend: async v => { const f = fById(v); if(!f || !await ask(`${f.name} には、あなたの時間割と ☺︎・写真が見えなくなります。友だちをやめますか？`, 'やめる')) return;
+  unfriend: async v => { const f = fById(v); if(!f || !await ask(`${f.name} と友だちをやめますか？`, 'やめる')) return;
     S.friendState[v] = 'none'; S.groups.forEach(g => { g.members = g.members.filter(x => x!==v); });
     grpDraft.members = grpDraft.members.filter(x => x!==v);
     save(); closeSheet(); render(); if($('scr').classList.contains('open') && $('audSel')) renderFriends(false); toast(`${f.name} とのつながりを解除しました`); },
