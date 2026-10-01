@@ -172,6 +172,11 @@
   .pbar{align-items:center;}
   .rxe{font-size:19px; line-height:1; padding:4px 1px;}
   .rxe.on{filter:drop-shadow(0 0 3px rgba(226,79,210,.6));}
+  .rxe{position:relative; background:none; padding:4px 5px 6px 1px;}
+  .rxe .av{position:absolute; right:-2px; bottom:0; border:1.5px solid #fff; box-sizing:content-box;}
+  .rxwho{display:flex; flex-wrap:wrap; gap:6px; margin-top:12px;}
+  .rxwho span.w{display:inline-flex; align-items:center; gap:6px; padding:4px 10px 4px 4px; background:#fff; border-radius:999px; font-size:13px; font-weight:800;}
+  .rxwho span.w i{font-style:normal; font-size:17px;}
   .rxmore{font-size:14px; font-weight:900; color:var(--dim); padding:0 2px;}
   .ctk{flex:1; min-width:0; height:26px; overflow:hidden; display:flex; justify-content:flex-end; align-items:center;}
   .ctk-in{display:inline-flex; align-items:center; gap:5px; max-width:100%; font-size:12.5px; font-weight:700; color:#555; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; animation:ctkIn .5s ease both;}
@@ -530,9 +535,11 @@ function genRecs(f){
   const today = todayStr(), m = nowMin(), P = PER(), recs = [];
   for(const off of [0,-1,-2]){
     weekDates(off).forEach((date, d) => {
-      if(date > today) return;
       f.classes.filter(c => c.day===d).forEach(c => {
         const seed = f.id+date+c.period;
+        if(off===0 && hash(seed+'o') < .05){ // 前もって「休講」を投稿しておく
+          recs.push({id:`${f.id}-${date}-${c.id}`, classId:c.id, date, kind:'off', ts:dateMs(weekDates(0)[0]) + (9*60 + Math.floor(hash(seed+'ot')*120))*60e3, comment:''}); return; }
+        if(date > today) return;
         const t = win(c).s - 8 + Math.floor(hash(seed+'t')*14);
         if(date===today && m < t) return;
         if(hash(seed) > f.rate){ // 出なかった日に、本人が「飛ぶ」を投稿することもある
@@ -553,7 +560,12 @@ const friends = () => FRIENDS.filter(f => S.friendState[f.id]==='friend');
 const fById = id => FRIENDS.find(f => f.id===id);
 const fRec = (f, c, date) => f.recs.find(r => r.classId===c.id && r.date===date);
 const isSkip = r => !!r && r.kind==='skip';
-const fHere = (f, c, date) => { const r = fRec(f, c, date); return r && !isSkip(r) ? r : null; };
+const isOff = r => !!r && r.kind==='off'; // 休講
+const isAway = r => isSkip(r) || isOff(r); // 出席しない(飛ぶ・休講)
+const awayIc = r => isOff(r) ? '🚫' : '🏃';
+// 飛ぶ・休講は、今週なら授業の前からでも選べる
+const canAway = date => date >= weekDates(0)[0] && date <= weekDates(0)[4];
+const fHere = (f, c, date) => { const r = fRec(f, c, date); return r && !isAway(r) ? r : null; };
 // 同じ授業(授業名・曜日・時限が同じ)を受けている友だち
 const sameUniv = f => !!S.me.univ && f.univ===S.me.univ;
 // 同じ大学の友だちだけを「同じ授業」とみなす(大学が違えば、授業名・時限が同じでも別の授業)
@@ -622,7 +634,7 @@ function header(){
 function heroHTML(){
   const d = dayIdx(), t = todayStr(), fr = friends();
   const list = d<0 ? [] : fr.map(f => {
-    const rs = f.recs.filter(r => r.date===t && !isSkip(r)).sort((a,b) => a.ts-b.ts);
+    const rs = f.recs.filter(r => r.date===t && !isAway(r)).sort((a,b) => a.ts-b.ts);
     const last = rs[rs.length-1];
     return {f, lc: last ? f.classes.find(c => c.id===last.classId) : null, has: f.classes.some(c => c.day===d)};
   }).filter(x => x.has || x.lc).sort((a,b) => (!!b.lc) - (!!a.lc));
@@ -643,13 +655,13 @@ function classRow(c, date, isNext){
   let who = '';
   if(came.length) who = `<div class="who"><span class="v">☺︎</span><span class="t">${names(came.map(x=>x.f))}</span></div>`;
   else if(fr.length) who = `<div class="who gray"><span class="v">🤝</span><span class="t">${names(fr.map(x=>x.f))}</span></div>`;
-  const label = isSkip(r) ? '飛んだ(記録済み)' : r ? '来た(記録済み)' : can ? '来た を記録' : `${fmtMin(win(c).s-10)} から押せます`;
-  const sc = isSkip(r) ? 'skip' : r ? 'done' : !can ? 'wait' : ph==='past' ? 'past' : '';
+  const label = isOff(r) ? '休講' : isSkip(r) ? '飛ぶ' : r ? '来た(記録済み)' : can ? '来た を記録' : `${fmtMin(win(c).s-10)} から押せます`;
+  const sc = isAway(r) ? 'skip' : r ? 'done' : !can ? 'wait' : ph==='past' ? 'past' : '';
   return `<div class="row ${ph==='now'?'now':''} ${isNext?'next':''}" data-act="cls" data-v="${c.id}|${date}" role="button" tabindex="0" aria-label="${c.period}限 ${esc(c.name)}">
     ${thumbHTML(c, r, c.got)}
     <div class="mid"><div class="tm">${c.period}限 ${timeText(c)}${ph==='now'?'<span class="nowtag">いま</span>':''}</div>
       <div class="name">${esc(c.name)}</div>${who}</div>
-    <button class="smile ${sc}" data-act="here" data-v="${c.id}|${date}" aria-label="${label}" aria-pressed="${!!r}">${isSkip(r) ? '🏃' : SMILE}</button></div>`;
+    <button class="smile ${sc}" data-act="here" data-v="${c.id}|${date}" aria-label="${label}" aria-pressed="${!!r}">${isAway(r) ? awayIc(r) : SMILE}</button></div>`;
 }
 function todayView(){
   const d = dayIdx(), t = todayStr();
@@ -696,9 +708,9 @@ function gridHTML(classes, wd, owner){
       const came = isMe && isToday ? friendsIn(c).filter(x => fHere(x.f, x.fc, wd[d])).map(x => x.f) : [];
       const act = isMe ? `data-act="cls" data-v="${c.id}|${wd[d]}"` : `data-act="fpost" data-v="${owner.id}|${c.id}|${wd[d]}"`;
       h += `<button class="cell ${r&&(r.photo||r.ph)?'ph':''} ${isToday&&p===curP?'now':''}" style="${bg}" ${act}
-          aria-label="${DAYS[d]}${p}限 ${esc(c.name)}${mk?(isSkip(r)?' 飛んだ':' 来た'):''}${came.length?` ${names(came)}が来た`:''}${got?' 単位GET':''}${same?' 同じ授業':''}">
+          aria-label="${DAYS[d]}${p}限 ${esc(c.name)}${mk?(isOff(r)?' 休講':isSkip(r)?' 飛ぶ':' 来た'):''}${came.length?` ${names(came)}が来た`:''}${got?' 単位GET':''}${same?' 同じ授業':''}">
         <span>${esc(c.name)}</span><span class="rm">${esc(c.room||'')}</span>
-        ${same ? '<span class="same">🤝</span>' : ''}${mk ? (isSkip(r) ? '<span class="mk" style="background:#fff3c4">🏃</span>' : `<span class="mk">${MK_SMILE}</span>`) : ''}${got ? '<span class="gt">GET</span>' : ''}${came.length ? `<span class="fr">${faces(came,14)}</span>` : ''}</button>`;
+        ${same ? '<span class="same">🤝</span>' : ''}${mk ? (isAway(r) ? `<span class="mk" style="background:${isOff(r)?'#e8e8e8':'#fff3c4'}">${awayIc(r)}</span>` : `<span class="mk">${MK_SMILE}</span>`) : ''}${got ? '<span class="gt">GET</span>' : ''}${came.length ? `<span class="fr">${faces(came,14)}</span>` : ''}</button>`;
     }
   }
   return h + '</div>';
@@ -764,13 +776,16 @@ function findPost(id){
 // リアクションは数字でなく1個ずつ並べる(多いときは「+」)
 function rxList(f, r){
   const out = [];
-  viewers(f, r).forEach(x => { if(hash(x.id+r.id+'rx') < .3) out.push({e:RX[Math.floor(hash(x.id+r.id+'re')*RX.length)], mine:false}); });
-  (S.rx[r.id] || []).forEach(e => out.push({e, mine:true}));
+  viewers(f, r).forEach(x => { if(hash(x.id+r.id+'rx') < .3) out.push({e:RX[Math.floor(hash(x.id+r.id+'re')*RX.length)], mine:false, who:x}); });
+  (S.rx[r.id] || []).forEach(e => out.push({e, mine:true, who:null}));
   return out;
 }
 function postBar(f, r){
   const list = rxList(f, r), cs = postComments(f, r), MAX = 5;
-  const chips = list.slice(0, MAX).map(x => x.mine && f ? `<button class="rxe on" data-act="rx" data-v="${r.id}|${x.e}" aria-label="${x.e} を取り消す">${x.e}</button>` : `<span class="rxe">${x.e}</span>`).join('')
+  // だれのリアクションか、小さな顔で分かるように(押すと一覧)
+  const face = x => x.who ? avatar(x.who.emoji, x.who.bg, 13) : meAv(13);
+  const chips = list.slice(0, MAX).map(x => x.mine && f ? `<button class="rxe on" data-act="rx" data-v="${r.id}|${x.e}" aria-label="${x.e} を取り消す">${x.e}${face(x)}</button>`
+      : `<button class="rxe" data-act="cmts" data-v="${r.id}" aria-label="${x.who ? x.who.name : 'あなた'} ${x.e}">${x.e}${face(x)}</button>`).join('')
     + (list.length > MAX ? '<span class="rxmore" aria-label="ほかにもリアクション">+</span>' : '');
   // 一巡したら最新のコメントで止める(描き直しても最初からやり直さない)
   const n = cs.length, pos = TICK[r.id]; const idx = n ? (pos==null ? 0 : Math.min(pos, n-1)) : -1;
@@ -797,7 +812,7 @@ function postCard({f, c, r}, clickable=true, bar=true){
     : `${meAv(38)}<span class="t"><b>あなた${r.aud==='private' ? ' 🔒' : ''}</b><span>${c.period}限 ${esc(c.name)}</span></span>`;
   // 投稿を押すと投稿(とコメント)、人を押すとその人の時間割
   const who = clickable ? `<button class="pwho" ${f ? `data-act="friend" data-v="${f.id}"` : `data-act="cls" data-v="${c.id}|${r.date}"`}>${whoInner}</button>` : `<span class="pwho">${whoInner}</span>`;
-  const mark = isSkip(r) ? `🏃 ${hm(r.ts)}` : `☺︎ ${r.late ? 'あとから' : hm(r.ts)}`;
+  const mark = isAway(r) ? `${awayIc(r)} ${ymd(new Date(r.ts - 4*36e5)) < r.date ? md(r.date) : hm(r.ts)}` : `☺︎ ${r.late ? 'あとから' : hm(r.ts)}`;
   const open = clickable ? `role="button" tabindex="0" data-act="cmts" data-v="${r.id}"` : '';
   return `<div class="post"><div class="phead" ${open}>${ph}<span class="pm">${who}<time>${mark}</time></span>${r.comment ? `<span class="cm">${esc(r.comment)}</span>` : ''}</div>${bar ? postBar(f, r) : ''}</div>`;
 }
@@ -817,7 +832,9 @@ function openComments(id){ const open = $('sheet').classList.contains('open'); C
 function renderComments(){
   const p = findPost(CMV); if(!p) return;
   const cs = postComments(p.f, p.r);
-  let h = (CM_BACK ? `<button class="sbk" data-act="cmback" aria-label="戻る">${BACK}</button>` : '') + `<div style="margin-top:4px">${postCard(p, false, true)}</div><div class="clist">`;
+  const rl = rxList(p.f, p.r);
+  let h = (CM_BACK ? `<button class="sbk" data-act="cmback" aria-label="戻る">${BACK}</button>` : '') + `<div style="margin-top:4px">${postCard(p, false, true)}</div>`
+    + (rl.length ? `<div class="rxwho">${rl.map(x => `<span class="w">${x.who ? avatar(x.who.emoji, x.who.bg, 26) : meAv(26)}${x.who ? x.who.name : 'あなた'}<i>${x.e}</i></span>`).join('')}</div>` : '') + `<div class="clist">`;
   cs.forEach(m => { const f = m.from==='me' ? null : fById(m.from);
     h += `<div class="ci">${f ? avatar(f.emoji,f.bg,28) : meAv(28)}<p><b>${f ? f.name : 'あなた'}</b>${esc(m.text)}</p><time>${hm(m.ts)}</time></div>`; });
   h += `</div><form class="cform" id="cmForm">${meAv(36)}<input class="tx" id="pcIn" placeholder="💬" maxlength="100" autocomplete="off" aria-label="コメント" style="padding:10px 14px"><button class="csend" type="submit" aria-label="送信">${PLANE}</button></form>`;
@@ -891,15 +908,16 @@ function paintClass(){
   // 会話は投稿へのリアクションとコメントに一本化(授業ごとのトークは外した)
   if(fr.length) h += `<div class="fline">${fr.map(({f,fc}) => { const x = isToday && fHere(f, fc, date);
     return `<button class="fchip ${x?'ok':''}" data-act="friend" data-v="${f.id}">${avatar(f.emoji,f.bg,28)}${f.name}${x ? ' <small>来た</small>' : ''}</button>`; }).join('')}</div>`;
-  const canSk = date <= todayStr() && date >= weekDates(0)[0], d = CS.draft;
-  if(isSkip(r)) h += `<div class="herest"><span class="smile skip">🏃</span>飛んだ <small>${hm(r.ts)}</small>${recBtns(r)}</div>`;
+  const canSk = canAway(date), d = CS.draft;
+  if(isAway(r)) h += `<div class="herest"><span class="smile skip">${awayIc(r)}</span>${isOff(r) ? '休講' : '飛ぶ'} <small>${hm(r.ts)}</small>${recBtns(r)}</div>`;
   else if(r) h += `<div class="herest"><span class="smile done">${SMILE}</span>来た <small>${r.late ? 'あとから' : hm(r.ts)}</small>${recBtns(r)}</div>`;
   if(r || can || canSk){
     // 投稿する枠(ひとつのカードにまとめる)
     h += `<div class="composer">`;
     if(!r) h += `<div class="cmp-top">${meAv(36)}<div class="seg">
         <button data-act="dkind" data-v="here" class="${d.kind==='here'?'on':''}" ${can?'':'disabled'}>☺︎ 来た${can ? '' : ` <small>${fmtMin(win(c).s-10)}〜</small>`}</button>
-        <button data-act="dkind" data-v="skip" class="${d.kind==='skip'?'on':''}">🏃 飛ぶ</button></div></div>`;
+        <button data-act="dkind" data-v="skip" class="${d.kind==='skip'?'on':''}" ${canSk?'':'disabled'}>🏃 飛ぶ</button>
+        <button data-act="dkind" data-v="off" class="${d.kind==='off'?'on':''}" ${canSk?'':'disabled'}>🚫 休講</button></div></div>`;
     h += `<input class="cmp-in" id="cmIn" maxlength="60" autocomplete="off" aria-label="ひとこと" value="${esc(d.comment)}">`;
     if(d.photo) h += `<div class="shot" style="margin-top:8px;background-image:url('${d.photo}')" role="img" aria-label="写真"></div>
       <div class="phrow"><button data-act="pick" aria-label="写真を選び直す">🔄</button><button data-act="unphoto" aria-label="写真を外す">🗑</button></div>`;
@@ -940,13 +958,13 @@ function refreshSem(cid){
 function checkIn(cid, date, photo, kind){
   const c0 = S.classes.find(x => x.id===cid); if(!c0) return null;
   const existed = !!recOf(cid, date);
-  if(!existed && !(kind==='skip' ? (date <= todayStr() && date >= weekDates(0)[0]) : canRecord(date, c0))) return null;
+  if(!existed && !(kind==='skip' || kind==='off' ? canAway(date) : canRecord(date, c0))) return null;
   const apply = withPhoto => {
     const c = S.classes.find(x => x.id===cid); if(!c) return null;
     let r = recOf(cid, date);
     if(!r){
-      r = {id:uid(), classId:cid, date, ts:nowTs(), late: date < todayStr() || nowMin() >= win(c).e, photo:null, aud:audFor(c, date)};
-      if(kind==='skip') r.kind = 'skip';
+      r = {id:uid(), classId:cid, date, ts:nowTs(), late: date < todayStr() || (date===todayStr() && nowMin() >= win(c).e), photo:null, aud:audFor(c, date)};
+      if(kind==='skip' || kind==='off') r.kind = kind;
       S.recs.push(r);
     }
     if(withPhoto && photo !== undefined) r.photo = photo;
@@ -1025,7 +1043,7 @@ function friendSheetHTML(f){
     h += `<div class="f">きょう</div><div class="card" style="padding:4px 16px">` + (today.length ? today.map(c => {
       const r = fRec(f, c, t), ph = phaseOf(t, c);
       return `<div class="li">${thumbHTML(c, r, c.shareGot)}<div class="t"><span>${c.period}限 ${timeText(c)}</span><b>${esc(c.name)}</b></div>
-        <span class="st ${r&&!isSkip(r)?'ok':''}">${isSkip(r) ? '🏃' : r ? '☺︎ 来た' : ph==='future' ? '⏳' : ''}</span></div>`; }).join('')
+        <span class="st ${r&&!isAway(r)?'ok':''}">${isAway(r) ? awayIc(r) : r ? '☺︎ 来た' : ph==='future' ? '⏳' : ''}</span></div>`; }).join('')
       : '<div class="empty" style="padding:16px">きょうは授業なし</div>') + '</div>';
   }
   h += `<div class="f">時間割</div><div class="card ttc">${gridHTML(f.classes, weekDates(0), f)}</div>
@@ -1426,7 +1444,7 @@ const ACT = {
     r.comment = d.comment.trim(); r.aud = CS.aud; cc.aud = CS.aud; if(existed) r.photo = d.photo;
     if(!save()){ renderClass(); return; }
     closeSheet(); render();
-    actToast(`${isSkip(r) ? '🏃' : '☺︎'} ✓  ${audIcon(r.aud)} ${audName(r.aud).replace(/^\S+ /,'')}`, 'audpick', `${r.classId}|${r.date}`); },
+    actToast(`${isAway(r) ? awayIc(r) : '☺︎'} ✓  ${audIcon(r.aud)} ${audName(r.aud).replace(/^\S+ /,'')}`, 'audpick', `${r.classId}|${r.date}`); },
   audpick: v => { $('toast').classList.remove('on'); openAudPick(v); },
   audset: v => { const [cid, date, a] = v.split('|'); const r = recOf(cid, date), c = S.classes.find(x => x.id===cid); if(!r || !c) return;
     r.aud = a; c.aud = a; if(!save()) return; if(AP && AP.back) openClass(cid, date); else closeSheet(); render(); toast(`${audIcon(a)} ${audName(a).replace(/^\S+ /,'')}`); },
@@ -1439,7 +1457,7 @@ const ACT = {
   fpost: v => openFriendPost(v),
   rxpick: (v, btn) => { const el = btn.closest('.post')?.querySelector('.rxpick'); if(el) el.hidden = !el.hidden; },
   rx: v => { const [id, e] = v.split('|'); const a = S.rx[id] = S.rx[id] || []; const i = a.indexOf(e); if(i>=0) a.splice(i,1); else a.push(e); if(!save()) return; refreshView(); },
-  cmts: v => openComments(v),
+  cmts: v => { if(CMV===v && $('sheet').classList.contains('open')) return; openComments(v); },
   cmback: () => goBackFromComments(),
   addrow: v => addRow(v==='per'),
   fadd: async v => {
