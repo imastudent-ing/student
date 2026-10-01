@@ -22,7 +22,7 @@
     font-family:'Zen Maru Gothic','Hiragino Maru Gothic ProN','Hiragino Kaku Gothic ProN',system-ui,sans-serif;}
   body{min-height:100vh; display:flex; justify-content:center; overflow-x:hidden;}
   body::after{content:""; position:fixed; inset:0; pointer-events:none; z-index:99;
-    box-shadow:inset 0 0 0 3px #ee8ce4, inset 0 0 38px rgba(238,140,228,.4);}
+    box-shadow:inset 0 0 0 2px rgba(238,140,228,.55), inset 0 0 24px rgba(238,140,228,.18);}
   button{font-family:inherit; color:inherit; cursor:pointer; border:none; background:none; padding:0; font-size:inherit;}
   button:disabled{cursor:default;}
   #app{width:100%; max-width:480px; min-height:100vh; padding:calc(16px + env(safe-area-inset-top)) 16px 150px;}
@@ -56,7 +56,7 @@
   /* class rows (reference style) */
   .row{display:flex; align-items:center; gap:14px; padding:14px 14px; background:var(--card); border:1px solid var(--line); border-radius:var(--r);
     margin-bottom:12px; width:100%; text-align:left; cursor:pointer; transition:box-shadow .2s;}
-  .row.now{box-shadow:0 0 0 2.5px var(--pink);}
+  .row.now{box-shadow:0 0 0 3px var(--pink), 0 8px 22px rgba(226,79,210,.22);}
   .thumb{width:68px; height:68px; border-radius:18px; flex-shrink:0; border:2px solid #fff; box-shadow:0 1px 4px rgba(0,0,0,.08); position:relative;
     display:grid; place-items:center; overflow:hidden; background-size:cover; background-position:center;}
   .pn{font-family:'Anton',Impact,sans-serif; font-size:30px; color:rgba(0,0,0,.32); line-height:1;}
@@ -647,7 +647,7 @@ function classRow(c, date, isNext){
   const sc = isSkip(r) ? 'skip' : r ? 'done' : !can ? 'wait' : ph==='past' ? 'past' : '';
   return `<div class="row ${ph==='now'?'now':''} ${isNext?'next':''}" data-act="cls" data-v="${c.id}|${date}" role="button" tabindex="0" aria-label="${c.period}限 ${esc(c.name)}">
     ${thumbHTML(c, r, c.got)}
-    <div class="mid"><div class="tm">${c.period}限 ${timeText(c)}${ph==='now'?'<span class="nowtag">いま</span>':''}${unread(c) ? `<span class="tkb" aria-label="新しいトーク${unread(c)}件">💬 ${cnt(unread(c))}</span>` : ''}</div>
+    <div class="mid"><div class="tm">${c.period}限 ${timeText(c)}${ph==='now'?'<span class="nowtag">いま</span>':''}</div>
       <div class="name">${esc(c.name)}</div>${who}</div>
     <button class="smile ${sc}" data-act="here" data-v="${c.id}|${date}" aria-label="${label}" aria-pressed="${!!r}">${isSkip(r) ? '🏃' : SMILE}</button></div>`;
 }
@@ -698,7 +698,7 @@ function gridHTML(classes, wd, owner){
       h += `<button class="cell ${r&&(r.photo||r.ph)?'ph':''} ${isToday&&p===curP?'now':''}" style="${bg}" ${act}
           aria-label="${DAYS[d]}${p}限 ${esc(c.name)}${mk?(isSkip(r)?' 飛んだ':' 来た'):''}${came.length?` ${names(came)}が来た`:''}${got?' 単位GET':''}${same?' 同じ授業':''}">
         <span>${esc(c.name)}</span><span class="rm">${esc(c.room||'')}</span>
-        ${same ? '<span class="same">🤝</span>' : ''}${isMe && unread(c) ? `<span class="tb" aria-label="新しいトーク">${cnt(unread(c))}</span>` : ''}${mk ? (isSkip(r) ? '<span class="mk" style="background:#fff3c4">🏃</span>' : `<span class="mk">${MK_SMILE}</span>`) : ''}${got ? '<span class="gt">GET</span>' : ''}${came.length ? `<span class="fr">${faces(came,14)}</span>` : ''}</button>`;
+        ${same ? '<span class="same">🤝</span>' : ''}${mk ? (isSkip(r) ? '<span class="mk" style="background:#fff3c4">🏃</span>' : `<span class="mk">${MK_SMILE}</span>`) : ''}${got ? '<span class="gt">GET</span>' : ''}${came.length ? `<span class="fr">${faces(came,14)}</span>` : ''}</button>`;
     }
   }
   return h + '</div>';
@@ -739,13 +739,21 @@ const CM_LINES = ['いいね','わかる〜','おつ！','ノート見せて〜'
 // 投稿へのリアクション(デモ: ほかの友だちの分は決まった値で生成)
 function rxCounts(f, r){
   const m = {};
-  friends().filter(x => !f || x.id!==f.id).forEach(x => { if(hash(x.id+r.id+'rx') < .3){ const e = RX[Math.floor(hash(x.id+r.id+'re')*RX.length)]; m[e] = (m[e]||0) + 1; } });
+  viewers(f, r).forEach(x => { if(hash(x.id+r.id+'rx') < .3){ const e = RX[Math.floor(hash(x.id+r.id+'re')*RX.length)]; m[e] = (m[e]||0) + 1; } });
   (S.rx[r.id] || []).forEach(e => { m[e] = (m[e]||0) + 1; });
   return m;
 }
+// デモ: 自分の投稿に反応できるのは、その投稿が見える友だちだけ
+function viewers(f, r){
+  if(f) return friends().filter(x => x.id!==f.id);
+  if(r.aud==='private') return [];
+  if(r.aud==='class'){ const c = S.classes.find(x => x.id===r.classId); return c ? friendsIn(c).map(x => x.f) : []; }
+  if(r.aud && r.aud.startsWith('g:')){ const g = S.groups.find(x => 'g:'+x.id===r.aud); return g ? friends().filter(x => g.members.includes(x.id)) : []; }
+  return friends();
+}
 function postComments(f, r){
   const out = [];
-  friends().filter(x => !f || x.id!==f.id).forEach(x => { if(hash(x.id+r.id+'cm') < .18) out.push({from:x.id, text:CM_LINES[Math.floor(hash(x.id+r.id+'ct')*CM_LINES.length)], ts:r.ts + (5 + Math.floor(hash(x.id+r.id+'cs')*50))*60e3}); });
+  viewers(f, r).forEach(x => { if(hash(x.id+r.id+'cm') < .18) out.push({from:x.id, text:CM_LINES[Math.floor(hash(x.id+r.id+'ct')*CM_LINES.length)], ts:r.ts + (5 + Math.floor(hash(x.id+r.id+'cs')*50))*60e3}); });
   return [...out.filter(m => m.ts <= nowTs()), ...(S.pcm[r.id] || [])].sort((a,b) => a.ts-b.ts);
 }
 function findPost(id){
@@ -756,7 +764,7 @@ function findPost(id){
 // リアクションは数字でなく1個ずつ並べる(多いときは「+」)
 function rxList(f, r){
   const out = [];
-  friends().filter(x => !f || x.id!==f.id).forEach(x => { if(hash(x.id+r.id+'rx') < .3) out.push({e:RX[Math.floor(hash(x.id+r.id+'re')*RX.length)], mine:false}); });
+  viewers(f, r).forEach(x => { if(hash(x.id+r.id+'rx') < .3) out.push({e:RX[Math.floor(hash(x.id+r.id+'re')*RX.length)], mine:false}); });
   (S.rx[r.id] || []).forEach(e => out.push({e, mine:true}));
   return out;
 }
@@ -821,7 +829,7 @@ function renderComments(){
     $('pcIn').value = ''; $('pcIn').blur();
     goBackFromComments();
     render(); toast('💬 ✓');
-    const own = findPost(id); const who = own && own.f ? own.f : friends()[0];
+    const own = findPost(id); const who = own && own.f ? own.f : own ? viewers(null, own.r)[0] : null;
     if(who) setTimeout(() => { S.pcm[id].push({from:who.id, text:['ありがと〜','それな','笑','りょ！'][Math.floor(Math.random()*4)], ts:nowTs()}); save(true);
       if(CMV===id && $('sheet').classList.contains('open')) renderComments(); render(); }, 2500); };
 }
@@ -854,7 +862,7 @@ function render(){
    授業のシート(来た・写真・見える人・学期末の印)
    ============================================================ */
 let CS = null; // 開いている授業シート {cid, date, aud}
-const newDraft = (c, date, r) => ({kind: r ? (r.kind || 'here') : canRecord(date, c) ? 'here' : 'skip', comment: r && r.comment || '', photo: r && r.photo || null});
+const newDraft = (c, date, r) => ({kind: r ? (r.kind || 'here') : canRecord(date, c) ? 'here' : null, comment: r && r.comment || '', photo: r && r.photo || null});
 function openClass(cid, date){
   const c = S.classes.find(x => x.id===cid); if(!c) return;
   const r = recOf(cid, date);
@@ -880,7 +888,7 @@ function paintClass(){
   const date = CS.date, r = recOf(c.id, date), ph = phaseOf(date, c), can = canRecord(date, c), isToday = date===todayStr();
   const fr = friendsIn(c);
   let h = `<div style="display:flex;align-items:flex-start;gap:8px"><h3 style="flex:1;min-width:0">${esc(c.name)}</h3><button class="edb" data-act="edit" data-v="${c.id}" aria-label="授業を編集">✏️</button></div><div class="sub">${md(date)}(${DAYS[c.day]}) ${c.period}限 ${timeText(c)}${c.room ? ' ・ 📍'+esc(c.room) : ''}</div>`;
-  { const u = unread(c); h += `<button class="talkbtn" data-act="talk" data-v="${c.id}" aria-label="トーク">💬${u ? ` <span class="tkb">${cnt(u)}</span>` : ''}</button>`; }
+  // 会話は投稿へのリアクションとコメントに一本化(授業ごとのトークは外した)
   if(fr.length) h += `<div class="fline">${fr.map(({f,fc}) => { const x = isToday && fHere(f, fc, date);
     return `<button class="fchip ${x?'ok':''}" data-act="friend" data-v="${f.id}">${avatar(f.emoji,f.bg,28)}${f.name}${x ? ' <small>来た</small>' : ''}</button>`; }).join('')}</div>`;
   const canSk = date <= todayStr() && date >= weekDates(0)[0], d = CS.draft;
@@ -897,7 +905,7 @@ function paintClass(){
       <div class="phrow"><button data-act="pick" aria-label="写真を選び直す">🔄</button><button data-act="unphoto" aria-label="写真を外す">🗑</button></div>`;
     h += `<div class="postrow">${d.photo ? '' : '<button class="audb" data-act="pick" aria-label="写真を1枚">📷</button>'}
       ${r ? '' : `<button class="audb" data-act="audcycle" aria-label="見える人: ${esc(audName(CS.aud))}">${audIcon(CS.aud)}</button>`}
-      <button class="postbtn" id="postBtn" data-act="post" aria-label="投稿" ${r && !isDirty(r, d) ? 'disabled' : ''}>${PLANE}</button></div>`;
+      <button class="postbtn" id="postBtn" data-act="post" aria-label="投稿" ${(r && !isDirty(r, d)) || (!r && !d.kind) ? 'disabled' : ''}>${PLANE}</button></div>`;
     h += `</div>`;
   } else h += `<div class="herest wait">${ph==='future' ? `☺︎ ${fmtMin(win(c).s-10)}〜` : '—'}</div>`;
   { const posts = date >= weekDates(0)[0] ? fr.map(({f,fc}) => ({f, c:fc, r:fRec(f, fc, date)})).filter(x => x.r) : [];
@@ -1410,6 +1418,7 @@ const ACT = {
   aud: v => { CS.aud = v; renderClass(); },
   audcycle: () => { const o = audOptions().map(x => x[0]); CS.aud = o[(o.indexOf(CS.aud) + 1) % o.length]; renderClass(); toast(audName(CS.aud)); },
   post: () => {
+    if(!recOf(CS.cid, CS.date) && !CS.draft.kind) return;
     const c = S.classes.find(x => x.id===CS.cid); if(!c) return;
     const d = CS.draft, existed = recOf(CS.cid, CS.date);
     if(!existed){ const nr = checkIn(CS.cid, CS.date, d.photo || undefined, d.kind); if(!nr) return; if(nr.dropped){ delete nr.dropped; d.photo = null; toast('写真は容量がいっぱいでのせられませんでした'); } }
@@ -1428,7 +1437,7 @@ const ACT = {
   edit: v => openEdit(v),
   friend: v => openFriend(v),
   fpost: v => openFriendPost(v),
-  rxpick: v => { const el = document.getElementById('rp-'+v); if(el) el.hidden = !el.hidden; },
+  rxpick: (v, btn) => { const el = btn.closest('.post')?.querySelector('.rxpick'); if(el) el.hidden = !el.hidden; },
   rx: v => { const [id, e] = v.split('|'); const a = S.rx[id] = S.rx[id] || []; const i = a.indexOf(e); if(i>=0) a.splice(i,1); else a.push(e); if(!save()) return; refreshView(); },
   cmts: v => openComments(v),
   cmback: () => goBackFromComments(),
