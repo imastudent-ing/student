@@ -9,6 +9,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Zen+Maru+Gothic:wght@500;700;900&display=swap" rel="stylesheet">
 <style>
   :root{
+    --ics:2; --icss:2.6;
     --bg:#f4f4f4; --card:#ececec; --line:#e2e2e2;
     --tx:#111; --dim:#8a8a8a; --dim2:#b8b8b8;
     --pink:#e24fd2; --pink2:#f5c6ee; --pink3:#fce6f8; --rose:#e2677f;
@@ -77,7 +78,7 @@
   .stk .av{margin-left:-6px; border:1.5px solid #fff;}
   .smile{width:48px; height:48px; border-radius:50%; background:var(--pink2); border:1.5px solid var(--rose); display:grid; place-items:center; flex-shrink:0; transition:transform .15s;}
   .smile.done{background:var(--pink); border-color:var(--pink);}
-  .smile.done svg *{stroke:#fff;} .smile.done svg circle{fill:#fff;}
+  .smile{color:#222;} .smile.done{color:#fff;}
   .smile.past{background:#fff; border-color:var(--pink2);}
   .smile.wait{background:#fff; border-color:#d6d6d6; opacity:.6;}
   .smile:active{transform:scale(.88);}
@@ -95,7 +96,7 @@
   .circ{width:70px; height:70px; border-radius:50%; background:#fff; display:grid; place-items:center; box-shadow:0 8px 24px rgba(0,0,0,.09); position:relative;}
   .circ .badge{position:absolute; top:13px; right:14px; width:13px; height:13px; border-radius:50%; background:var(--pink); border:2px solid #fff;}
   .circ.on{background:var(--pink3);}
-  .smile.skip{background:#fff3c4; border-color:#e6c65a; font-size:24px;}
+  .smile.skip{background:#fff3c4; border-color:#e6c65a;}
   .skipbtn{display:block; width:100%; margin-top:8px; padding:13px; border-radius:22px; background:#fff; font-weight:900; font-size:15px; color:#8a6d00;}
   .post .cm{display:block; padding:0 14px 12px 62px; margin-top:-6px; font-size:14px; font-weight:700; line-height:1.5;}
   .nbadge{position:absolute; top:6px; right:4px; min-width:22px; height:22px; border-radius:11px; background:var(--pink); color:#fff; font-size:11.5px; font-weight:900; display:grid; place-items:center; padding:0 6px; border:2px solid #fff;}
@@ -166,7 +167,7 @@
   .ci p b{font-weight:900; margin-right:6px;}
   .ci time{font-size:11px; color:var(--dim2); font-weight:700; white-space:nowrap; padding-top:2px;}
   .cform .csend{width:44px; height:44px; border-radius:50%; background:var(--pink); display:grid; place-items:center; flex-shrink:0;}
-  .cform .csend svg{width:20px; height:20px;}
+  .cform .csend{color:#fff;}
   .rxc.add{color:var(--dim);}
   .rxc.cmb{flex-shrink:0;}
   .pbar{align-items:center;}
@@ -347,6 +348,42 @@
   .steps{display:flex; gap:6px;}
   .hero p,.note,.rule,.sub,.onb .lead{word-break:auto-phrase; text-wrap:pretty;}
   .nb{display:inline-block;}
+  /* アイコン(ひとつのペンで描いたセット。色は文字色を使う) */
+  .isprite{position:absolute; width:0; height:0; overflow:hidden;}
+  .ico{width:1.15em; height:1.15em; flex-shrink:0; display:inline-block; vertical-align:-.21em; fill:none; stroke:currentColor;
+    stroke-width:var(--icw,var(--ics)); stroke-linecap:round; stroke-linejoin:round; overflow:visible;}
+  .hint .ic .ico{width:17px; height:17px; color:#fff; --icw:2.4;}
+  .hint .ht .ico{margin-left:2px;}
+  .smile .ico{width:30px; height:30px; --icw:1.7;}
+  .herest .smile .ico{width:26px; height:26px;}
+  .smile.skip .ico{width:24px; height:24px; --icw:2;}
+  .cell .mk .ico{width:10px; height:10px; --icw:3;}
+  .cell .mk.aw{color:#222;}
+  .cell .same .ico{width:12px; height:12px; --icw:var(--icss);}
+  .cell.ph .same{color:#fff;}
+  .row .who .ico, .post .pm time .ico, .li .st .ico, .note .ico, .rule .ico, label.f .ico, .f .ico{--icw:var(--icss);}
+  .post .pm time .ico{margin-right:1px;}
+  .audb .ico{width:24px; height:24px;}
+  .composer .audb .ico{width:23px; height:23px;}
+  .herest .ib .ico, .phrow .ico{width:21px; height:21px;}
+  .edb .ico{width:17px; height:17px;}
+  .edb .ico.uf{width:19px; height:19px; color:#888;}
+  .circ .ico{width:31px; height:31px;}
+  .ico.bk{width:24px; height:24px; --icw:2.4;}
+  .ico.chev{width:22px; height:22px; --icw:2.4;}
+  .postbtn{color:#fff;} .postbtn .ico{width:28px; height:28px; --icw:2.2;}
+  .cform .csend .ico{width:20px; height:20px;}
+  .rxc.cmb .ico{width:23px; height:23px;}
+  .rxc.add .ico{width:19px; height:19px;}
+  .sheet h3 .ico{width:28px; height:28px; vertical-align:-.25em;}
+  details.sec > summary .ico{width:20px; height:20px;}
+  .seg button .ico{width:16px; height:16px; margin-right:2px;}
+  .toast .ico{width:18px; height:18px; vertical-align:-.25em;}
+  .askbox p .ico{width:20px; height:20px; vertical-align:-.28em; margin-right:2px;}
+  .cform{position:relative;}
+  .cform .phi{position:absolute; left:58px; top:50%; transform:translateY(-50%); color:var(--dim2); pointer-events:none; display:none; line-height:0;}
+  .cform .phi .ico{width:20px; height:20px;}
+  .cform input:placeholder-shown + .phi{display:block;}
   .steps i{height:5px; flex:1; border-radius:3px; background:#ddd;}
   .steps i.on{background:var(--pink);}
 </style>
@@ -365,15 +402,15 @@
 
 <nav class="nav" id="nav"><div class="nav-in">
   <button class="circ" data-act="friends" aria-label="友だち">
-    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.6-3.6 3.2-5.6 6.5-5.6s5.9 2 6.5 5.6"/><path d="M16 4.8a3.3 3.3 0 0 1 0 6.4M18.2 14.6c1.8.8 3 2.6 3.3 5.4"/></svg>
+    <svg class="ico" aria-hidden="true" focusable="false"><use href="#i-friends" width="100%" height="100%"/></svg>
     <span class="badge" id="frBadge" hidden></span>
   </button>
   <div class="pill" role="tablist">
     <button data-act="tab" data-v="today" role="tab">きょう</button>
     <button data-act="tab" data-v="week" role="tab">週</button>
   </div>
-  <button class="circ" id="feedBtn" data-act="tab" data-v="feed" aria-label="みんなの ☺︎ と写真">
-    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="6" r="2"/><path d="M10 5h10M10 8h6"/><circle cx="5" cy="13" r="2"/><path d="M10 12h10M10 15h6"/><circle cx="5" cy="20" r="2"/><path d="M10 19h10"/></svg>
+  <button class="circ" id="feedBtn" data-act="tab" data-v="feed" aria-label="みんなの投稿">
+    <svg class="ico" aria-hidden="true" focusable="false"><use href="#i-list" width="100%" height="100%"/></svg>
     <span class="nbadge" id="feedBadge" hidden></span>
   </button>
 </div></nav>
@@ -562,7 +599,7 @@ const fRec = (f, c, date) => f.recs.find(r => r.classId===c.id && r.date===date)
 const isSkip = r => !!r && r.kind==='skip';
 const isOff = r => !!r && r.kind==='off'; // 休講
 const isAway = r => isSkip(r) || isOff(r); // 出席しない(飛ぶ・休講)
-const awayIc = r => isOff(r) ? '🚫' : '🏃';
+const awayIc = r => ic(isOff(r) ? 'off' : 'skip');
 // 飛ぶ・休講は、今週なら授業の前からでも選べる
 const canAway = date => date >= weekDates(0)[0] && date <= weekDates(0)[4];
 const fHere = (f, c, date) => { const r = fRec(f, c, date); return r && !isAway(r) ? r : null; };
@@ -589,21 +626,28 @@ const cnt = n => n>9 ? '9+' : n;
 const friendsIn = c => friends().filter(sameUniv).map(f => ({f, fc:f.classes.find(x => key(x)===key(c))})).filter(x => x.fc);
 
 /* ---------- 見える人 ---------- */
-function audOptions(){ return [['friends','👥 友だち全員'], ['class','🤝 この授業のみんな'], ...S.groups.map(g => ['g:'+g.id, '🏷 '+g.name]), ['private','🔒 自分だけ']]; }
-const audIcon = a => a==='private' ? '🔒' : a==='class' ? '🤝' : a && a.startsWith('g:') ? '🏷' : '👥';
-const audName = a => (audOptions().find(o => o[0]===a) || [0,'🔒 自分だけ'])[1];
+function audOptions(){ return [['friends','友だち全員'], ['class','この授業のみんな'], ...S.groups.map(g => ['g:'+g.id, g.name]), ['private','自分だけ']]; }
+const audIcon = a => ic(a==='private' ? 'lock' : a==='class' ? 'sameclass' : a && a.startsWith('g:') ? 'group' : 'friends');
+const audName = a => (audOptions().find(o => o[0]===a) || [0,'自分だけ'])[1];
 const audFor = (c, date) => (CS && CS.cid===c.id && CS.date===date) ? CS.aud : (c.aud || S.settings.aud);
+
+/* ---------- アイコン(星のキャラと同じペンで描いたセット) ---------- */
+/*ICONS-BEGIN*/const ICONS = {"smile":"<circle cx=\"12\" cy=\"12\" r=\"9\"/><circle cx=\"9\" cy=\"10\" r=\"1.2\" fill=\"currentColor\" stroke=\"none\"/><circle cx=\"15\" cy=\"10\" r=\"1.2\" fill=\"currentColor\" stroke=\"none\"/><path d=\"M8 14c1 1.8 2.4 2.6 4 2.6s3-.8 4-2.6\"/>","face":"<circle cx=\"9.2\" cy=\"10\" r=\"1\" fill=\"currentColor\" stroke=\"none\"/><circle cx=\"14.8\" cy=\"10\" r=\"1\" fill=\"currentColor\" stroke=\"none\"/><path d=\"M7.5 13.6c1.1 1.9 2.7 2.8 4.5 2.8s3.4-.9 4.5-2.8\"/>","camera":"<rect x=\"3\" y=\"7\" width=\"18\" height=\"13\" rx=\"3\"/><circle cx=\"12\" cy=\"13.5\" r=\"3.5\"/><path d=\"M9 7l1.5-2.5h3L15 7\"/>","friends":"<circle cx=\"9\" cy=\"8\" r=\"3.5\"/><path d=\"M2.5 20c.6-3.6 3.2-5.6 6.5-5.6s5.9 2 6.5 5.6\"/><path d=\"M16 4.8a3.3 3.3 0 0 1 0 6.4M18.2 14.6c1.8.8 3 2.6 3.3 5.4\"/>","sameclass":"<circle cx=\"8\" cy=\"8\" r=\"2.5\"/><circle cx=\"16\" cy=\"8\" r=\"2.5\"/><path d=\"M3 15h18M6 15v5M18 15v5\"/>","group":"<path d=\"M3 12V4h8l10 10-7 7z\"/><circle cx=\"7.5\" cy=\"8\" r=\"1.3\"/>","lock":"<rect x=\"5\" y=\"11\" width=\"14\" height=\"10\" rx=\"2.5\"/><path d=\"M8 11V8a4 4 0 0 1 8 0v3\"/>","eye":"<path d=\"M2 12s3.6-6 10-6 10 6 10 6-3.6 6-10 6S2 12 2 12z\"/><circle cx=\"12\" cy=\"12\" r=\"2.6\"/>","comment":"<path d=\"M4 6a3 3 0 0 1 3-3h10a3 3 0 0 1 3 3v8a3 3 0 0 1-3 3h-6l-5 4v-4a3 3 0 0 1-2-3z\"/>","skip":"<circle cx=\"14\" cy=\"4.5\" r=\"2\"/><path d=\"M8 21l3-6 3 2v5M11 15l1-6 4 3 3-1M12 9l-4 1-2 3\"/>","off":"<circle cx=\"12\" cy=\"12\" r=\"9\"/><path d=\"M5.7 5.7l12.6 12.6\"/>","trash":"<path d=\"M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13\"/>","repick":"<path d=\"M20 8a8 8 0 0 0-14-2M4 16a8 8 0 0 0 14 2M20 3v5h-5M4 21v-5h5\"/>","edit":"<path d=\"M4 20l1-4L16 5l3 3L8 19z\"/>","pin":"<path d=\"M12 21s-7-6.5-7-12a7 7 0 0 1 14 0c0 5.5-7 12-7 12z\"/><circle cx=\"12\" cy=\"9\" r=\"2.5\"/>","clock":"<circle cx=\"12\" cy=\"12\" r=\"9\"/><path d=\"M12 7v5l3 2\"/>","pending":"<path d=\"M6 3h12M6 21h12M7 3c0 5 10 5 10 9s-10 4-10 9M17 3c0 5-10 5-10 9\"/>","semester":"<path d=\"M2 9l10-5 10 5-10 5z\"/><path d=\"M6 11v5c3 2 9 2 12 0v-5\"/>","celebrate":"<path d=\"M4 20l4-12 8 8z\"/><path d=\"M14 4v3M18 6l-2 2M20 10h-3\"/>","at":"<circle cx=\"12\" cy=\"12\" r=\"4\"/><path d=\"M16 12v1.5a2.5 2.5 0 0 0 5 0V12a9 9 0 1 0-4 7.5\"/>","gear":"<circle cx=\"12\" cy=\"12\" r=\"3\"/><path d=\"M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M5 19l2-2M17 7l2-2\"/>","flask":"<path d=\"M9 3h6M10 3v6l-5 9a2 2 0 0 0 2 3h10a2 2 0 0 0 2-3l-5-9V3\"/>","list":"<circle cx=\"5\" cy=\"6\" r=\"2\"/><path d=\"M10 5h10M10 8h6\"/><circle cx=\"5\" cy=\"13\" r=\"2\"/><path d=\"M10 12h10M10 15h6\"/><circle cx=\"5\" cy=\"20\" r=\"2\"/><path d=\"M10 19h10\"/>","back":"<path d=\"m15 5-7 7 7 7\"/>","chev":"<path d=\"m9 5 7 7-7 7\"/>","send":"<path d=\"M21 3 10 14\"/><path d=\"m21 3-7 18-4-7-7-4z\"/>","unfriend":"<circle cx=\"9\" cy=\"8\" r=\"3.5\"/><path d=\"M2.5 20c.6-3.6 3.2-5.6 6.5-5.6s5.9 2 6.5 5.6\"/><path d=\"M16 11h6\"/>"};/*ICONS-END*/
+document.body.insertAdjacentHTML('afterbegin', `<svg class="isprite" aria-hidden="true" focusable="false"><defs>${Object.entries(ICONS).map(([k, v]) => `<symbol id="i-${k}" viewBox="0 0 24 24">${v}</symbol>`).join('')}</defs></svg>`);
+const ic = (id, cls='') => `<svg class="ico${cls ? ' '+cls : ''}" aria-hidden="true" focusable="false"><use href="#i-${id}" width="100%" height="100%"/></svg>`;
+// 文章の中の ☺︎ を、描いた ☺︎ に置きかえる(エスケープしてから)
+const glyph = t => esc(t).replace(/☺︎/g, ic('smile'));
 
 /* ---------- 部品 ---------- */
 const meAv = size => S.me.photo ? `<span class="av" style="width:${size}px;height:${size}px;background:url('${S.me.photo}') center/cover"></span>` : avatar(S.me.emoji, S.me.bg, size);
 const avatar = (emoji, bg, size=42) => `<span class="av" style="width:${size}px;height:${size}px;font-size:${Math.round(size*.52)}px;background:${BGS[bg]||BGS[0]}">${emoji}</span>`;
 const faces = (list, size) => `<span class="stk">${list.slice(0,3).map(f => avatar(f.emoji, f.bg, size)).join('')}</span>`;
-const SMILE = `<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#222" stroke-width="1.4" stroke-linecap="round" aria-hidden="true"><circle cx="9.2" cy="10" r=".9" fill="#222"/><circle cx="14.8" cy="10" r=".9" fill="#222"/><path d="M7.5 13.6c1.1 1.9 2.7 2.8 4.5 2.8s3.4-.9 4.5-2.8"/></svg>`;
-const MK_SMILE = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" aria-hidden="true"><circle cx="8.5" cy="9.5" r="1" fill="#fff"/><circle cx="15.5" cy="9.5" r="1" fill="#fff"/><path d="M6.5 14c1.3 2.2 3.2 3.3 5.5 3.3s4.2-1.1 5.5-3.3"/></svg>`;
-const PLANE = `<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 3 10 14"/><path d="m21 3-7 18-4-7-7-4z"/></svg>`;
-const MINI_SMILE = `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="9" cy="10" r=".6" fill="#fff"/><circle cx="15" cy="10" r=".6" fill="#fff"/><path d="M7.5 14c1.1 1.8 2.7 2.7 4.5 2.7s3.4-.9 4.5-2.7"/></svg>`;
-const CHEV = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink:0"><path d="m9 5 7 7-7 7"/></svg>`;
-const BACK = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 5-7 7 7 7"/></svg>`;
+const SMILE = ic('face');
+const MK_SMILE = ic('face');
+const PLANE = ic('send');
+const MINI_SMILE = ic('face');
+const CHEV = ic('chev', 'chev');
+const BACK = ic('back', 'bk');
 const STAR = w => `<svg viewBox="0 0 120 110" width="${w}" aria-hidden="true" style="flex-shrink:0"><g stroke="#222" stroke-width="3" stroke-linecap="round" fill="none">
   <path d="M60 14 72 42 101 44 79 63 86 92 60 76 34 92 41 63 19 44 48 42Z" fill="#fbeea8" stroke-linejoin="round"/>
   <path d="M28 18l6 7M92 18l-6 7M8 58l10-3M112 58l-10-3M60 100v8"/>
@@ -628,7 +672,7 @@ function header(){
   const dm = S.settings.demo;
   return `<div class="hd"><div class="logo">KOMALOG</div>
     <button class="me-btn" data-act="me" aria-label="プロフィールと設定">${meAv(42)}</button></div>
-    <div class="hint"><span class="ic">${MINI_SMILE}</span><span class="ht">着いたら ☺︎</span>
+    <div class="hint"><span class="ic">${MINI_SMILE}</span><span class="ht">着いたら${ic('smile')}</span>
       ${dm.on ? `<button class="demo-chip" data-act="me" aria-label="デモ時刻の設定">デモ ${fmtMin(dm.min)}〜</button>` : ''}</div>`;
 }
 function heroHTML(){
@@ -642,8 +686,8 @@ function heroHTML(){
   const inNow = list.filter(x => x.lc && phaseOf(t, x.lc)==='now').length;
   let line;
   if(d<0) line = `${md(t)} ・ 授業のない日。`;
-  else if(!fr.length) line = `${md(t)} ・ ⏰ ${nowLabel()}<br>👥 友だちとつながると、ここに出ます`;
-  else line = `${md(t)} ・ ⏰ ${nowLabel()}<br>${inNow ? `☺︎ ${inNow}人が授業中` : came ? `☺︎ きょう${came}人` : '☺︎ まだ0人'}`;
+  else if(!fr.length) line = `${md(t)}・${ic('clock')}${nowLabel()}<br>${ic('friends')} 友だちとつながると、ここに出ます`;
+  else line = `${md(t)}・${ic('clock')}${nowLabel()}<br>${ic('smile')} ${inNow ? `${inNow}人が授業中` : came ? `きょう${came}人` : 'まだ0人'}`;
   const strip = list.length ? `<div class="fstrip">${list.map(x => `<button class="fp" data-act="friend" data-v="${x.f.id}" aria-label="${x.f.name}${x.lc ? `、${x.lc.period}限 ${esc(x.lc.name)}に来た` : ''}">
       <span class="ring ${x.lc?'ok':''}">${avatar(x.f.emoji,x.f.bg,46)}${x.lc ? `<i class="pb">${x.lc.period}限</i>` : ''}</span><b>${x.f.name}</b></button>`).join('')}</div>`
     : (!fr.length ? `<button class="lnk" data-act="friends">友だちとつながる</button>` : '');
@@ -653,8 +697,8 @@ function classRow(c, date, isNext){
   const r = recOf(c.id, date), ph = phaseOf(date, c), can = canRecord(date, c);
   const fr = friendsIn(c), came = fr.filter(x => fHere(x.f, x.fc, date));
   let who = '';
-  if(came.length) who = `<div class="who"><span class="v">☺︎</span><span class="t">${names(came.map(x=>x.f))}</span></div>`;
-  else if(fr.length) who = `<div class="who gray"><span class="v">🤝</span><span class="t">${names(fr.map(x=>x.f))}</span></div>`;
+  if(came.length) who = `<div class="who"><span class="v">${ic('smile')}</span><span class="t">${names(came.map(x=>x.f))}</span></div>`;
+  else if(fr.length) who = `<div class="who gray"><span class="v">${ic('sameclass')}</span><span class="t">${names(fr.map(x=>x.f))}</span></div>`;
   const label = isOff(r) ? '休講' : isSkip(r) ? '飛ぶ' : r ? '来た(記録済み)' : can ? '来た を記録' : `${fmtMin(win(c).s-10)} から押せます`;
   const sc = isAway(r) ? 'skip' : r ? 'done' : !can ? 'wait' : ph==='past' ? 'past' : '';
   return `<div class="row ${ph==='now'?'now':''} ${isNext?'next':''}" data-act="cls" data-v="${c.id}|${date}" role="button" tabindex="0" aria-label="${c.period}限 ${esc(c.name)}">
@@ -710,7 +754,7 @@ function gridHTML(classes, wd, owner){
       h += `<button class="cell ${r&&(r.photo||r.ph)?'ph':''} ${isToday&&p===curP?'now':''}" style="${bg}" ${act}
           aria-label="${DAYS[d]}${p}限 ${esc(c.name)}${mk?(isOff(r)?' 休講':isSkip(r)?' 飛ぶ':' 来た'):''}${came.length?` ${names(came)}が来た`:''}${got?' 単位GET':''}${same?' 同じ授業':''}">
         <span>${esc(c.name)}</span><span class="rm">${esc(c.room||'')}</span>
-        ${same ? '<span class="same">🤝</span>' : ''}${mk ? (isAway(r) ? `<span class="mk" style="background:${isOff(r)?'#e8e8e8':'#fff3c4'}">${awayIc(r)}</span>` : `<span class="mk">${MK_SMILE}</span>`) : ''}${got ? '<span class="gt">GET</span>' : ''}${came.length ? `<span class="fr">${faces(came,14)}</span>` : ''}</button>`;
+        ${same ? `<span class="same">${ic('sameclass')}</span>` : ''}${mk ? (isAway(r) ? `<span class="mk aw" style="background:${isOff(r)?'#e8e8e8':'#fff3c4'}">${awayIc(r)}</span>` : `<span class="mk">${MK_SMILE}</span>`) : ''}${got ? '<span class="gt">GET</span>' : ''}${came.length ? `<span class="fr">${faces(came,14)}</span>` : ''}</button>`;
     }
   }
   return h + '</div>';
@@ -792,8 +836,8 @@ function postBar(f, r){
   const m0 = cs[idx], f0 = m0 && (m0.from==='me' ? null : fById(m0.from));
   const tick = m0 ? `<span class="ctk" data-cm="${r.id}"><span class="ctk-in ${pos!=null && pos>=n-1 ? 'still' : ''}">${f0 ? avatar(f0.emoji, f0.bg, 18) : meAv(18)}${esc(m0.text)}</span></span>` : '<span class="ctk"></span>';
   if(pos==null && n) TICK[r.id] = 0;
-  return `<div class="pbar">${chips}${f ? `<button class="rxc add" data-act="rxpick" data-v="${r.id}" aria-label="リアクション">☺︎＋</button>` : ''}
-    ${tick}<button class="rxc cmb" data-act="cmts" data-v="${r.id}" aria-label="コメント${cs.length ? cs.length+'件' : ''}">💬</button></div>
+  return `<div class="pbar">${chips}${f ? `<button class="rxc add" data-act="rxpick" data-v="${r.id}" aria-label="リアクション">${ic('smile')}＋</button>` : ''}
+    ${tick}<button class="rxc cmb" data-act="cmts" data-v="${r.id}" aria-label="コメント${cs.length ? cs.length+'件' : ''}">${ic('comment')}</button></div>
     <div class="rxpick" id="rp-${r.id}" hidden>${RX.map(e => `<button data-act="rx" data-v="${r.id}|${e}">${e}</button>`).join('')}</div>`;
 }
 // コメントは 💬 の横で、ひとつずつ下から流れるように表示
@@ -809,10 +853,10 @@ setInterval(() => {
 function postCard({f, c, r}, clickable=true, bar=true){
   const ph = r.photo ? `<div class="pp" style="background-image:url('${r.photo}')"></div>` : r.ph ? `<div class="pp" style="background:${r.ph.bg}">${r.ph.emo}</div>` : '';
   const whoInner = f ? `${avatar(f.emoji,f.bg,38)}<span class="t"><b>${f.name}</b><span>${c.period}限 ${esc(c.name)}</span></span>`
-    : `${meAv(38)}<span class="t"><b>あなた${r.aud==='private' ? ' 🔒' : ''}</b><span>${c.period}限 ${esc(c.name)}</span></span>`;
+    : `${meAv(38)}<span class="t"><b>あなた${r.aud==='private' ? ' '+ic('lock') : ''}</b><span>${c.period}限 ${esc(c.name)}</span></span>`;
   // 投稿を押すと投稿(とコメント)、人を押すとその人の時間割
   const who = clickable ? `<button class="pwho" ${f ? `data-act="friend" data-v="${f.id}"` : `data-act="cls" data-v="${c.id}|${r.date}"`}>${whoInner}</button>` : `<span class="pwho">${whoInner}</span>`;
-  const mark = isAway(r) ? `${awayIc(r)} ${ymd(new Date(r.ts - 4*36e5)) < r.date ? md(r.date) : hm(r.ts)}` : `☺︎ ${r.late ? 'あとから' : hm(r.ts)}`;
+  const mark = isAway(r) ? `${awayIc(r)} ${ymd(new Date(r.ts - 4*36e5)) < r.date ? md(r.date) : hm(r.ts)}` : `${ic('smile')} ${r.late ? 'あとから' : hm(r.ts)}`;
   const open = clickable ? `role="button" tabindex="0" data-act="cmts" data-v="${r.id}"` : '';
   return `<div class="post"><div class="phead" ${open}>${ph}<span class="pm">${who}<time>${mark}</time></span>${r.comment ? `<span class="cm">${esc(r.comment)}</span>` : ''}</div>${bar ? postBar(f, r) : ''}</div>`;
 }
@@ -837,7 +881,7 @@ function renderComments(){
     + (rl.length ? `<div class="rxwho">${rl.map(x => `<span class="w">${x.who ? avatar(x.who.emoji, x.who.bg, 26) : meAv(26)}${x.who ? x.who.name : 'あなた'}<i>${x.e}</i></span>`).join('')}</div>` : '') + `<div class="clist">`;
   cs.forEach(m => { const f = m.from==='me' ? null : fById(m.from);
     h += `<div class="ci">${f ? avatar(f.emoji,f.bg,28) : meAv(28)}<p><b>${f ? f.name : 'あなた'}</b>${esc(m.text)}</p><time>${hm(m.ts)}</time></div>`; });
-  h += `</div><form class="cform" id="cmForm">${meAv(36)}<input class="tx" id="pcIn" placeholder="💬" maxlength="100" autocomplete="off" aria-label="コメント" style="padding:10px 14px"><button class="csend" type="submit" aria-label="送信">${PLANE}</button></form>`;
+  h += `</div><form class="cform" id="cmForm">${meAv(36)}<input class="tx" id="pcIn" placeholder=" " maxlength="100" autocomplete="off" aria-label="コメント" style="padding:10px 14px"><span class="phi">${ic('comment')}</span><button class="csend" type="submit" aria-label="送信">${PLANE}</button></form>`;
   const draft = $('pcIn') ? $('pcIn').value : '';
   $('sheetIn').innerHTML = h; $('pcIn').value = draft;
   $('cmForm').onsubmit = e => { e.preventDefault(); const t = $('pcIn').value.trim(); if(!t) return;
@@ -845,14 +889,14 @@ function renderComments(){
     { const pp = findPost(id); if(pp) TICK[id] = Math.max(0, postComments(pp.f, pp.r).length - 2); }
     $('pcIn').value = ''; $('pcIn').blur();
     goBackFromComments();
-    render(); toast('💬 ✓');
+    render(); toastH(`${ic('comment')} ✓`);
     const own = findPost(id); const who = own && own.f ? own.f : own ? viewers(null, own.r)[0] : null;
     if(who) setTimeout(() => { S.pcm[id].push({from:who.id, text:['ありがと〜','それな','笑','りょ！'][Math.floor(Math.random()*4)], ts:nowTs()}); save(true);
       if(CMV===id && $('sheet').classList.contains('open')) renderComments(); render(); }, 2500); };
 }
 function feedView(){
   const items = feedItems(); let h = header(), last = '';
-  if(!items.length) h += '<div class="empty">📷 まだ投稿はありません</div>';
+  if(!items.length) h += `<div class="empty">${ic('camera')} まだ投稿はありません</div>`;
   items.forEach(it => {
     if(it.r.date!==last){ h += `<div class="sec-t">${it.r.date===todayStr() ? 'きょう' : `${md(it.r.date)}(${DAYS[it.c.day]})`}</div>`; last = it.r.date; }
     h += postCard(it);
@@ -898,13 +942,13 @@ function keepFocus(paint, fallback){
   n.focus({preventScroll:true});
 }
 function renderClass(){ keepFocus(paintClass, '[data-act=undo]'); }
-const recBtns = r => `<button class="ib" data-act="audpick" data-v="${r.classId}|${r.date}" aria-label="見える人: ${esc(audName(r.aud))}">${audIcon(r.aud)}</button><button class="ib" data-act="undo" aria-label="投稿を削除">🗑</button>`;
+const recBtns = r => `<button class="ib" data-act="audpick" data-v="${r.classId}|${r.date}" aria-label="見える人: ${esc(audName(r.aud))}">${audIcon(r.aud)}</button><button class="ib" data-act="undo" aria-label="投稿を削除">${ic('trash')}</button>`;
 const isDirty = (r, d) => !r || d.comment.trim()!==(r.comment||'') || (d.photo||null)!==(r.photo||null);
 function paintClass(){
   const c = CS && S.classes.find(x => x.id===CS.cid); if(!c){ closeSheet(); return; }
   const date = CS.date, r = recOf(c.id, date), ph = phaseOf(date, c), can = canRecord(date, c), isToday = date===todayStr();
   const fr = friendsIn(c);
-  let h = `<div style="display:flex;align-items:flex-start;gap:8px"><h3 style="flex:1;min-width:0">${esc(c.name)}</h3><button class="edb" data-act="edit" data-v="${c.id}" aria-label="授業を編集">✏️</button></div><div class="sub">${md(date)}(${DAYS[c.day]}) ${c.period}限 ${timeText(c)}${c.room ? ' ・ 📍'+esc(c.room) : ''}</div>`;
+  let h = `<div style="display:flex;align-items:flex-start;gap:8px"><h3 style="flex:1;min-width:0">${esc(c.name)}</h3><button class="edb" data-act="edit" data-v="${c.id}" aria-label="授業を編集">${ic('edit')}</button></div><div class="sub">${md(date)}(${DAYS[c.day]}) ${c.period}限 ${timeText(c)}${c.room ? ` ・ ${ic('pin')}${esc(c.room)}` : ''}</div>`;
   // 会話は投稿へのリアクションとコメントに一本化(授業ごとのトークは外した)
   if(fr.length) h += `<div class="fline">${fr.map(({f,fc}) => { const x = isToday && fHere(f, fc, date);
     return `<button class="fchip ${x?'ok':''}" data-act="friend" data-v="${f.id}">${avatar(f.emoji,f.bg,28)}${f.name}${x ? ' <small>来た</small>' : ''}</button>`; }).join('')}</div>`;
@@ -915,19 +959,19 @@ function paintClass(){
     // 投稿する枠(ひとつのカードにまとめる)
     h += `<div class="composer">`;
     if(!r) h += `<div class="cmp-top">${meAv(36)}<div class="seg">
-        <button data-act="dkind" data-v="here" class="${d.kind==='here'?'on':''}" ${can?'':'disabled'}>☺︎ 来た${can ? '' : ` <small>${fmtMin(win(c).s-10)}〜</small>`}</button>
-        <button data-act="dkind" data-v="skip" class="${d.kind==='skip'?'on':''}" ${canSk?'':'disabled'}>🏃 飛ぶ</button>
-        <button data-act="dkind" data-v="off" class="${d.kind==='off'?'on':''}" ${canSk?'':'disabled'}>🚫 休講</button></div></div>`;
+        <button data-act="dkind" data-v="here" class="${d.kind==='here'?'on':''}" ${can?'':'disabled'}>${ic('smile')}来た${can ? '' : ` <small>${fmtMin(win(c).s-10)}〜</small>`}</button>
+        <button data-act="dkind" data-v="skip" class="${d.kind==='skip'?'on':''}" ${canSk?'':'disabled'}>${ic('skip')}飛ぶ</button>
+        <button data-act="dkind" data-v="off" class="${d.kind==='off'?'on':''}" ${canSk?'':'disabled'}>${ic('off')}休講</button></div></div>`;
     h += `<input class="cmp-in" id="cmIn" maxlength="60" autocomplete="off" aria-label="ひとこと" value="${esc(d.comment)}">`;
     if(d.photo) h += `<div class="shot" style="margin-top:8px;background-image:url('${d.photo}')" role="img" aria-label="写真"></div>
-      <div class="phrow"><button data-act="pick" aria-label="写真を選び直す">🔄</button><button data-act="unphoto" aria-label="写真を外す">🗑</button></div>`;
-    h += `<div class="postrow">${d.photo ? '' : '<button class="audb" data-act="pick" aria-label="写真を1枚">📷</button>'}
+      <div class="phrow"><button data-act="pick" aria-label="写真を選び直す">${ic('repick')}</button><button data-act="unphoto" aria-label="写真を外す">${ic('trash')}</button></div>`;
+    h += `<div class="postrow">${d.photo ? '' : `<button class="audb" data-act="pick" aria-label="写真を1枚">${ic('camera')}</button>`}
       ${r ? '' : `<button class="audb" data-act="audcycle" aria-label="見える人: ${esc(audName(CS.aud))}">${audIcon(CS.aud)}</button>`}
       <button class="postbtn" id="postBtn" data-act="post" aria-label="投稿" ${(r && !isDirty(r, d)) || (!r && !d.kind) ? 'disabled' : ''}>${PLANE}</button></div>`;
     h += `</div>`;
-  } else h += `<div class="herest wait">${ph==='future' ? `☺︎ ${fmtMin(win(c).s-10)}〜` : '—'}</div>`;
+  } else h += `<div class="herest wait">${ph==='future' ? `${ic('smile')} ${fmtMin(win(c).s-10)}〜` : '—'}</div>`;
   { const posts = date >= weekDates(0)[0] ? fr.map(({f,fc}) => ({f, c:fc, r:fRec(f, fc, date)})).filter(x => x.r) : [];
-    if(posts.length) h += `<div class="f">👥 みんな</div>` + posts.map(x => postCard(x, false)).join(''); }
+    if(posts.length) h += `<div class="f">${ic('friends')} みんな</div>` + posts.map(x => postCard(x, false)).join(''); }
   if(c.got || isSemEnd()) h += `<div id="semBox">${semHTML(c)}</div>`;
   document.getElementById('sheetIn').innerHTML = h;
   const cm = $('cmIn'); if(cm) cm.oninput = () => { CS.draft.comment = cm.value; const b = $('postBtn'), rr = recOf(c.id, date); if(b && rr) b.disabled = !isDirty(rr, CS.draft); };
@@ -937,16 +981,16 @@ function openAudPick(v){
   const [cid, date] = v.split('|'); const r = recOf(cid, date), c = S.classes.find(x => x.id===cid); if(!r || !c) return;
   const back = !!CS; AP = {back};
   CS = null; FSID = null; ADD = null;
-  $('sheetIn').innerHTML = (back ? `<button class="sbk" data-act="cls" data-v="${cid}|${date}" aria-label="戻る">${BACK}</button>` : '') + `<h3>👀</h3><div class="sub">${c.period}限 ${esc(c.name)}</div><div class="chips" style="margin-top:14px">${audOptions().map(([k,l]) =>
-    `<button data-act="audset" data-v="${cid}|${date}|${k}" class="${r.aud===k?'on':''}" aria-pressed="${r.aud===k}">${esc(l)}</button>`).join('')}</div>`;
+  $('sheetIn').innerHTML = (back ? `<button class="sbk" data-act="cls" data-v="${cid}|${date}" aria-label="戻る">${BACK}</button>` : '') + `<h3>${ic('eye')}</h3><div class="sub">${c.period}限 ${esc(c.name)}</div><div class="chips" style="margin-top:14px">${audOptions().map(([k,l]) =>
+    `<button data-act="audset" data-v="${cid}|${date}|${k}" class="${r.aud===k?'on':''}" aria-pressed="${r.aud===k}">${audIcon(k)} ${esc(l)}</button>`).join('')}</div>`;
   AP.back = back; openSheet();
 }
 function semHTML(c){
   const tog = c.got ? friendsIn(c).filter(x => x.fc.shareGot).map(x => x.f) : [];
-  return `<div class="f">🎓 学期末</div><div class="sem"><span>単位が取れたら<wbr>印をつける</span>
+  return `<div class="f">${ic('semester')} 学期末</div><div class="sem"><span>単位が取れたら<wbr>印をつける</span>
     <button class="tog ${c.got?'on':''}" data-act="got" data-v="${c.id}" aria-pressed="${!!c.got}">${c.got ? '✓ 単位GET' : '単位GET'}</button>
     ${c.got ? `<button class="tog ${c.shareGot?'on':''}" data-act="share" data-v="${c.id}" aria-pressed="${!!c.shareGot}">${c.shareGot ? '✓ 友だちに見せてる' : '友だちにも見せる'}</button>` : ''}</div>
-    ${tog.length ? `<div class="together">🎉 ${names(tog)} と一緒に取れた！</div>` : ''}
+    ${tog.length ? `<div class="together">${ic('celebrate')} ${names(tog)} と一緒に取れた！</div>` : ''}
 `;
 }
 function refreshSem(cid){
@@ -1037,17 +1081,17 @@ function friendSheetHTML(f){
   const d = dayIdx(), t = todayStr();
   const today = d<0 ? [] : f.classes.filter(c => c.day===d).sort((a,b) => a.period-b.period);
   let h = `<div class="fhead">${avatar(f.emoji,f.bg,60)}<div style="flex:1;min-width:0"><h3>${f.name}</h3><span class="fac">${f.univ} ${f.fac}</span></div>
-    <button class="edb" data-act="unfriend" data-v="${f.id}" aria-label="友だちをやめる"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.6-3.6 3.2-5.6 6.5-5.6s5.9 2 6.5 5.6"/><path d="M16 11h6"/></svg></button></div>`;
+    <button class="edb" data-act="unfriend" data-v="${f.id}" aria-label="友だちをやめる">${ic('unfriend', 'uf')}</button></div>`;
   if(!sameUniv(f)) h += `<p class="rule">${f.name}はちがう大学。授業の時間も${f.name}の大学のものです。</p>`;
   if(d>=0){
     h += `<div class="f">きょう</div><div class="card" style="padding:4px 16px">` + (today.length ? today.map(c => {
       const r = fRec(f, c, t), ph = phaseOf(t, c);
       return `<div class="li">${thumbHTML(c, r, c.shareGot)}<div class="t"><span>${c.period}限 ${timeText(c)}</span><b>${esc(c.name)}</b></div>
-        <span class="st ${r&&!isAway(r)?'ok':''}">${isAway(r) ? awayIc(r) : r ? '☺︎ 来た' : ph==='future' ? '⏳' : ''}</span></div>`; }).join('')
+        <span class="st ${r&&!isAway(r)?'ok':''}">${isAway(r) ? awayIc(r) : r ? `${ic('smile')} 来た` : ph==='future' ? ic('pending') : ''}</span></div>`; }).join('')
       : '<div class="empty" style="padding:16px">きょうは授業なし</div>') + '</div>';
   }
   h += `<div class="f">時間割</div><div class="card ttc">${gridHTML(f.classes, weekDates(0), f)}</div>
-    ${sameUniv(f) ? '<p class="rule">🤝 = 同じ授業 ・ マスをタップで投稿を見る</p>' : ''}`;
+    ${sameUniv(f) ? `<p class="rule">${ic('sameclass')} = 同じ授業 ・ マスをタップで投稿を見る</p>` : ''}`;
   return h;
 }
 function openFriend(id){
@@ -1063,10 +1107,10 @@ function openFriendPost(v){
   const canAdd = sameUniv(f) && !S.classes.some(m => key(m)===k) && !S.classes.some(m => m.day===c.day && m.period===c.period);
   let h = `<button class="sbk" data-act="friend" data-v="${f.id}" aria-label="戻る">${BACK}</button>
     <h3>${esc(c.name)}</h3><div class="sub">${md(date)}(${DAYS[c.day]}) ${c.period}限 ${timeText(c)}</div><div style="margin-top:14px">`;
-  h += r ? postCard({f, c, r}, false) : `<div class="empty">${date > todayStr() ? '⏳' : '—'}</div>`;
+  h += r ? postCard({f, c, r}, false) : `<div class="empty">${date > todayStr() ? ic('pending') : '—'}</div>`;
   h += '</div>';
   if(canAdd) h += `<button class="btn" data-act="fadd" data-v="${esc(k)}">＋ 自分の時間割にも追加</button>`;
-  else if(sameUniv(f) && S.classes.some(m => key(m)===k)) h += `<p class="rule" style="text-align:center">🤝 同じ授業</p>`;
+  else if(sameUniv(f) && S.classes.some(m => key(m)===k)) h += `<p class="rule" style="text-align:center">${ic('sameclass')} 同じ授業</p>`;
   const b = document.querySelector('#sheet .body'); $('sheetIn').innerHTML = h; b.scrollTop = 0;
 }
 function refreshFriendSheet(){
@@ -1182,18 +1226,18 @@ function renderFriends(resetScroll){
   h += `<div class="card" style="padding:4px 16px">${fr.map(f => `<button class="li" data-act="friend" data-v="${f.id}">${avatar(f.emoji,f.bg,40)}<span class="t"><b>${f.name}</b><span>${f.univ} ${f.fac}</span></span>${CHEV}</button>`).join('')
     || '<div class="empty">まだいません</div>'}</div>`;
   h += `<button class="btn pk" data-act="invite">友だちを招待する</button>
-    <details class="sec" data-sec="fset" style="margin-top:22px" ${OPENSEC.has('fset')?'open':''}><summary>⚙</summary><div class="in">
-      <label class="f" style="margin-top:0" for="addId">🔎 ID(あなた: @${esc(S.me.handle)})</label>
+    <details class="sec" data-sec="fset" style="margin-top:22px" ${OPENSEC.has('fset')?'open':''}><summary aria-label="設定">${ic('gear')}</summary><div class="in">
+      <label class="f" style="margin-top:0" for="addId">${ic('at')} ID(あなた: @${esc(S.me.handle)})</label>
       <div style="display:flex;gap:8px"><input class="tx" id="addId" placeholder="@ID" maxlength="20"><button class="addb" data-act="addfr" style="padding:0 18px">申請</button></div>
-      ${S.sentReq.length ? `<p class="note">⏳ ${S.sentReq.map(x => '@'+esc(x)).join('、')}</p>` : ''}
-      <label class="f" for="audSel">👀 いつもの見える人</label>
+      ${S.sentReq.length ? `<p class="note">${ic('pending')} ${S.sentReq.map(x => '@'+esc(x)).join('、')}</p>` : ''}
+      <label class="f" for="audSel">${ic('eye')} いつもの見える人</label>
       <select class="tx" id="audSel">${audOptions().map(([k,l]) => `<option value="${k}" ${k===S.settings.aud?'selected':''}>${esc(l)}</option>`).join('')}</select>
-      <label class="f">🏷 グループ</label>
-      <div class="card" style="padding:4px 16px;background:#fff">${S.groups.map(g => `<div class="li"><span class="t"><b>${esc(g.name)}</b><span>${g.members.map(id => S.friendState[id]==='friend' ? fById(id)?.name : null).filter(Boolean).join('・') || '—'}</span></span><button class="tog" data-act="gdel" data-v="${g.id}" aria-label="削除">🗑</button></div>`).join('')
+      <label class="f">${ic('group')} グループ</label>
+      <div class="card" style="padding:4px 16px;background:#fff">${S.groups.map(g => `<div class="li"><span class="t"><b>${esc(g.name)}</b><span>${g.members.map(id => S.friendState[id]==='friend' ? fById(id)?.name : null).filter(Boolean).join('・') || '—'}</span></span><button class="tog" data-act="gdel" data-v="${g.id}" aria-label="削除">${ic('trash')}</button></div>`).join('')
         || '<div class="empty" style="padding:12px">—</div>'}</div>
       <input class="tx" id="gName" placeholder="＋ 新しいグループ" maxlength="16" value="${esc(grpDraft.name)}">
       ${fr.length ? `<div class="chips" style="margin-top:10px">${fr.map(f => `<button data-act="gmem" data-v="${f.id}" class="${grpDraft.members.includes(f.id)?'on':''}" aria-pressed="${grpDraft.members.includes(f.id)}">${f.emoji} ${f.name}</button>`).join('')}</div>` : ''}
-      <button class="btn" data-act="gadd" style="margin-top:12px;padding:13px;font-size:15px">＋ 🏷</button></div></details>`;
+      <button class="btn" data-act="gadd" style="margin-top:12px;padding:13px;font-size:15px" aria-label="グループを作る">＋ ${ic('group')}</button></div></details>`;
   paintScreen(h, resetScroll);
   document.getElementById('audSel').onchange = e => { S.settings.aud = e.target.value; if(!save()) renderFriends(false); };
   bindSecs();
@@ -1208,26 +1252,26 @@ function renderMe(resetScroll){
   const sec = (id, title, body) => `<details class="sec" data-sec="${id}" ${OPENSEC.has(id)?'open':''}><summary>${title}</summary><div class="in">${body}</div></details>`;
   const h = `<div class="back"><button data-act="close" aria-label="戻る">${BACK}</button><h3>プロフィール</h3></div>
     <div class="mecard">${meAv(72)}<div style="min-width:0"><b>${esc(S.me.name||'あなた')}</b><span>${esc(S.me.univ)} ${esc(S.me.fac)}</span></div></div>`
-    + sec('prof', '✏️ プロフィール', `
+    + sec('prof', `${ic('edit')} プロフィール`, `
     <label class="f" style="margin-top:0" for="mName">名前</label><input class="tx" id="mName" value="${esc(S.me.name)}" maxlength="16">
     <label class="f" for="mUniv">大学</label><input class="tx" id="mUniv" value="${esc(S.me.univ)}" list="univs" maxlength="20"><datalist id="univs">${UNIVS.map(x => `<option value="${x}">`).join('')}</datalist>
     <label class="f" for="mFac">学部</label><input class="tx" id="mFac" value="${esc(S.me.fac)}" list="facs" maxlength="16"><datalist id="facs">${FACULTIES.map(x => `<option value="${x}">`).join('')}</datalist>
     <label class="f">アイコン</label>
-    <div class="phrow" style="margin-top:0;margin-bottom:10px"><button data-act="avpick">📷</button>${S.me.photo ? '<button data-act="avdel" aria-label="写真をやめる">🗑</button>' : ''}</div>
+    <div class="phrow" style="margin-top:0;margin-bottom:10px"><button data-act="avpick" aria-label="写真を選ぶ">${ic('camera')}</button>${S.me.photo ? `<button data-act="avdel" aria-label="写真をやめる">${ic('trash')}</button>` : ''}</div>
     <div class="emoji-pick">${ME_EMOJI.map(e => `<button data-act="memo" data-v="${e}" class="${e===S.me.emoji&&!S.me.photo?'on':''}">${e}</button>`).join('')}</div>
     <div class="colors" style="margin-top:12px">${BGS.map((b,i) => `<button data-act="mbg" data-v="${i}" class="${i===S.me.bg?'on':''}" style="background:${b}" aria-label="背景${i+1}"></button>`).join('')}</div>`)
-    + sec('time', '⏰ 授業の時間', `
+    + sec('time', `${ic('clock')} 授業の時間`, `
     <div class="chips">${[90,100].map(v => `<button data-act="preset" data-v="${v}" class="${!st.periods&&st.preset===v?'on':''}">${v}分</button>`).join('')}</div>
     <div class="card" style="padding:8px 16px;margin-top:10px;background:#fff">${PER().slice(0, myRows()).map((p,i) => `<div style="display:flex;align-items:center;gap:8px;padding:6px 0">
       <b style="width:40px;flex-shrink:0;white-space:nowrap;font-size:14px">${i+1}限</b><input class="tx" type="time" id="pS${i}" value="${p[0].padStart(5,'0')}" style="padding:10px 8px;flex:1;min-width:0" aria-label="${i+1}限の開始">
       <span>–</span><input class="tx" type="time" id="pE${i}" value="${p[1].padStart(5,'0')}" style="padding:10px 8px;flex:1;min-width:0" aria-label="${i+1}限の終了"></div>`).join('')}
       ${myRows() < 10 ? `<div style="text-align:center;padding:6px 0"><button class="lnk" data-act="addrow">＋ ${myRows()+1}限</button></div>` : ''}</div>`)
-    + sec('demo', '🧪 デモ時刻', `
+    + sec('demo', `${ic('flask')} デモ時刻`, `
       <div class="chips"><button data-act="demo" data-v="0" class="${dm.on?'':'on'}">実際の時刻</button><button data-act="demo" data-v="1" class="${dm.on?'on':''}">デモ時刻</button></div>
       <div style="display:flex;gap:10px;margin-top:10px">
         <select class="tx" id="dDay" ${dm.on?'':'disabled'}>${DAYS.map((x,i) => `<option value="${i}" ${i===dm.day?'selected':''}>${x}曜</option>`).join('')}</select>
         <input class="tx" type="time" id="dTime" value="${String(Math.floor(dm.min/60)).padStart(2,'0')}:${String(dm.min%60).padStart(2,'0')}" ${dm.on?'':'disabled'}></div>`)
-    + sec('about', '☺︎ について', `<p class="note" style="margin:0">・☺︎(来た)は本人の自己申告です。大学の正式な出席記録ではありません。<br>・押していないことは欠席を意味しません。<br>・写真は任意です。人の顔や授業の資料は写さず、授業中に撮るときは先生のルールに従ってください。<br>・データはこの端末に保存されます(プロトタイプ)。</p>`)
+    + sec('about', `${ic('smile')} について`, `<p class="note" style="margin:0">・${ic('smile')}(来た)は本人の自己申告です。大学の正式な出席記録ではありません。<br>・押していないことは欠席を意味しません。<br>・写真は任意です。人の顔や授業の資料は写さず、授業中に撮るときは先生のルールに従ってください。<br>・データはこの端末に保存されます(プロトタイプ)。</p>`)
     + `
     <button class="btn danger" data-act="reset">データをリセット</button>`;
   paintScreen(h, resetScroll); bindSecs();
@@ -1256,7 +1300,7 @@ function renderOnb(){
     const inv = fById('f1');
     el.innerHTML = `${steps}<div class="logo" style="margin-top:34px">KOMALOG</div>
       <h1>ただの時間割。<br>なのに、<br>友だちの気配がする。</h1>
-      <p class="lead">開くと、友だちがきょうどの授業に来ているか分かる。教室に着いたら ☺︎ を押すだけ。</p>
+      <p class="lead">開くと、友だちがきょうどの授業に来ているか分かる。教室に着いたら<span class="nb">${ic('smile')}を押すだけ。</span></p>
       <div style="text-align:center;margin-top:22px">${STAR(116)}</div>
       <div class="inv">${avatar(inv.emoji,inv.bg,44)}<div>${inv.name} から招待が届いています<div class="note" style="margin:2px 0 0">承認した友だちとだけつながります</div></div></div>
       <div style="margin-top:auto;padding-top:26px"><button class="btn pk" data-act="onb-accept">${inv.name} の招待を承認してはじめる</button>
@@ -1268,7 +1312,7 @@ function renderOnb(){
       <label class="f" for="oUniv">大学</label><input class="tx" id="oUniv" list="univs" maxlength="20" placeholder="例:中央大学" value="${esc(S.me.univ)}"><datalist id="univs">${UNIVS.map(x => `<option value="${x}">`).join('')}</datalist>
       <label class="f" for="oFac">学部</label><input class="tx" id="oFac" list="ofacs" maxlength="16" placeholder="例:文学部" value="${esc(S.me.fac)}"><datalist id="ofacs">${FACULTIES.map(x => `<option value="${x}">`).join('')}</datalist>
       <label class="f">アイコン</label>
-      <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">${meAv(52)}<button class="lnk" style="margin:0" data-act="avpick">📷 自分の写真を選ぶ</button></div>
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">${meAv(52)}<button class="lnk" style="margin:0" data-act="avpick">${ic('camera')} 自分の写真を選ぶ</button></div>
       <div class="emoji-pick">${ME_EMOJI.map(e => `<button data-act="onb-emo" data-v="${e}" class="${e===S.me.emoji?'on':''}">${e}</button>`).join('')}</div>
       <div style="margin-top:auto;padding-top:26px"><button class="btn pk" data-act="onb-next">次へ</button><button class="btn quiet" data-act="onb-back">戻る</button></div>`;
     const n = document.getElementById('oName'), f = document.getElementById('oFac');
@@ -1307,7 +1351,7 @@ function finishOnb(demo){
   S.onboarded = true; save();
   document.getElementById('onb').hidden = true; $('app').inert = false; $('nav').inert = false;
   tab = 'today'; applyTime(); scrollToNow();
-  if(!demo) toast(S.classes.some(c => c.day===dayIdx()) ? '準備OK。教室に着いたら ☺︎' : S.classes.length ? '準備OK。授業の日に ☺︎ が出ます' : '授業は ＋ からいつでも追加できます');
+  if(!demo) toastH(glyph(S.classes.some(c => c.day===dayIdx()) ? '準備OK。教室に着いたら ☺︎' : S.classes.length ? '準備OK。授業の日に ☺︎ が出ます' : '授業は ＋ からいつでも追加できます'));
 }
 
 /* ============================================================
@@ -1387,18 +1431,20 @@ function closeScreen(){
   if(o){ const n = o.el && document.contains(o.el) ? o.el : document.querySelector(o.act==='me' ? '.me-btn' : `[data-act="${o.act}"]`); if(n) n.focus({preventScroll:true}); }
 }
 let toastT;
-function actToast(text, act, v){
-  const el = $('toast'); el.innerHTML = `<button data-act="${act}" data-v="${esc(v)}">${esc(text)} ›</button>`; el.classList.add('on');
+// html は呼び出し側でエスケープ済みのもの(アイコン入り)
+function actToast(html, act, v){
+  const el = $('toast'); el.innerHTML = `<button data-act="${act}" data-v="${esc(v)}">${html} ›</button>`; el.classList.add('on');
   clearTimeout(toastT); toastT = setTimeout(() => el.classList.remove('on'), 4500);
 }
 function toast(t){ const el = $('toast'); el.textContent = t; el.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => el.classList.remove('on'), 2800); }
+function toastH(h){ const el = $('toast'); el.innerHTML = h; el.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => el.classList.remove('on'), 2800); }
 
 // 確認ダイアログ(ブラウザの confirm の代わりに画面の中で聞く)
 let askDone = null;
-function ask(msg, yes='OK'){
+function ask(msg, yes='OK', icon=''){
   return new Promise(res => {
     const prev = document.activeElement;
-    $('askMsg').textContent = msg; $('askYes').textContent = yes; $('ask').hidden = false; $('askYes').focus();
+    $('askMsg').innerHTML = (icon ? ic(icon) : '') + glyph(msg); $('askYes').textContent = yes; $('ask').hidden = false; $('askYes').focus();
     askDone = v => { $('ask').hidden = true; askDone = null; if(prev && document.contains(prev)) prev.focus({preventScroll:true}); res(v); };
   });
 }
@@ -1421,11 +1467,11 @@ const ACT = {
     if(CS) renderClass();
     render();
     const b = [...document.querySelectorAll('#app .smile')].find(x => x.dataset.v===v); if(b) b.classList.add('pop');
-    actToast(`☺︎ ✓  ${audIcon(r.aud)} ${audName(r.aud).replace(/^\S+ /,'')}`, 'audpick', `${cid}|${date}`);
+    actToast(`${ic('smile')} ✓  ${audIcon(r.aud)} ${esc(audName(r.aud))}`, 'audpick', `${cid}|${date}`);
   },
   skip: v => { const [cid, date] = v.split('|'); const r = checkIn(cid, date, undefined, 'skip'); if(!r) return;
     renderClass(); render(); toast(`🏃 飛んだ ・ ${audName(r.aud)}に見える`); const cm = $('cmIn'); if(cm) cm.focus(); },
-  undo: async () => { if(!await ask('🗑 この投稿を削除しますか？', '削除') || !CS) return;
+  undo: async () => { if(!await ask('この投稿を削除しますか？', '削除', 'trash') || !CS) return;
     S.recs = S.recs.filter(r => !(r.classId===CS.cid && r.date===CS.date)); save();
     const c = S.classes.find(x => x.id===CS.cid); if(c) CS.draft = newDraft(c, CS.date, null); renderClass(); render(); },
   pick: () => $('fileIn').click(),
@@ -1434,7 +1480,7 @@ const ACT = {
   cok: () => { CS.draft.photo = $('cv').toDataURL('image/jpeg', .72); crop = null; renderClass(); },
   ccancel: () => { crop = null; renderClass(); },
   aud: v => { CS.aud = v; renderClass(); },
-  audcycle: () => { const o = audOptions().map(x => x[0]); CS.aud = o[(o.indexOf(CS.aud) + 1) % o.length]; renderClass(); toast(audName(CS.aud)); },
+  audcycle: () => { const o = audOptions().map(x => x[0]); CS.aud = o[(o.indexOf(CS.aud) + 1) % o.length]; renderClass(); toastH(`${audIcon(CS.aud)} ${esc(audName(CS.aud))}`); },
   post: () => {
     if(!recOf(CS.cid, CS.date) && !CS.draft.kind) return;
     const c = S.classes.find(x => x.id===CS.cid); if(!c) return;
@@ -1444,12 +1490,12 @@ const ACT = {
     r.comment = d.comment.trim(); r.aud = CS.aud; cc.aud = CS.aud; if(existed) r.photo = d.photo;
     if(!save()){ renderClass(); return; }
     closeSheet(); render();
-    actToast(`${isAway(r) ? awayIc(r) : '☺︎'} ✓  ${audIcon(r.aud)} ${audName(r.aud).replace(/^\S+ /,'')}`, 'audpick', `${r.classId}|${r.date}`); },
+    actToast(`${isAway(r) ? awayIc(r) : ic('smile')} ✓  ${audIcon(r.aud)} ${esc(audName(r.aud))}`, 'audpick', `${r.classId}|${r.date}`); },
   audpick: v => { $('toast').classList.remove('on'); openAudPick(v); },
   audset: v => { const [cid, date, a] = v.split('|'); const r = recOf(cid, date), c = S.classes.find(x => x.id===cid); if(!r || !c) return;
-    r.aud = a; c.aud = a; if(!save()) return; if(AP && AP.back) openClass(cid, date); else closeSheet(); render(); toast(`${audIcon(a)} ${audName(a).replace(/^\S+ /,'')}`); },
+    r.aud = a; c.aud = a; if(!save()) return; if(AP && AP.back) openClass(cid, date); else closeSheet(); render(); toastH(`${audIcon(a)} ${esc(audName(a))}`); },
   got: v => { const c = S.classes.find(x => x.id===v); if(!c) return; c.got = !c.got; if(!c.got) c.shareGot = false;
-    const ok = save(); refreshSem(v); if(ok && c.got) toast('🎉 単位GET！(自分だけに表示)'); },
+    const ok = save(); refreshSem(v); if(ok && c.got) toastH(`${ic('celebrate')} 単位GET！(自分だけに表示)`); },
   share: v => { const c = S.classes.find(x => x.id===v); if(!c || !c.got) return; c.shareGot = !c.shareGot;
     const ok = save(); refreshSem(v); if(ok) toast(c.shareGot ? '友だちに見せています' : '自分だけに戻しました'); },
   edit: v => openEdit(v),
@@ -1462,7 +1508,7 @@ const ACT = {
   addrow: v => addRow(v==='per'),
   fadd: async v => {
     const [name, d, p] = v.split('|');
-    if(S.classes.some(m => key(m)===v)){ toast('あなたも受けている授業です 🤝'); return; }
+    if(S.classes.some(m => key(m)===v)){ toastH(`${ic('sameclass')} あなたも受けている授業です`); return; }
     const clash = S.classes.find(m => m.day===+d && m.period===+p);
     if(clash){ toast(`${DAYS[+d]}${p}限は「${clash.name}」が入っています`); return; }
     if(await ask(`「${name}」(${DAYS[+d]}${p}限)を自分の時間割にも追加しますか？`, '追加する') && addFromKey(v)) openFriend(FSID);
