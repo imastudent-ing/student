@@ -94,12 +94,12 @@
   .nav{position:fixed; left:0; right:0; bottom:0; padding:0 16px calc(20px + env(safe-area-inset-bottom)); display:flex; justify-content:center; z-index:20; pointer-events:none;}
   .nav-in{width:100%; max-width:448px; display:flex; justify-content:space-between; align-items:center; pointer-events:auto;}
   .circ{width:70px; height:70px; border-radius:50%; background:#fff; display:grid; place-items:center; box-shadow:0 8px 24px rgba(0,0,0,.09); position:relative;}
-  .circ .badge{position:absolute; top:13px; right:14px; width:13px; height:13px; border-radius:50%; background:var(--pink); border:2px solid #fff;}
+  .circ .badge{position:absolute; top:10px; right:11px; width:13px; height:13px; border-radius:50%; background:var(--pink); border:2px solid #fff;}
   .circ.on{background:var(--pink3);}
   .smile.skip{background:#fff3c4; border-color:#e6c65a;}
   .skipbtn{display:block; width:100%; margin-top:8px; padding:13px; border-radius:22px; background:#fff; font-weight:900; font-size:15px; color:#8a6d00;}
   .post .cm{display:block; padding:0 14px 12px 62px; margin-top:-6px; font-size:14px; font-weight:700; line-height:1.5;}
-  .nbadge{position:absolute; top:6px; right:4px; min-width:22px; height:22px; border-radius:11px; background:var(--pink); color:#fff; font-size:11.5px; font-weight:900; display:grid; place-items:center; padding:0 6px; border:2px solid #fff;}
+  .nbadge{position:absolute; top:2px; right:0; min-width:22px; height:22px; border-radius:11px; background:var(--pink); color:#fff; font-size:11.5px; font-weight:900; display:grid; place-items:center; padding:0 6px; border:2px solid #fff;}
   .post{background:var(--card); border:1px solid var(--line); border-radius:26px; overflow:hidden; margin-bottom:12px; width:100%; text-align:left; display:block;}
   .post .pp{width:100%; aspect-ratio:4/3; background-size:cover; background-position:center; display:grid; place-items:center; font-size:64px;}
   .post .pm{display:flex; align-items:center; gap:10px; padding:12px 14px;}
@@ -168,7 +168,7 @@
   .ci time{font-size:11px; color:var(--dim2); font-weight:700; white-space:nowrap; padding-top:2px;}
   .cform .csend{width:44px; height:44px; border-radius:50%; background:var(--pink); display:grid; place-items:center; flex-shrink:0;}
   .cform .csend{color:#fff;}
-  .rxc.add{color:var(--dim);}
+  .rxc.add{color:var(--dim); padding:4px 10px;}
   .rxc.cmb{flex-shrink:0;}
   .pbar{align-items:center;}
   .rxe{font-size:19px; line-height:1; padding:4px 1px;}
@@ -361,7 +361,8 @@
   .cell .mk.aw{color:#222;}
   .cell .same .ico{width:12px; height:12px; --icw:var(--icss);}
   .cell.ph .same{color:#fff;}
-  .row .who .ico, .post .pm time .ico, .li .st .ico, .note .ico, .rule .ico, label.f .ico, .f .ico{--icw:var(--icss);}
+  .row .who .ico, .post .pm time .ico, .li .st .ico, .note .ico, .rule .ico, label.f .ico, .f .ico, .together .ico, .lnk .ico, .chips .ico, .sub .ico{--icw:var(--icss);}
+  .tog .ico{width:18px; height:18px; --icw:2.4;}
   .post .pm time .ico{margin-right:1px;}
   .audb .ico{width:24px; height:24px;}
   .composer .audb .ico{width:23px; height:23px;}
@@ -379,9 +380,9 @@
   details.sec > summary .ico{width:20px; height:20px;}
   .seg button .ico{width:16px; height:16px; margin-right:2px;}
   .toast .ico{width:18px; height:18px; vertical-align:-.25em;}
-  .askbox p .ico{width:20px; height:20px; vertical-align:-.28em; margin-right:2px;}
+  .askbox p .ico.lead{width:20px; height:20px; vertical-align:-.28em; margin-right:2px;}
   .cform{position:relative;}
-  .cform .phi{position:absolute; left:58px; top:50%; transform:translateY(-50%); color:var(--dim2); pointer-events:none; display:none; line-height:0;}
+  .cform .phi{position:absolute; left:58px; top:50%; transform:translateY(-50%); color:var(--dim); pointer-events:none; display:none; line-height:0;}
   .cform .phi .ico{width:20px; height:20px;}
   .hero p .ico{margin:0 3px 0 1px;}
   .vh{position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap;}
@@ -602,6 +603,7 @@ const isSkip = r => !!r && r.kind==='skip';
 const isOff = r => !!r && r.kind==='off'; // 休講
 const isAway = r => isSkip(r) || isOff(r); // 出席しない(飛ぶ・休講)
 const awayIc = r => ic(isOff(r) ? 'off' : 'skip');
+const kindIc = r => isAway(r) ? ic(isOff(r) ? 'off' : 'skip', '', isOff(r) ? '休講' : '飛ぶ') : ic('smile', '', '来た');
 // 飛ぶ・休講は、今週なら授業の前からでも選べる
 const canAway = date => date >= weekDates(0)[0] && date <= weekDates(0)[4];
 const fHere = (f, c, date) => { const r = fRec(f, c, date); return r && !isAway(r) ? r : null; };
@@ -636,9 +638,11 @@ const audFor = (c, date) => (CS && CS.cid===c.id && CS.date===date) ? CS.aud : (
 /* ---------- アイコン(星のキャラと同じペンで描いたセット) ---------- */
 /*ICONS-BEGIN*/const ICONS = {"smile":"<path d=\"M11.77 3.01C14.15 3.06 16.53 4.12 18.24 5.87C19.94 7.64 20.96 10.04 20.97 12.38C20.95 14.72 19.9 16.97 18.16 18.52C16.39 20.09 13.99 21 11.64 20.99C9.29 21.05 7.04 20.18 5.5 18.57C3.93 16.97 3.03 14.63 3.03 12.23C2.96 9.84 3.83 7.44 5.44 5.71C7.04 4.01 9.37 3.01 11.77 3.01Z\"/><path d=\"M8.47 8.32C8.59 9.1 8.71 9.89 8.82 10.67\"/><path d=\"M14.27 7.16C14.39 7.94 14.5 8.72 14.62 9.51\"/><path d=\"M8.27 14.45C9.43 16.57 11.06 17.33 12.63 17.08C14.29 16.85 15.69 15.74 16.24 13.14\"/>","face":"<path d=\"M6.28 6.23C6.42 7.47 6.55 8.71 6.68 9.96\"/><path d=\"M15.32 4C15.5 5.23 15.67 6.47 15.84 7.71\"/><path d=\"M5.62 15.95C7.51 19.22 10.18 20.36 12.68 19.91C15.34 19.48 17.52 17.64 18.38 13.43\"/>","camera":"<path d=\"M2.65 9.92C2.56 7.79 3.22 6.71 4.61 6.68C5.14 6.67 5.67 6.65 6.2 6.64C6.53 6.63 6.73 6.46 6.81 6.13C6.92 5.71 7.03 5.28 7.13 4.86C7.27 4.33 7.6 4.06 8.13 4.04C8.53 4.02 8.92 4 9.32 3.98C9.85 3.96 10.2 4.2 10.35 4.71C10.48 5.13 10.61 5.54 10.74 5.95C10.84 6.27 11.06 6.42 11.39 6.4C13.37 6.27 15.35 6.1 17.33 5.92C19.49 5.72 20.62 6.69 20.75 8.83C20.92 11.19 21.12 13.54 21.33 15.9C21.53 18.05 20.55 19.23 18.42 19.43C14.54 19.75 10.64 19.94 6.73 20.02C4.58 20.03 3.4 18.98 3.2 16.87Z\"/><path d=\"M11.69 10.14C12.48 10.08 13.29 10.36 13.89 10.87C14.5 11.39 14.89 12.15 14.96 12.94C15.03 13.73 14.78 14.55 14.28 15.15C13.77 15.75 13.02 16.12 12.22 16.17C11.43 16.21 10.61 15.92 9.99 15.39C9.38 14.85 8.98 14.08 8.91 13.3C8.84 12.51 9.1 11.72 9.62 11.13C10.14 10.55 10.9 10.18 11.69 10.14Z\"/><circle cx=\"17.01\" cy=\"9.3\" r=\"1\" fill=\"currentColor\" stroke=\"none\"/>","friends":"<path d=\"M7.34 3.55C8.14 3.54 8.94 3.86 9.52 4.43C10.09 4.99 10.43 5.78 10.43 6.58C10.43 7.37 10.1 8.16 9.54 8.72C8.98 9.29 8.19 9.63 7.41 9.64C6.62 9.67 5.85 9.36 5.3 8.82C4.74 8.28 4.41 7.5 4.4 6.7C4.38 5.9 4.69 5.09 5.23 4.5C5.77 3.91 6.55 3.56 7.34 3.55Z\"/><path d=\"M2.92 20.31C3.32 16.49 4.65 13.81 7.23 13.72C9.79 13.7 10.8 16.35 10.77 20.22\"/><path d=\"M17.86 4.85C18.59 4.89 19.32 5.23 19.84 5.78C20.36 6.32 20.65 7.06 20.64 7.8C20.62 8.54 20.29 9.26 19.76 9.77C19.22 10.28 18.47 10.55 17.74 10.52C17.01 10.49 16.3 10.15 15.8 9.6C15.3 9.04 15.02 8.28 15.04 7.54C15.05 6.79 15.35 6.06 15.87 5.56C16.39 5.07 17.12 4.81 17.86 4.85Z\"/><path d=\"M13.33 20.29C13.69 17.23 14.99 14.62 17.49 14.71C20 14.78 20.99 17.41 21.08 20.45\"/>","sameclass":"<path d=\"M7.57 3.32C8.21 3.3 8.84 3.54 9.29 3.98C9.74 4.42 10 5.04 10.01 5.68C10.02 6.32 9.77 6.96 9.33 7.43C8.89 7.89 8.27 8.17 7.64 8.18C7.01 8.19 6.37 7.93 5.91 7.49C5.45 7.04 5.18 6.41 5.16 5.78C5.15 5.14 5.41 4.51 5.85 4.06C6.3 3.6 6.93 3.33 7.57 3.32Z\"/><path d=\"M15.86 3.39C16.5 3.36 17.12 3.61 17.57 4.06C18.02 4.51 18.28 5.15 18.29 5.8C18.3 6.44 18.05 7.09 17.62 7.56C17.18 8.02 16.55 8.31 15.92 8.32C15.29 8.34 14.65 8.1 14.2 7.66C13.74 7.22 13.47 6.59 13.46 5.95C13.46 5.3 13.71 4.65 14.16 4.18C14.6 3.7 15.23 3.41 15.86 3.39Z\"/><path d=\"M4.92 15.53C5 13.66 5.81 12.08 7.73 12.07C9.65 12.04 10.52 13.59 10.64 15.46\"/><path d=\"M13.22 15.4C13.3 13.92 14.1 12.31 16.04 12.27C17.98 12.24 18.88 13.83 19.02 15.32\"/><path d=\"M2.46 15.5C8.76 15.5 15.11 15.36 21.54 15.35\"/><path d=\"M3.45 15.52C3.44 17.23 3.41 18.96 3.36 20.68\"/><path d=\"M20.53 15.33C20.57 17.06 20.59 18.78 20.59 20.5\"/>","group":"<path d=\"M10.84 4.13C11.56 4.17 12.17 4.43 12.68 4.93C15.22 6.86 17.49 9 19.51 11.36C20.64 12.38 20.69 13.45 19.68 14.55C18.42 16.32 16.99 17.89 15.37 19.27C14.4 20.35 13.33 20.34 12.13 19.25C9.94 16.8 7.5 14.64 4.84 12.78C4.3 12.31 3.99 11.73 3.93 11.03C4.02 9.05 3.91 7.1 3.6 5.16C3.58 4.34 3.99 3.93 4.83 3.93Z\"/><path d=\"M10.26 8C10.58 8.31 10.79 8.75 10.8 9.18C10.82 9.61 10.66 10.04 10.36 10.33C10.06 10.63 9.62 10.8 9.17 10.8C8.72 10.79 8.27 10.61 7.93 10.3C7.6 9.99 7.39 9.56 7.37 9.13C7.35 8.69 7.52 8.26 7.83 7.96C8.14 7.66 8.58 7.49 9.03 7.49C9.48 7.5 9.93 7.69 10.26 8Z\"/>","lock":"<path d=\"M7.3 9.67C10.47 9.86 13.65 9.99 16.85 10.09C18.73 10.15 19.67 11.1 19.66 12.95C19.65 14.08 19.64 15.21 19.62 16.33C19.54 19.48 17.86 21.02 14.63 20.94C12.73 20.9 10.84 20.85 8.95 20.78C5.74 20.62 4.22 18.91 4.35 15.69C4.38 14.55 4.41 13.4 4.44 12.26C4.5 10.39 5.45 9.54 7.3 9.67Z\"/><path d=\"M8.23 9.73C8.26 8.84 8.3 7.95 8.33 7.06C8.47 4.61 10.24 2.96 12.39 3.06C14.54 3.12 16.08 4.92 15.97 7.39C15.94 8.28 15.92 9.17 15.91 10.06\"/><path d=\"M11.98 14.04C11.96 14.83 11.95 15.62 11.93 16.41\"/>","eye":"<path d=\"M2.66 11.99C5.17 7.67 8.42 5.54 11.89 5.61C15.15 5.6 18.39 7.54 20.83 10.87C21 11.09 21.17 11.32 21.34 11.55\"/><path d=\"M2.66 11.99C5.57 16.18 8.93 18.24 12.34 18.39C15.53 18.42 18.59 15.69 20.83 10.87\"/><circle cx=\"12.01\" cy=\"12.03\" r=\"2.8\" fill=\"currentColor\" stroke=\"none\"/>","comment":"<path d=\"M6.83 16.58C4.95 15.67 3.58 14.15 3.07 12.44C2.6 10.71 3 8.8 4.15 7.18C5.32 5.54 7.19 4.18 9.3 3.43C11.41 2.7 13.76 2.63 15.76 3.24C17.78 3.89 19.44 5.19 20.32 6.79C21.23 8.4 21.37 10.27 20.72 11.94C20.11 13.63 18.69 15.14 16.83 16.13C14.96 17.16 12.63 17.66 10.41 17.5C9.4 19.26 7.32 20.71 4.4 21.37C5.21 19.71 6.39 18.05 6.83 16.58Z\"/>","skip":"<path d=\"M17.3 2.6C17.98 2.61 18.66 2.9 19.13 3.38C19.61 3.87 19.88 4.55 19.88 5.22C19.88 5.89 19.61 6.56 19.14 7.03C18.68 7.5 18.01 7.78 17.34 7.78C16.67 7.79 15.99 7.52 15.5 7.05C15.01 6.57 14.72 5.9 14.71 5.22C14.7 4.54 14.98 3.86 15.46 3.37C15.94 2.88 16.62 2.6 17.3 2.6Z\"/><path d=\"M6.31 19.82C7.57 19.14 8.89 18.61 10.26 18.23C10.96 17.11 11.77 16.08 12.69 15.14C13.35 13.33 14.18 11.63 15.22 10.04\"/><path d=\"M12.69 15.14C14.05 15.52 15.34 16.07 16.55 16.8C16.15 18.31 15.9 19.84 15.81 21.4\"/><path d=\"M10.94 12.7C12.12 12 13.36 11.45 14.66 11.08C15.89 11.67 17.03 12.42 18.07 13.32C18.94 12.67 19.81 12.04 20.68 11.42\"/><path d=\"M3.43 11.23C4.58 11.2 5.72 11.15 6.86 11.1\"/><path d=\"M3.32 15.07C4.33 15.05 5.33 15.02 6.33 14.99\"/>","off":"<path d=\"M3.6 8.46C4.5 6.26 6.29 4.47 8.46 3.58C10.64 2.73 13.19 2.83 15.41 3.84C17.65 4.9 19.52 6.83 20.48 9.05C21.4 11.27 21.33 13.75 20.32 15.8C19.26 17.87 17.32 19.53 15.06 20.33C12.8 21.2 10.24 21.22 8.11 20.34C5.96 19.47 4.25 17.68 3.45 15.47C2.63 13.25 2.69 10.67 3.6 8.46Z\"/><path d=\"M5.14 5.67C10.04 9.43 14.61 13.66 18.57 18.4\"/>","trash":"<path d=\"M4.07 7.37C9.37 6.48 14.66 5.5 19.93 4.6\"/><path d=\"M10.31 6.36C10.22 5.92 10.14 5.49 10.05 5.05C9.94 4.18 10.32 3.67 11.2 3.51C11.73 3.43 12.27 3.35 12.81 3.26C13.68 3.17 14.21 3.55 14.38 4.41C14.46 4.81 14.55 5.21 14.63 5.6\"/><path d=\"M5.81 10C6.23 12.76 6.59 15.53 6.89 18.28C7.04 19.96 7.94 20.78 9.6 20.75C11.32 20.69 13.03 20.62 14.74 20.53C16.39 20.46 17.35 19.57 17.61 17.87C18.03 15.1 18.38 12.33 18.68 9.59\"/><path d=\"M12.34 12.85C12.34 14.14 12.33 15.42 12.31 16.71\"/>","repick":"<path d=\"M5.62 15.47C4.92 14.12 4.69 12.53 4.96 11.01C5.25 9.5 6.04 8.07 7.16 6.99C8.29 5.92 9.74 5.18 11.24 4.93C12.74 4.67 14.28 4.89 15.57 5.57\"/><path d=\"M18.38 8.46C19.05 9.79 19.3 11.35 19.06 12.83C18.85 14.32 18.16 15.73 17.1 16.81C16.05 17.9 14.64 18.67 13.12 18.95C11.61 19.25 10 19.05 8.63 18.39\"/><path d=\"M12.36 6.79C13.43 6.38 14.5 5.97 15.57 5.57C15.14 4.58 14.71 3.58 14.28 2.59\"/><path d=\"M11.79 17.08C10.73 17.52 9.68 17.95 8.63 18.39C9.16 19.39 9.7 20.4 10.25 21.41\"/>","edit":"<path d=\"M3.5 20C5.37 19.42 7.25 18.86 9.12 18.31C12.47 14.96 15.77 11.6 19.07 8.22C19.8 7.47 19.79 6.71 19.04 5.94C18.48 5.36 17.92 4.78 17.36 4.19C16.63 3.42 15.88 3.4 15.13 4.15C11.78 7.53 8.48 10.95 5.18 14.37Z\"/><path d=\"M17.28 10.05C15.94 8.69 14.62 7.33 13.31 5.97\"/><path d=\"M13.25 19.98C14.65 18.62 15.86 21.26 17.37 20.1C18.47 19.22 19.49 19.44 20.5 20.06\"/>","pin":"<path d=\"M12.22 21.08C10.48 19.21 5.38 14.7 5.25 9.88C5 6.06 7.73 3 11.56 2.92C15.37 2.83 18.59 5.71 18.76 9.62C18.8 14.48 13.82 19.2 12.22 21.08Z\"/><path d=\"M11.94 7.29C12.59 7.29 13.26 7.55 13.74 8C14.22 8.46 14.51 9.1 14.53 9.75C14.54 10.39 14.29 11.04 13.84 11.5C13.38 11.96 12.75 12.22 12.1 12.22C11.45 12.22 10.8 11.96 10.34 11.51C9.87 11.05 9.58 10.42 9.56 9.77C9.54 9.13 9.78 8.49 10.22 8.03C10.65 7.57 11.29 7.3 11.94 7.29Z\"/>","clock":"<path d=\"M3.68 8.1C4.54 6 6.3 4.33 8.45 3.59C10.61 2.85 13.09 3.01 15.21 4.01C17.34 4.97 19.12 6.78 20.07 8.95C21.07 11.12 21.19 13.63 20.36 15.78C19.49 17.91 17.68 19.61 15.46 20.4C13.24 21.16 10.68 20.99 8.53 19.97C6.39 18.96 4.67 17.11 3.8 14.91C2.9 12.73 2.85 10.22 3.68 8.1Z\"/><path d=\"M12.01 8C12.14 9.36 12.11 10.7 11.93 12.01C13.36 13.06 14.67 14.25 15.85 15.57\"/>","pending":"<path d=\"M6.4 3.32C10.43 3.49 14.43 3.53 18.4 3.49\"/><path d=\"M5.6 20.31C9.55 20.51 13.5 20.62 17.48 20.68\"/><path d=\"M8.02 3.41C7.77 7.37 10.33 9.27 10.2 11.24C10.17 11.77 10.13 12.3 10.1 12.82C10 14.8 7.27 16.44 7.18 20.4\"/><path d=\"M16.81 3.51C16.5 7.54 13.7 9.34 13.56 11.32C13.52 11.85 13.49 12.38 13.46 12.91C13.36 14.89 15.95 16.7 15.88 20.65\"/><path d=\"M7.95 17.07C10.38 17.18 12.81 17.25 15.24 17.29\"/>","semester":"<path d=\"M11.92 5C15.22 5.85 18.33 7.16 21.29 8.92C18.05 10.19 15.02 11.91 12.23 14.07C9.22 12.48 6.06 11.29 2.71 10.43Z\"/><path d=\"M7.18 12.32C7.4 13.53 7.47 14.77 7.42 16.02C7.59 18.13 9.97 19.27 12.63 18.95C15.3 18.67 17.45 17.1 17.26 15.03C17.31 13.8 17.24 12.58 17.03 11.38\"/><path d=\"M20.41 9.44C20.48 11.12 20.58 12.79 20.7 14.46\"/>","celebrate":"<path d=\"M2.96 20.98C3.95 16.97 5.28 13.13 7 9.52C10.89 9.52 14.22 12.71 14.35 16.53Z\"/><path d=\"M12.2 5.88C12.38 4.92 12.55 3.97 12.74 3.02\"/><path d=\"M16.9 8.23C17.61 7.71 18.33 7.18 19.04 6.66\"/><path d=\"M18.39 13.39C19.28 13.5 20.16 13.61 21.04 13.72\"/><circle cx=\"15.81\" cy=\"4.41\" r=\"1.2\" fill=\"currentColor\" stroke=\"none\"/>","at":"<path d=\"M11.52 8.24C12.43 8.17 13.34 8.51 13.98 9.17C14.63 9.84 15 10.81 15 11.81C15.01 12.81 14.65 13.83 14.02 14.57C13.4 15.32 12.51 15.78 11.62 15.85C10.72 15.92 9.81 15.59 9.15 14.96C8.5 14.32 8.11 13.38 8.09 12.39C8.07 11.41 8.43 10.38 9.07 9.6C9.7 8.83 10.6 8.33 11.52 8.24Z\"/><path d=\"M14.99 8.35C15.18 9.94 15.19 11.53 15.01 13.14C15.04 15.07 16.14 16.03 17.62 15.97C19.59 15.89 20.73 14.11 20.7 11.57C20.69 6.63 16.61 2.82 11.82 3.08C6.87 3.6 3.14 8.07 3.3 12.96C3.49 17.81 7.58 21.26 12.37 20.9C13.74 20.83 14.91 20.57 15.85 20.02\"/>","gear":"<path d=\"M9.34 5.72C9.83 5.52 10.15 5.16 10.31 4.66C10.41 4.34 10.51 4.02 10.6 3.71C10.78 3.14 11.16 2.89 11.77 2.95C12.46 3.02 13.15 3.08 13.84 3.14C14.45 3.19 14.78 3.51 14.85 4.1C14.89 4.44 14.93 4.77 14.97 5.1C15.03 5.63 15.28 6.04 15.72 6.34C15.87 6.44 16.03 6.55 16.18 6.65C16.63 6.95 17.11 7.02 17.64 6.89C17.97 6.8 18.3 6.71 18.63 6.62C19.23 6.45 19.65 6.63 19.9 7.17C20.19 7.78 20.48 8.39 20.77 9C21.02 9.53 20.91 9.98 20.42 10.36C20.14 10.57 19.87 10.78 19.6 10.99C19.17 11.32 18.93 11.75 18.88 12.28C18.87 12.46 18.85 12.65 18.84 12.83C18.8 13.36 18.96 13.81 19.34 14.18C19.57 14.41 19.81 14.64 20.04 14.88C20.46 15.29 20.51 15.75 20.18 16.24C19.8 16.81 19.42 17.38 19.04 17.95C18.72 18.44 18.28 18.58 17.72 18.35C17.41 18.23 17.1 18.1 16.78 17.97C16.28 17.77 15.8 17.78 15.32 18C15.16 18.08 14.99 18.16 14.82 18.24C14.35 18.46 14.05 18.82 13.92 19.33C13.84 19.64 13.76 19.96 13.68 20.28C13.54 20.85 13.17 21.11 12.57 21.05C11.88 20.99 11.19 20.92 10.49 20.85C9.89 20.78 9.54 20.45 9.43 19.86C9.37 19.52 9.32 19.19 9.26 18.86C9.17 18.33 8.89 17.9 8.44 17.59C8.28 17.48 8.12 17.37 7.96 17.26C7.5 16.94 7.01 16.84 6.49 16.95C6.16 17.03 5.83 17.1 5.51 17.17C4.92 17.3 4.49 17.09 4.2 16.55C3.88 15.92 3.56 15.29 3.25 14.66C2.97 14.12 3.08 13.67 3.56 13.32C3.83 13.12 4.1 12.93 4.37 12.74C4.8 12.43 5.03 12.02 5.08 11.49C5.09 11.31 5.11 11.12 5.12 10.94C5.17 10.42 5.01 9.96 4.64 9.57C4.41 9.32 4.18 9.07 3.95 8.82C3.54 8.38 3.51 7.93 3.87 7.45C4.27 6.9 4.68 6.36 5.08 5.81C5.44 5.34 5.89 5.23 6.43 5.48C6.74 5.62 7.05 5.77 7.36 5.91C7.85 6.14 8.34 6.15 8.83 5.94Z\"/><path d=\"M12.22 9.26C12.96 9.33 13.67 9.7 14.15 10.25C14.63 10.81 14.87 11.55 14.82 12.27C14.76 12.99 14.41 13.68 13.85 14.14C13.29 14.6 12.54 14.82 11.8 14.75C11.05 14.67 10.33 14.29 9.84 13.72C9.35 13.16 9.1 12.41 9.15 11.69C9.21 10.97 9.58 10.29 10.15 9.84C10.72 9.39 11.48 9.18 12.22 9.26Z\"/>","flask":"<path d=\"M9.82 3.06C10.8 3.36 11.14 3.99 11.03 4.97C10.91 6.15 10.79 7.33 10.68 8.5C10.61 9.19 10.37 9.66 9.92 10.21C7.79 12.05 6.16 14.28 5.04 16.93C3.98 18.5 4.91 19.85 6.78 19.94C10.19 20.19 13.61 20.53 17.05 20.91C18.95 21.12 19.99 19.95 19.05 18.28C18.18 15.52 16.85 13.04 15.05 10.79C14.71 10.16 14.56 9.65 14.62 8.96C14.74 7.78 14.87 6.61 15 5.43C15.11 4.44 15.57 3.89 16.59 3.81\"/><path d=\"M6.51 14.1C10.3 14.41 14.08 14.83 17.86 15.28\"/>","list":"<path d=\"M4.99 3.54C5.41 3.54 5.84 3.72 6.15 4.02C6.45 4.31 6.64 4.73 6.65 5.15C6.66 5.57 6.5 5.98 6.21 6.27C5.93 6.57 5.51 6.74 5.09 6.74C4.67 6.74 4.25 6.57 3.94 6.27C3.63 5.98 3.44 5.56 3.43 5.14C3.41 4.72 3.57 4.31 3.86 4.01C4.15 3.71 4.57 3.54 4.99 3.54Z\"/><path d=\"M10.06 5.23C13.57 5.03 17.08 5.16 20.57 5.59\"/><path d=\"M5.21 10.35C5.63 10.35 6.05 10.52 6.35 10.82C6.65 11.12 6.83 11.54 6.84 11.96C6.85 12.38 6.68 12.8 6.39 13.1C6.1 13.4 5.69 13.58 5.27 13.58C4.85 13.58 4.44 13.42 4.14 13.12C3.84 12.83 3.66 12.41 3.65 11.99C3.64 11.56 3.8 11.14 4.09 10.84C4.38 10.53 4.79 10.35 5.21 10.35Z\"/><path d=\"M10.21 12.01C12.65 11.84 15.09 11.92 17.53 12.24\"/><path d=\"M5.26 17.22C5.68 17.22 6.08 17.39 6.37 17.69C6.66 17.98 6.82 18.4 6.81 18.83C6.8 19.25 6.61 19.67 6.31 19.98C6.01 20.28 5.59 20.46 5.18 20.46C4.76 20.46 4.36 20.3 4.08 20C3.79 19.71 3.63 19.29 3.64 18.87C3.65 18.44 3.83 18.02 4.13 17.71C4.43 17.41 4.85 17.23 5.26 17.22Z\"/><path d=\"M10.17 18.85C13.27 18.6 16.38 18.68 19.5 19.04\"/>","back":"<path d=\"M15 4.8C13 7.6 10.6 9.9 8.4 12C10.6 14.1 13 16.4 15 19.2\"/>","chev":"<path d=\"M9 4.8C11 7.6 13.4 9.9 15.6 12C13.4 14.1 11 16.4 9 19.2\"/>","send":"<path d=\"M21.12 2.68C15.89 4.26 10.94 6.33 6.3 8.88C8.23 9.85 10.05 11 11.74 12.34C13.29 13.97 14.6 15.75 15.67 17.67Z\"/><path d=\"M11.74 12.34C14.82 9.14 17.94 5.92 21.12 2.68\"/><path d=\"M2.88 21.32C3.28 20.73 3.79 20.13 4.29 19.73\"/><path d=\"M7.19 17.55C7.78 17.05 8.37 16.55 8.86 16.05\"/>","unfriend":"<path d=\"M9.05 3.84C9.87 3.87 10.68 4.26 11.24 4.88C11.79 5.5 12.08 6.35 12.03 7.19C11.98 8.02 11.58 8.83 10.96 9.38C10.34 9.93 9.5 10.22 8.68 10.17C7.86 10.13 7.06 9.75 6.52 9.14C5.98 8.53 5.69 7.7 5.74 6.88C5.78 6.06 6.16 5.24 6.78 4.68C7.38 4.11 8.22 3.8 9.05 3.84Z\"/><path d=\"M2.72 19.63C2.96 15.86 5.08 13.35 8.47 13.51C11.86 13.74 13.81 16.42 14.05 20.17\"/><path d=\"M16.69 11.39C18.22 11.42 19.74 11.42 21.28 11.38\"/>","react":"<path d=\"M19.75 10.44C20.44 12.52 20.3 14.86 19.37 16.84C18.41 18.82 16.67 20.38 14.64 21.1C12.6 21.76 10.29 21.57 8.29 20.61C6.28 19.64 4.58 17.95 3.62 15.97C2.65 13.99 2.44 11.71 3.04 9.72C3.67 7.7 5.12 5.99 7 5.03C8.89 4.07 11.18 3.85 13.27 4.44\"/><path d=\"M7.96 9.06C8.08 9.79 8.22 10.51 8.35 11.24\"/><path d=\"M13.28 8.03C13.41 8.76 13.54 9.49 13.68 10.22\"/><path d=\"M8.08 14.65C9.36 16.66 10.96 17.44 12.4 17.26C13.92 17.06 15.12 15.98 15.42 13.53\"/><path d=\"M17.01 4.69C18.44 4.64 19.87 4.59 21.3 4.52\"/><path d=\"M19.12 2.51C19.14 3.91 19.18 5.32 19.23 6.73\"/>"};/*ICONS-END*/
 document.body.insertAdjacentHTML('afterbegin', `<svg class="isprite" aria-hidden="true" focusable="false"><defs>${Object.entries(ICONS).map(([k, v]) => `<symbol id="i-${k}" viewBox="0 0 24 24">${v}</symbol>`).join('')}</defs></svg>`);
-const ic = (id, cls='') => `<svg class="ico${cls ? ' '+cls : ''}" aria-hidden="true" focusable="false"><use href="#i-${id}" width="100%" height="100%"/></svg>`;
+// alt は読み上げ用(画面には出ない)。意味を持つアイコンにだけ付ける
+const ic = (id, cls='', alt='') => `<svg class="ico${cls ? ' '+cls : ''}" aria-hidden="true" focusable="false"><use href="#i-${id}" width="100%" height="100%"/></svg>${alt ? `<span class="vh">${alt}</span>` : ''}`;
+const SMILE_T = ic('smile', '', '「来た」');
 // 文章の中の ☺︎ を、描いた ☺︎ に置きかえる(エスケープしてから)
-const glyph = t => esc(t).replace(/☺︎/g, ic('smile'));
+const glyph = t => esc(t).replace(/☺︎/g, SMILE_T);
 
 /* ---------- 部品 ---------- */
 const meAv = size => S.me.photo ? `<span class="av" style="width:${size}px;height:${size}px;background:url('${S.me.photo}') center/cover"></span>` : avatar(S.me.emoji, S.me.bg, size);
@@ -674,7 +678,7 @@ function header(){
   const dm = S.settings.demo;
   return `<div class="hd"><div class="logo">KOMALOG</div>
     <button class="me-btn" data-act="me" aria-label="プロフィールと設定">${meAv(42)}</button></div>
-    <div class="hint"><span class="ic">${MINI_SMILE}</span><span class="ht">着いたら${ic('smile')}</span>
+    <div class="hint"><span class="ic">${MINI_SMILE}</span><span class="ht">着いたら${SMILE_T}</span>
       ${dm.on ? `<button class="demo-chip" data-act="me" aria-label="デモ時刻の設定">デモ ${fmtMin(dm.min)}〜</button>` : ''}</div>`;
 }
 function heroHTML(){
@@ -688,8 +692,8 @@ function heroHTML(){
   const inNow = list.filter(x => x.lc && phaseOf(t, x.lc)==='now').length;
   let line;
   if(d<0) line = `${md(t)} ・ 授業のない日。`;
-  else if(!fr.length) line = `${md(t)}・${ic('clock')}${nowLabel()}<br>${ic('friends')} 友だちとつながると、ここに出ます`;
-  else line = `${md(t)}・${ic('clock')}${nowLabel()}<br>${ic('smile')} ${inNow ? `${inNow}人が授業中` : came ? `きょう${came}人` : 'まだ0人'}`;
+  else if(!fr.length) line = `${md(t)}・${ic('clock')}${nowLabel()}<br>${ic('friends')}友だちとつながると、ここに出ます`;
+  else line = `${md(t)}・${ic('clock')}${nowLabel()}<br>${ic('smile', '', '来た人:')}${inNow ? `${inNow}人が授業中` : came ? `きょう${came}人` : 'まだ0人'}`;
   const strip = list.length ? `<div class="fstrip">${list.map(x => `<button class="fp" data-act="friend" data-v="${x.f.id}" aria-label="${x.f.name}${x.lc ? `、${x.lc.period}限 ${esc(x.lc.name)}に来た` : ''}">
       <span class="ring ${x.lc?'ok':''}">${avatar(x.f.emoji,x.f.bg,46)}${x.lc ? `<i class="pb">${x.lc.period}限</i>` : ''}</span><b>${x.f.name}</b></button>`).join('')}</div>`
     : (!fr.length ? `<button class="lnk" data-act="friends">友だちとつながる</button>` : '');
@@ -855,10 +859,10 @@ setInterval(() => {
 function postCard({f, c, r}, clickable=true, bar=true){
   const ph = r.photo ? `<div class="pp" style="background-image:url('${r.photo}')"></div>` : r.ph ? `<div class="pp" style="background:${r.ph.bg}">${r.ph.emo}</div>` : '';
   const whoInner = f ? `${avatar(f.emoji,f.bg,38)}<span class="t"><b>${f.name}</b><span>${c.period}限 ${esc(c.name)}</span></span>`
-    : `${meAv(38)}<span class="t"><b>あなた${r.aud==='private' ? ' '+ic('lock') : ''}</b><span>${c.period}限 ${esc(c.name)}</span></span>`;
+    : `${meAv(38)}<span class="t"><b>あなた${r.aud==='private' ? ' '+ic('lock', '', '(自分だけ)') : ''}</b><span>${c.period}限 ${esc(c.name)}</span></span>`;
   // 投稿を押すと投稿(とコメント)、人を押すとその人の時間割
   const who = clickable ? `<button class="pwho" ${f ? `data-act="friend" data-v="${f.id}"` : `data-act="cls" data-v="${c.id}|${r.date}"`}>${whoInner}</button>` : `<span class="pwho">${whoInner}</span>`;
-  const mark = isAway(r) ? `${awayIc(r)} ${ymd(new Date(r.ts - 4*36e5)) < r.date ? md(r.date) : hm(r.ts)}` : `${ic('smile')} ${r.late ? 'あとから' : hm(r.ts)}`;
+  const mark = `${kindIc(r)} ${isAway(r) ? (ymd(new Date(r.ts - 4*36e5)) < r.date ? md(r.date) : hm(r.ts)) : r.late ? 'あとから' : hm(r.ts)}`;
   const open = clickable ? `role="button" tabindex="0" data-act="cmts" data-v="${r.id}"` : '';
   return `<div class="post"><div class="phead" ${open}>${ph}<span class="pm">${who}<time>${mark}</time></span>${r.comment ? `<span class="cm">${esc(r.comment)}</span>` : ''}</div>${bar ? postBar(f, r) : ''}</div>`;
 }
@@ -891,7 +895,7 @@ function renderComments(){
     { const pp = findPost(id); if(pp) TICK[id] = Math.max(0, postComments(pp.f, pp.r).length - 2); }
     $('pcIn').value = ''; $('pcIn').blur();
     goBackFromComments();
-    render(); toastH(`${ic('comment')} ✓`);
+    render(); toastH(`${ic('comment', '', 'コメント')} ✓`);
     const own = findPost(id); const who = own && own.f ? own.f : own ? viewers(null, own.r)[0] : null;
     if(who) setTimeout(() => { S.pcm[id].push({from:who.id, text:['ありがと〜','それな','笑','りょ！'][Math.floor(Math.random()*4)], ts:nowTs()}); save(true);
       if(CMV===id && $('sheet').classList.contains('open')) renderComments(); render(); }, 2500); };
@@ -1089,11 +1093,11 @@ function friendSheetHTML(f){
     h += `<div class="f">きょう</div><div class="card" style="padding:4px 16px">` + (today.length ? today.map(c => {
       const r = fRec(f, c, t), ph = phaseOf(t, c);
       return `<div class="li">${thumbHTML(c, r, c.shareGot)}<div class="t"><span>${c.period}限 ${timeText(c)}</span><b>${esc(c.name)}</b></div>
-        <span class="st ${r&&!isAway(r)?'ok':''}">${isAway(r) ? awayIc(r) : r ? `${ic('smile')} 来た` : ph==='future' ? ic('pending') : ''}</span></div>`; }).join('')
+        <span class="st ${r&&!isAway(r)?'ok':''}">${isAway(r) ? kindIc(r) : r ? `${ic('smile')} 来た` : ph==='future' ? ic('pending', '', 'これから') : ''}</span></div>`; }).join('')
       : '<div class="empty" style="padding:16px">きょうは授業なし</div>') + '</div>';
   }
   h += `<div class="f">時間割</div><div class="card ttc">${gridHTML(f.classes, weekDates(0), f)}</div>
-    ${sameUniv(f) ? `<p class="rule">${ic('sameclass')} = 同じ授業 ・ マスをタップで投稿を見る</p>` : ''}`;
+    ${sameUniv(f) ? `<p class="rule"><span aria-hidden="true">${ic('sameclass')} = 同じ授業 ・ </span>マスをタップで投稿を見る</p>` : ''}`;
   return h;
 }
 function openFriend(id){
@@ -1109,7 +1113,7 @@ function openFriendPost(v){
   const canAdd = sameUniv(f) && !S.classes.some(m => key(m)===k) && !S.classes.some(m => m.day===c.day && m.period===c.period);
   let h = `<button class="sbk" data-act="friend" data-v="${f.id}" aria-label="戻る">${BACK}</button>
     <h3>${esc(c.name)}</h3><div class="sub">${md(date)}(${DAYS[c.day]}) ${c.period}限 ${timeText(c)}</div><div style="margin-top:14px">`;
-  h += r ? postCard({f, c, r}, false) : `<div class="empty">${date > todayStr() ? ic('pending') : '—'}</div>`;
+  h += r ? postCard({f, c, r}, false) : `<div class="empty">${date > todayStr() ? ic('pending', '', 'これから') : '—'}</div>`;
   h += '</div>';
   if(canAdd) h += `<button class="btn" data-act="fadd" data-v="${esc(k)}">＋ 自分の時間割にも追加</button>`;
   else if(sameUniv(f) && S.classes.some(m => key(m)===k)) h += `<p class="rule" style="text-align:center">${ic('sameclass')} 同じ授業</p>`;
@@ -1231,7 +1235,7 @@ function renderFriends(resetScroll){
     <details class="sec" data-sec="fset" style="margin-top:22px" ${OPENSEC.has('fset')?'open':''}><summary aria-label="設定">${ic('gear')}</summary><div class="in">
       <label class="f" style="margin-top:0" for="addId">${ic('at')} ID(あなた: @${esc(S.me.handle)})</label>
       <div style="display:flex;gap:8px"><input class="tx" id="addId" placeholder="@ID" maxlength="20"><button class="addb" data-act="addfr" style="padding:0 18px">申請</button></div>
-      ${S.sentReq.length ? `<p class="note">${ic('pending')} ${S.sentReq.map(x => '@'+esc(x)).join('、')}</p>` : ''}
+      ${S.sentReq.length ? `<p class="note">${ic('pending', '', '申請中:')} ${S.sentReq.map(x => '@'+esc(x)).join('、')}</p>` : ''}
       <label class="f" for="audSel">${ic('eye')} いつもの見える人</label>
       <select class="tx" id="audSel">${audOptions().map(([k,l]) => `<option value="${k}" ${k===S.settings.aud?'selected':''}>${esc(l)}</option>`).join('')}</select>
       <label class="f">${ic('group')} グループ</label>
@@ -1273,7 +1277,7 @@ function renderMe(resetScroll){
       <div style="display:flex;gap:10px;margin-top:10px">
         <select class="tx" id="dDay" ${dm.on?'':'disabled'}>${DAYS.map((x,i) => `<option value="${i}" ${i===dm.day?'selected':''}>${x}曜</option>`).join('')}</select>
         <input class="tx" type="time" id="dTime" value="${String(Math.floor(dm.min/60)).padStart(2,'0')}:${String(dm.min%60).padStart(2,'0')}" ${dm.on?'':'disabled'}></div>`)
-    + sec('about', `${ic('smile')} について`, `<p class="note" style="margin:0">・${ic('smile')}(来た)は本人の自己申告です。大学の正式な出席記録ではありません。<br>・押していないことは欠席を意味しません。<br>・写真は任意です。人の顔や授業の資料は写さず、授業中に撮るときは先生のルールに従ってください。<br>・データはこの端末に保存されます(プロトタイプ)。</p>`)
+    + sec('about', `${SMILE_T} について`, `<p class="note" style="margin:0">・${ic('smile')}(来た)は本人の自己申告です。大学の正式な出席記録ではありません。<br>・押していないことは欠席を意味しません。<br>・写真は任意です。人の顔や授業の資料は写さず、授業中に撮るときは先生のルールに従ってください。<br>・データはこの端末に保存されます(プロトタイプ)。</p>`)
     + `
     <button class="btn danger" data-act="reset">データをリセット</button>`;
   paintScreen(h, resetScroll); bindSecs();
@@ -1302,7 +1306,7 @@ function renderOnb(){
     const inv = fById('f1');
     el.innerHTML = `${steps}<div class="logo" style="margin-top:34px">KOMALOG</div>
       <h1>ただの時間割。<br>なのに、<br>友だちの気配がする。</h1>
-      <p class="lead">開くと、友だちがきょうどの授業に来ているか分かる。教室に着いたら<span class="nb">${ic('smile')}を押すだけ。</span></p>
+      <p class="lead">開くと、友だちがきょうどの授業に来ているか分かる。教室に着いたら<span class="nb">${SMILE_T}を押すだけ。</span></p>
       <div style="text-align:center;margin-top:22px">${STAR(116)}</div>
       <div class="inv">${avatar(inv.emoji,inv.bg,44)}<div>${inv.name} から招待が届いています<div class="note" style="margin:2px 0 0">承認した友だちとだけつながります</div></div></div>
       <div style="margin-top:auto;padding-top:26px"><button class="btn pk" data-act="onb-accept">${inv.name} の招待を承認してはじめる</button>
@@ -1443,10 +1447,11 @@ function toastH(h){ const el = $('toast'); el.innerHTML = h; el.classList.add('o
 
 // 確認ダイアログ(ブラウザの confirm の代わりに画面の中で聞く)
 let askDone = null;
-function ask(msg, yes='OK', icon=''){
+// name を渡すと msg の %s に入る(名前の中の ☺︎ はそのまま)
+function ask(msg, yes='OK', icon='', name){
   return new Promise(res => {
     const prev = document.activeElement;
-    $('askMsg').innerHTML = (icon ? ic(icon) : '') + glyph(msg); $('askYes').textContent = yes; $('ask').hidden = false; $('askYes').focus();
+    $('askMsg').innerHTML = (icon ? ic(icon, 'lead') : '') + (name==null ? glyph(msg) : msg.split('%s').map(glyph).join(esc(name))); $('askYes').textContent = yes; $('ask').hidden = false; $('askYes').focus();
     askDone = v => { $('ask').hidden = true; askDone = null; if(prev && document.contains(prev)) prev.focus({preventScroll:true}); res(v); };
   });
 }
@@ -1469,7 +1474,7 @@ const ACT = {
     if(CS) renderClass();
     render();
     const b = [...document.querySelectorAll('#app .smile')].find(x => x.dataset.v===v); if(b) b.classList.add('pop');
-    actToast(`${ic('smile')} ✓  ${audIcon(r.aud)} ${esc(audName(r.aud))}`, 'audpick', `${cid}|${date}`);
+    actToast(`${ic('smile', '', '来た')} ✓  ${audIcon(r.aud)}<span class="vh">見える人:</span> ${esc(audName(r.aud))}`, 'audpick', `${cid}|${date}`);
   },
   skip: v => { const [cid, date] = v.split('|'); const r = checkIn(cid, date, undefined, 'skip'); if(!r) return;
     renderClass(); render(); toast(`🏃 飛んだ ・ ${audName(r.aud)}に見える`); const cm = $('cmIn'); if(cm) cm.focus(); },
@@ -1492,7 +1497,7 @@ const ACT = {
     r.comment = d.comment.trim(); r.aud = CS.aud; cc.aud = CS.aud; if(existed) r.photo = d.photo;
     if(!save()){ renderClass(); return; }
     closeSheet(); render();
-    actToast(`${isAway(r) ? awayIc(r) : ic('smile')} ✓  ${audIcon(r.aud)} ${esc(audName(r.aud))}`, 'audpick', `${r.classId}|${r.date}`); },
+    actToast(`${kindIc(r)} ✓  ${audIcon(r.aud)}<span class="vh">見える人:</span> ${esc(audName(r.aud))}`, 'audpick', `${r.classId}|${r.date}`); },
   audpick: v => { $('toast').classList.remove('on'); openAudPick(v); },
   audset: v => { const [cid, date, a] = v.split('|'); const r = recOf(cid, date), c = S.classes.find(x => x.id===cid); if(!r || !c) return;
     r.aud = a; c.aud = a; if(!save()) return; if(AP && AP.back) openClass(cid, date); else closeSheet(); render(); toastH(`${audIcon(a)} ${esc(audName(a))}`); },
@@ -1513,14 +1518,14 @@ const ACT = {
     if(S.classes.some(m => key(m)===v)){ toastH(`${ic('sameclass')} あなたも受けている授業です`); return; }
     const clash = S.classes.find(m => m.day===+d && m.period===+p);
     if(clash){ toast(`${DAYS[+d]}${p}限は「${clash.name}」が入っています`); return; }
-    if(await ask(`「${name}」(${DAYS[+d]}${p}限)を自分の時間割にも追加しますか？`, '追加する') && addFromKey(v)) openFriend(FSID);
+    if(await ask(`「%s」(${DAYS[+d]}${p}限)を自分の時間割にも追加しますか？`, '追加する', '', name) && addFromKey(v)) openFriend(FSID);
   },
   add: v => { if(v==='today') openAdd(dayIdx(), null); else if(v){ const [d,p] = v.split('-').map(Number); openAdd(d, p); } else openAdd(null, null); },
   amode: v => { ADD.mode = v; renderAdd(); },
   addk: v => { if(!addFromKey(v)) return; if(ADD && ADD.p!=null) closeSheet(); else renderAdd(); },
   ecol: (v, el) => { editColor = v; document.querySelectorAll('#eCol button').forEach(b => b.classList.toggle('on', b===el)); },
   esave: v => saveClass(v),
-  edel: async v => { const c = S.classes.find(x => x.id===v); if(!c || !await ask(`「${c.name}」を削除しますか？ この授業の ☺︎ と写真も消えます。`, '削除する')) return;
+  edel: async v => { const c = S.classes.find(x => x.id===v); if(!c || !await ask('「%s」を削除しますか？ この授業の ☺︎ と写真も消えます。', '削除する', '', c.name)) return;
     S.classes = S.classes.filter(x => x.id!==v); S.recs = S.recs.filter(r => r.classId!==v); save(); closeSheet(); render(); },
   sclose: () => closeSheet(),
   close: () => closeScreen(),
@@ -1529,7 +1534,7 @@ const ACT = {
   me: () => { closeSheet(); renderMe(true); },
   approve: v => { S.friendState[v] = 'friend'; if(!save()){ renderFriends(false); return; } renderFriends(false); render(); toast(`${fById(v).name} とつながりました`); },
   decline: v => { S.friendState[v] = 'later'; save(); renderFriends(false); render(); },
-  unfriend: async v => { const f = fById(v); if(!f || !await ask(`${f.name} と友だちをやめますか？`, 'やめる')) return;
+  unfriend: async v => { const f = fById(v); if(!f || !await ask('%s と友だちをやめますか？', 'やめる', '', f.name)) return;
     S.friendState[v] = 'none'; S.groups.forEach(g => { g.members = g.members.filter(x => x!==v); });
     grpDraft.members = grpDraft.members.filter(x => x!==v);
     save(); closeSheet(); render(); if($('scr').classList.contains('open') && $('audSel')) renderFriends(false); toast(`${f.name} とのつながりを解除しました`); },
@@ -1542,11 +1547,12 @@ const ACT = {
     if(!S.sentReq.includes(v)) S.sentReq.push(v); if(!save()){ renderFriends(false); return; } renderFriends(false); toast('申請しました。承認されると時間割が見えます'); },
   gmem: v => { const i = grpDraft.members.indexOf(v); if(i>=0) grpDraft.members.splice(i,1); else grpDraft.members.push(v); renderFriends(false); },
   gadd: () => { const name = grpDraft.name.trim(); if(!name){ toast('グループ名を入れてね'); return; }
+    if(audOptions().some(o => o[1]===name)){ toast('同じ名前があります'); return; }
     S.groups.push({id:uid(), name, members:grpDraft.members.filter(id => S.friendState[id]==='friend')});
     if(!save()){ renderFriends(false); return; }
     grpDraft = {name:'', members:[]}; renderFriends(false); toast('グループを作りました'); },
   gdel: async v => { const g = S.groups.find(x => x.id===v);
-    if(!g || !await ask(`「${g.name}」を削除しますか？\nこのグループに見せていた ☺︎ と写真は「自分だけ」になります。`, '削除する')) return;
+    if(!g || !await ask('「%s」を削除しますか？\nこのグループに見せていた ☺︎ と写真は「自分だけ」になります。', '削除する', '', g.name)) return;
     const a = 'g:'+v, wasDefault = S.settings.aud===a;
     S.groups = S.groups.filter(x => x.id!==v);
     if(wasDefault) S.settings.aud = 'private'; // 見える範囲を勝手に広げない
@@ -1554,7 +1560,7 @@ const ACT = {
     S.classes.forEach(c => { if(c.aud===a) c.aud = 'private'; });
     if(!save()){ renderFriends(false); return; }
     renderFriends(false);
-    toast(wasDefault ? '削除しました。いつもの見える人も「自分だけ」になりました' : '削除しました。このグループに見せていた ☺︎ と写真は「自分だけ」になりました'); },
+    toastH(glyph(wasDefault ? '削除しました。いつもの見える人も「自分だけ」になりました' : '削除しました。このグループに見せていた ☺︎ と写真は「自分だけ」になりました')); },
   memo: v => { S.me.emoji = v; S.me.photo = null; save(); renderMe(false); render(); },
   avpick: () => $('avIn').click(),
   avdel: () => { S.me.photo = null; save(); renderMe(false); render(); },
