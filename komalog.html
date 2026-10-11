@@ -949,7 +949,7 @@ function keepFocus(paint, fallback){
   n.focus({preventScroll:true});
 }
 function renderClass(){ keepFocus(paintClass, '[data-act=undo]'); }
-const recBtns = r => `<button class="ib" data-act="audpick" data-v="${r.classId}|${r.date}" aria-label="見える人: ${esc(audName(r.aud))}">${audIcon(r.aud)}</button><button class="ib" data-act="undo" aria-label="投稿を削除">${ic('trash')}</button>`;
+const recBtns = r => `<button class="ib" data-act="audpick" data-v="${r.classId}|${r.date}" aria-label="公開範囲: ${esc(audName(r.aud))}">${audIcon(r.aud)}</button><button class="ib" data-act="undo" aria-label="投稿を削除">${ic('trash')}</button>`;
 const isDirty = (r, d) => !r || d.comment.trim()!==(r.comment||'') || (d.photo||null)!==(r.photo||null);
 function paintClass(){
   const c = CS && S.classes.find(x => x.id===CS.cid); if(!c){ closeSheet(); return; }
@@ -973,7 +973,7 @@ function paintClass(){
     if(d.photo) h += `<div class="shot" style="margin-top:8px;background-image:url('${d.photo}')" role="img" aria-label="写真"></div>
       <div class="phrow"><button data-act="pick" aria-label="写真を選び直す">${ic('repick')}</button><button data-act="unphoto" aria-label="写真を外す">${ic('trash')}</button></div>`;
     h += `<div class="postrow">${d.photo ? '' : `<button class="audb" data-act="pick" aria-label="写真を1枚">${ic('camera')}</button>`}
-      ${r ? '' : `<button class="audb" data-act="audcycle" aria-label="見える人: ${esc(audName(CS.aud))}">${audIcon(CS.aud)}</button>`}
+      ${r ? '' : `<button class="audb" data-act="audcycle" aria-label="公開範囲: ${esc(audName(CS.aud))}">${audIcon(CS.aud)}</button>`}
       <button class="postbtn" id="postBtn" data-act="post" aria-label="投稿" ${(r && !isDirty(r, d)) || (!r && !d.kind) ? 'disabled' : ''}>${PLANE}</button></div>`;
     h += `</div>`;
   } else h += `<div class="herest wait">${ph==='future' ? `${ic('smile')} ${fmtMin(win(c).s-10)}〜` : '—'}</div>`;
@@ -988,7 +988,7 @@ function openAudPick(v){
   const [cid, date] = v.split('|'); const r = recOf(cid, date), c = S.classes.find(x => x.id===cid); if(!r || !c) return;
   const back = !!CS; AP = {back};
   CS = null; FSID = null; ADD = null;
-  $('sheetIn').innerHTML = (back ? `<button class="sbk" data-act="cls" data-v="${cid}|${date}" aria-label="戻る">${BACK}</button>` : '') + `<h3>${ic('eye')}<span class="vh">見える人</span></h3><div class="sub">${c.period}限 ${esc(c.name)}</div><div class="chips" style="margin-top:14px">${audOptions().map(([k,l]) =>
+  $('sheetIn').innerHTML = (back ? `<button class="sbk" data-act="cls" data-v="${cid}|${date}" aria-label="戻る">${BACK}</button>` : '') + `<h3>${ic('eye')}<span class="vh">公開範囲</span></h3><div class="sub">${c.period}限 ${esc(c.name)}</div><div class="chips" style="margin-top:14px">${audOptions().map(([k,l]) =>
     `<button data-act="audset" data-v="${cid}|${date}|${k}" class="${r.aud===k?'on':''}" aria-pressed="${r.aud===k}">${audIcon(k)} ${esc(l)}</button>`).join('')}</div>`;
   AP.back = back; openSheet();
 }
@@ -1237,7 +1237,7 @@ function renderFriends(resetScroll){
       <label class="f" style="margin-top:0" for="addId">${ic('at')} ID(あなた: @${esc(S.me.handle)})</label>
       <div style="display:flex;gap:8px"><input class="tx" id="addId" placeholder="@ID" maxlength="20"><button class="addb" data-act="addfr" style="padding:0 18px">申請</button></div>
       ${S.sentReq.length ? `<p class="note">${ic('pending', '', '申請中:')} ${S.sentReq.map(x => '@'+esc(x)).join('、')}</p>` : ''}
-      <label class="f" for="audSel">${ic('eye')} 新しい投稿<span class="vh">の見える人</span></label>
+      <label class="f" for="audSel">${ic('eye')} 公開範囲<span class="vh">(新しい投稿)</span></label>
       <select class="tx" id="audSel">${audOptions().map(([k,l]) => `<option value="${k}" ${k===S.settings.aud?'selected':''}>${esc(l)}</option>`).join('')}</select>
       <label class="f">${ic('group')} グループ</label>
       <div class="card" style="padding:4px 16px;background:#fff">${S.groups.map(g => `<div class="li"><span class="t"><b>${esc(g.name)}</b><span>${g.members.map(id => S.friendState[id]==='friend' ? fById(id)?.name : null).filter(Boolean).join('・') || '—'}</span></span><button class="tog" data-act="gdel" data-v="${g.id}" aria-label="削除">${ic('trash')}</button></div>`).join('')
@@ -1475,7 +1475,7 @@ const ACT = {
     if(CS) renderClass();
     render();
     const b = [...document.querySelectorAll('#app .smile')].find(x => x.dataset.v===v); if(b) b.classList.add('pop');
-    actToast(`${ic('smile', '', '来た')} ✓  ${audIcon(r.aud)}<span class="vh">見える人:</span> ${esc(audName(r.aud))}`, 'audpick', `${cid}|${date}`);
+    actToast(`${ic('smile', '', '来た')} ✓  ${audIcon(r.aud)}<span class="vh">公開範囲:</span> ${esc(audName(r.aud))}`, 'audpick', `${cid}|${date}`);
   },
   skip: v => { const [cid, date] = v.split('|'); const r = checkIn(cid, date, undefined, 'skip'); if(!r) return;
     renderClass(); render(); toast(`🏃 飛んだ ・ ${audName(r.aud)}に見える`); const cm = $('cmIn'); if(cm) cm.focus(); },
@@ -1498,7 +1498,7 @@ const ACT = {
     r.comment = d.comment.trim(); r.aud = CS.aud; cc.aud = CS.aud; if(existed) r.photo = d.photo;
     if(!save()){ renderClass(); return; }
     closeSheet(); render();
-    actToast(`${kindIc(r)} ✓  ${audIcon(r.aud)}<span class="vh">見える人:</span> ${esc(audName(r.aud))}`, 'audpick', `${r.classId}|${r.date}`); },
+    actToast(`${kindIc(r)} ✓  ${audIcon(r.aud)}<span class="vh">公開範囲:</span> ${esc(audName(r.aud))}`, 'audpick', `${r.classId}|${r.date}`); },
   audpick: v => { $('toast').classList.remove('on'); openAudPick(v); },
   audset: v => { const [cid, date, a] = v.split('|'); const r = recOf(cid, date), c = S.classes.find(x => x.id===cid); if(!r || !c) return;
     r.aud = a; c.aud = a; if(!save()) return; if(AP && AP.back) openClass(cid, date); else closeSheet(); render(); toastH(`${audIcon(a)} ${esc(audName(a))}`); },
@@ -1561,7 +1561,7 @@ const ACT = {
     S.classes.forEach(c => { if(c.aud===a) c.aud = 'private'; });
     if(!save()){ renderFriends(false); return; }
     renderFriends(false);
-    toastH(glyph(wasDefault ? '削除しました。新しい投稿も「me」になります' : '削除しました。このグループに見せていた ☺︎ と写真は「me」になりました')); },
+    toastH(glyph(wasDefault ? '削除しました。公開範囲も「me」になりました' : '削除しました。このグループに見せていた ☺︎ と写真は「me」になりました')); },
   memo: v => { S.me.emoji = v; S.me.photo = null; save(); renderMe(false); render(); },
   avpick: () => $('avIn').click(),
   avdel: () => { S.me.photo = null; save(); renderMe(false); render(); },
