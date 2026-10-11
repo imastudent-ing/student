@@ -630,9 +630,10 @@ const cnt = n => n>9 ? '9+' : n;
 const friendsIn = c => friends().filter(sameUniv).map(f => ({f, fc:f.classes.find(x => key(x)===key(c))})).filter(x => x.fc);
 
 /* ---------- 見える人 ---------- */
-function audOptions(){ return [['friends','友だち全員'], ['class','この授業のみんな'], ...S.groups.map(g => ['g:'+g.id, g.name]), ['private','自分だけ']]; }
+// 見える人の名前は英語でそろえる(all = 友だち全員。公開ではない)
+function audOptions(){ return [['friends','all'], ['class','class'], ...S.groups.map(g => ['g:'+g.id, g.name]), ['private','me']]; }
 const audIcon = a => ic(a==='private' ? 'lock' : a==='class' ? 'sameclass' : a && a.startsWith('g:') ? 'group' : 'friends');
-const audName = a => (audOptions().find(o => o[0]===a) || [0,'自分だけ'])[1];
+const audName = a => (audOptions().find(o => o[0]===a) || [0,'me'])[1];
 const audFor = (c, date) => (CS && CS.cid===c.id && CS.date===date) ? CS.aud : (c.aud || S.settings.aud);
 
 /* ---------- アイコン(星のキャラと同じペンで描いたセット) ---------- */
@@ -859,7 +860,7 @@ setInterval(() => {
 function postCard({f, c, r}, clickable=true, bar=true){
   const ph = r.photo ? `<div class="pp" style="background-image:url('${r.photo}')"></div>` : r.ph ? `<div class="pp" style="background:${r.ph.bg}">${r.ph.emo}</div>` : '';
   const whoInner = f ? `${avatar(f.emoji,f.bg,38)}<span class="t"><b>${f.name}</b><span>${c.period}限 ${esc(c.name)}</span></span>`
-    : `${meAv(38)}<span class="t"><b>あなた${r.aud==='private' ? ' '+ic('lock', '', '(自分だけ)') : ''}</b><span>${c.period}限 ${esc(c.name)}</span></span>`;
+    : `${meAv(38)}<span class="t"><b>あなた${r.aud==='private' ? ' '+ic('lock', '', '(me)') : ''}</b><span>${c.period}限 ${esc(c.name)}</span></span>`;
   // 投稿を押すと投稿(とコメント)、人を押すとその人の時間割
   const who = clickable ? `<button class="pwho" ${f ? `data-act="friend" data-v="${f.id}"` : `data-act="cls" data-v="${c.id}|${r.date}"`}>${whoInner}</button>` : `<span class="pwho">${whoInner}</span>`;
   const mark = `${kindIc(r)} ${isAway(r) ? (ymd(new Date(r.ts - 4*36e5)) < r.date ? md(r.date) : hm(r.ts)) : r.late ? 'あとから' : hm(r.ts)}`;
@@ -1552,7 +1553,7 @@ const ACT = {
     if(!save()){ renderFriends(false); return; }
     grpDraft = {name:'', members:[]}; renderFriends(false); toast('グループを作りました'); },
   gdel: async v => { const g = S.groups.find(x => x.id===v);
-    if(!g || !await ask('「%s」を削除しますか？\nこのグループに見せていた ☺︎ と写真は「自分だけ」になります。', '削除する', '', g.name)) return;
+    if(!g || !await ask('「%s」を削除しますか？\nこのグループに見せていた ☺︎ と写真は「me」になります。', '削除する', '', g.name)) return;
     const a = 'g:'+v, wasDefault = S.settings.aud===a;
     S.groups = S.groups.filter(x => x.id!==v);
     if(wasDefault) S.settings.aud = 'private'; // 見える範囲を勝手に広げない
@@ -1560,7 +1561,7 @@ const ACT = {
     S.classes.forEach(c => { if(c.aud===a) c.aud = 'private'; });
     if(!save()){ renderFriends(false); return; }
     renderFriends(false);
-    toastH(glyph(wasDefault ? '削除しました。いつもの見える人も「自分だけ」になりました' : '削除しました。このグループに見せていた ☺︎ と写真は「自分だけ」になりました')); },
+    toastH(glyph(wasDefault ? '削除しました。いつもの見える人も「me」になりました' : '削除しました。このグループに見せていた ☺︎ と写真は「me」になりました')); },
   memo: v => { S.me.emoji = v; S.me.photo = null; save(); renderMe(false); render(); },
   avpick: () => $('avIn').click(),
   avdel: () => { S.me.photo = null; save(); renderMe(false); render(); },
