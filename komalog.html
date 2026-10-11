@@ -1237,7 +1237,7 @@ function renderFriends(resetScroll){
       <label class="f" style="margin-top:0" for="addId">${ic('at')} ID(あなた: @${esc(S.me.handle)})</label>
       <div style="display:flex;gap:8px"><input class="tx" id="addId" placeholder="@ID" maxlength="20"><button class="addb" data-act="addfr" style="padding:0 18px">申請</button></div>
       ${S.sentReq.length ? `<p class="note">${ic('pending', '', '申請中:')} ${S.sentReq.map(x => '@'+esc(x)).join('、')}</p>` : ''}
-      <label class="f" for="audSel">${ic('eye')} default<span class="vh">(新しい投稿の見える人)</span></label>
+      <label class="f" for="audSel">${ic('eye')} 新しい投稿<span class="vh">の見える人</span></label>
       <select class="tx" id="audSel">${audOptions().map(([k,l]) => `<option value="${k}" ${k===S.settings.aud?'selected':''}>${esc(l)}</option>`).join('')}</select>
       <label class="f">${ic('group')} グループ</label>
       <div class="card" style="padding:4px 16px;background:#fff">${S.groups.map(g => `<div class="li"><span class="t"><b>${esc(g.name)}</b><span>${g.members.map(id => S.friendState[id]==='friend' ? fById(id)?.name : null).filter(Boolean).join('・') || '—'}</span></span><button class="tog" data-act="gdel" data-v="${g.id}" aria-label="削除">${ic('trash')}</button></div>`).join('')
@@ -1561,7 +1561,7 @@ const ACT = {
     S.classes.forEach(c => { if(c.aud===a) c.aud = 'private'; });
     if(!save()){ renderFriends(false); return; }
     renderFriends(false);
-    toastH(glyph(wasDefault ? '削除しました。default も「me」になりました' : '削除しました。このグループに見せていた ☺︎ と写真は「me」になりました')); },
+    toastH(glyph(wasDefault ? '削除しました。新しい投稿も「me」になります' : '削除しました。このグループに見せていた ☺︎ と写真は「me」になりました')); },
   memo: v => { S.me.emoji = v; S.me.photo = null; save(); renderMe(false); render(); },
   avpick: () => $('avIn').click(),
   avdel: () => { S.me.photo = null; save(); renderMe(false); render(); },
