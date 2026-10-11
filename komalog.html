@@ -398,7 +398,7 @@
 <div class="shade" id="shade" data-act="sclose"></div>
 <div class="sheet" id="sheet" role="dialog" aria-modal="true"><div class="body" tabindex="-1"><button class="grab" data-act="sclose" aria-label="閉じる"></button><div id="sheetIn"></div></div></div>
 <div class="onb" id="onb" hidden><div class="wrap" id="onbIn"></div></div>
-<div class="ask" id="ask" hidden role="alertdialog" aria-modal="true" aria-labelledby="askMsg"><div class="askbox"><p id="askMsg"></p><div class="askrow"><button id="askNo">やめる</button><button id="askYes">OK</button></div></div></div>
+<div class="ask" id="ask" hidden role="alertdialog" aria-modal="true" aria-labelledby="askMsg"><div class="askbox"><p id="askMsg"></p><div class="askrow"><button id="askNo">キャンセル</button><button id="askYes">OK</button></div></div></div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <input type="file" id="fileIn" accept="image/*" capture="environment" hidden>
 <input type="file" id="avIn" accept="image/*" hidden>
@@ -477,7 +477,7 @@ const hm = ts => { const d = new Date(ts); return fmtMin(d.getHours()*60+d.getMi
 const ymd = d => d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
 const dateMs = s => { const [y,m,d] = s.split('-').map(Number); return new Date(y,m-1,d).getTime(); };
 const md = s => { const [,m,d] = s.split('-').map(Number); return `${m}/${d}`; };
-function names(list){ const n = list.map(f => f.name); return n.length<=2 ? n.join('・') : `${n.slice(0,2).join('・')} ほか${n.length-2}人`; }
+function names(list){ const n = list.map(f => f.name); return n.length<=2 ? n.join('・') : `${n.slice(0,2).join('・')}、ほか${n.length-2}人`; }
 const isWeekdayDaytime = r => { const w = r.getDay(), m = r.getHours()*60 + r.getMinutes(); return w>=1 && w<=5 && m>=8*60+30 && m<=18*60; };
 
 /* ---------- 状態(この端末に保存) ---------- */
@@ -507,7 +507,7 @@ function load(){
 function save(quiet){
   try{ const j = JSON.stringify(S); localStorage.setItem(KEY, j); lastSaved = j; return true; }
   catch(e){
-    if(!quiet) toast('端末の保存容量がいっぱいです。古い写真を外してね');
+    if(!quiet) toast('保存容量がいっぱいです。古い写真を外してください');
     if(lastSaved){ try{ S = Object.assign(fresh(), JSON.parse(lastSaved)); }catch(_){} }
     return false;
   }
@@ -692,8 +692,8 @@ function heroHTML(){
   const came = list.filter(x => x.lc).length;
   const inNow = list.filter(x => x.lc && phaseOf(t, x.lc)==='now').length;
   let line;
-  if(d<0) line = `${md(t)} ・ 授業のない日。`;
-  else if(!fr.length) line = `${md(t)}・${ic('clock')}${nowLabel()}<br>${ic('friends')}友だちとつながると、ここに出ます`;
+  if(d<0) line = `${md(t)}・授業なし`;
+  else if(!fr.length) line = `${md(t)}・${ic('clock')}${nowLabel()}`;
   else line = `${md(t)}・${ic('clock')}${nowLabel()}<br>${ic('smile', '', '来た人:')}${inNow ? `${inNow}人が授業中` : came ? `きょう${came}人` : 'まだ0人'}`;
   const strip = list.length ? `<div class="fstrip">${list.map(x => `<button class="fp" data-act="friend" data-v="${x.f.id}" aria-label="${x.f.name}${x.lc ? `、${x.lc.period}限 ${esc(x.lc.name)}に来た` : ''}">
       <span class="ring ${x.lc?'ok':''}">${avatar(x.f.emoji,x.f.bg,46)}${x.lc ? `<i class="pb">${x.lc.period}限</i>` : ''}</span><b>${x.f.name}</b></button>`).join('')}</div>`
@@ -706,7 +706,7 @@ function classRow(c, date, isNext){
   let who = '';
   if(came.length) who = `<div class="who"><span class="v">${ic('smile')}</span><span class="t">${names(came.map(x=>x.f))}</span></div>`;
   else if(fr.length) who = `<div class="who gray"><span class="v">${ic('sameclass')}</span><span class="t">${names(fr.map(x=>x.f))}</span></div>`;
-  const label = isOff(r) ? '休講' : isSkip(r) ? '飛ぶ' : r ? '来た(記録済み)' : can ? '来た を記録' : `${fmtMin(win(c).s-10)} から押せます`;
+  const label = isOff(r) ? '休講' : isSkip(r) ? '飛ぶ' : r ? '来た(記録済み)' : can ? '「来た」を記録' : `${fmtMin(win(c).s-10)}から押せます`;
   const sc = isAway(r) ? 'skip' : r ? 'done' : !can ? 'wait' : ph==='past' ? 'past' : '';
   return `<div class="row ${ph==='now'?'now':''} ${isNext?'next':''}" data-act="cls" data-v="${c.id}|${date}" role="button" tabindex="0" aria-label="${c.period}限 ${esc(c.name)}">
     ${thumbHTML(c, r, c.got)}
@@ -759,7 +759,7 @@ function gridHTML(classes, wd, owner){
       const came = isMe && isToday ? friendsIn(c).filter(x => fHere(x.f, x.fc, wd[d])).map(x => x.f) : [];
       const act = isMe ? `data-act="cls" data-v="${c.id}|${wd[d]}"` : `data-act="fpost" data-v="${owner.id}|${c.id}|${wd[d]}"`;
       h += `<button class="cell ${r&&(r.photo||r.ph)?'ph':''} ${isToday&&p===curP?'now':''}" style="${bg}" ${act}
-          aria-label="${DAYS[d]}${p}限 ${esc(c.name)}${mk?(isOff(r)?' 休講':isSkip(r)?' 飛ぶ':' 来た'):''}${came.length?` ${names(came)}が来た`:''}${got?' 単位GET':''}${same?' 同じ授業':''}">
+          aria-label="${DAYS[d]}${p}限、${esc(c.name)}${mk?(isOff(r)?'、休講':isSkip(r)?'、飛ぶ':'、来た'):''}${came.length?`、${names(came)}が来た`:''}${got?'、単位GET':''}${same?'、同じ授業':''}">
         <span>${esc(c.name)}</span><span class="rm">${esc(c.room||'')}</span>
         ${same ? `<span class="same">${ic('sameclass')}</span>` : ''}${mk ? (isAway(r) ? `<span class="mk aw" style="background:${isOff(r)?'#e8e8e8':'#fff3c4'}">${awayIc(r)}</span>` : `<span class="mk">${MK_SMILE}</span>`) : ''}${got ? '<span class="gt">GET</span>' : ''}${came.length ? `<span class="fr">${faces(came,14)}</span>` : ''}</button>`;
     }
@@ -835,8 +835,8 @@ function postBar(f, r){
   const list = rxList(f, r), cs = postComments(f, r), MAX = 5;
   // だれのリアクションか、小さな顔で分かるように(押すと一覧)
   const face = x => x.who ? avatar(x.who.emoji, x.who.bg, 13) : meAv(13);
-  const chips = list.slice(0, MAX).map(x => x.mine && f ? `<button class="rxe on" data-act="rx" data-v="${r.id}|${x.e}" aria-label="${x.e} を取り消す">${x.e}${face(x)}</button>`
-      : `<button class="rxe" data-act="cmts" data-v="${r.id}" aria-label="${x.who ? x.who.name : 'あなた'} ${x.e}">${x.e}${face(x)}</button>`).join('')
+  const chips = list.slice(0, MAX).map(x => x.mine && f ? `<button class="rxe on" data-act="rx" data-v="${r.id}|${x.e}" aria-label="${x.e}を取り消す">${x.e}${face(x)}</button>`
+      : `<button class="rxe" data-act="cmts" data-v="${r.id}" aria-label="${x.who ? x.who.name : 'あなた'}の${x.e}">${x.e}${face(x)}</button>`).join('')
     + (list.length > MAX ? '<span class="rxmore" aria-label="ほかにもリアクション">+</span>' : '');
   // 一巡したら最新のコメントで止める(描き直しても最初からやり直さない)
   const n = cs.length, pos = TICK[r.id]; const idx = n ? (pos==null ? 0 : Math.min(pos, n-1)) : -1;
@@ -971,8 +971,8 @@ function paintClass(){
         <button data-act="dkind" data-v="off" class="${d.kind==='off'?'on':''}" ${canSk?'':'disabled'}>${ic('off')}休講</button></div></div>`;
     h += `<input class="cmp-in" id="cmIn" maxlength="60" autocomplete="off" aria-label="ひとこと" value="${esc(d.comment)}">`;
     if(d.photo) h += `<div class="shot" style="margin-top:8px;background-image:url('${d.photo}')" role="img" aria-label="写真"></div>
-      <div class="phrow"><button data-act="pick" aria-label="写真を選び直す">${ic('repick')}</button><button data-act="unphoto" aria-label="写真を外す">${ic('trash')}</button></div>`;
-    h += `<div class="postrow">${d.photo ? '' : `<button class="audb" data-act="pick" aria-label="写真を1枚">${ic('camera')}</button>`}
+      <div class="phrow"><button data-act="pick" aria-label="写真を撮り直す">${ic('repick')}</button><button data-act="unphoto" aria-label="写真を外す">${ic('trash')}</button></div>`;
+    h += `<div class="postrow">${d.photo ? '' : `<button class="audb" data-act="pick" aria-label="写真を撮る">${ic('camera')}</button>`}
       ${r ? '' : `<button class="audb" data-act="audcycle" aria-label="公開範囲: ${esc(audName(CS.aud))}">${audIcon(CS.aud)}</button>`}
       <button class="postbtn" id="postBtn" data-act="post" aria-label="投稿" ${(r && !isDirty(r, d)) || (!r && !d.kind) ? 'disabled' : ''}>${PLANE}</button></div>`;
     h += `</div>`;
@@ -994,10 +994,10 @@ function openAudPick(v){
 }
 function semHTML(c){
   const tog = c.got ? friendsIn(c).filter(x => x.fc.shareGot).map(x => x.f) : [];
-  return `<div class="f">${ic('semester')} 学期末</div><div class="sem"><span>単位が取れたら<wbr>印をつける</span>
+  return `<div class="f">${ic('semester')} 学期末</div><div class="sem">
     <button class="tog ${c.got?'on':''}" data-act="got" data-v="${c.id}" aria-pressed="${!!c.got}">${c.got ? '✓ 単位GET' : '単位GET'}</button>
-    ${c.got ? `<button class="tog ${c.shareGot?'on':''}" data-act="share" data-v="${c.id}" aria-pressed="${!!c.shareGot}">${c.shareGot ? '✓ 友だちに見せてる' : '友だちにも見せる'}</button>` : ''}</div>
-    ${tog.length ? `<div class="together">${ic('celebrate')} ${names(tog)} と一緒に取れた！</div>` : ''}
+    ${c.got ? `<button class="tog ${c.shareGot?'on':''}" data-act="share" data-v="${c.id}" aria-pressed="${!!c.shareGot}">${c.shareGot ? '✓ 友だちにも見せる' : '友だちにも見せる'}</button>` : ''}</div>
+    ${tog.length ? `<div class="together">${ic('celebrate')} ${names(tog)}と一緒に取れた！</div>` : ''}
 `;
 }
 function refreshSem(cid){
@@ -1024,7 +1024,7 @@ function checkIn(cid, date, photo, kind){
   let r = apply(true);
   if(r) return r;
   if(photo && !existed){ r = apply(false); if(r){ r.dropped = true; return r; } }
-  toast('端末の保存容量がいっぱいです。古い写真を外してね');
+  toast('保存容量がいっぱいです。古い写真を外してください');
   return null;
 }
 
@@ -1040,7 +1040,7 @@ document.getElementById('avIn').onchange = e => {
     const prev = S.me.photo; S.me.photo = cv.toDataURL('image/jpeg', .8);
     if(!save()){ S.me.photo = prev; return; }
     render(); if(!$('onb').hidden) renderOnb(); else renderMe(false);
-    toast('アイコンを写真にしました');
+    toast('アイコンを変更しました');
   };
   img.onerror = () => { URL.revokeObjectURL(url); toast('画像を読み込めませんでした'); };
   img.src = url;
@@ -1056,10 +1056,10 @@ function openCrop(img){
   const W = 600, H = 800, base = Math.max(W/img.width, H/img.height);
   crop = {img, W, H, base, zoom:1, x:(W - img.width*base)/2, y:(H - img.height*base)/2};
   document.getElementById('sheetIn').innerHTML = `<h3>トリミング</h3>
-    <div class="sub">ドラッグで位置、スライダーで拡大。点線の内側が行の小さな写真になるよ。人の顔やスライド・資料は入れないでね。授業中に撮るときは先生のルールに従ってね。</div>
+    <div class="sub">ドラッグで移動、スライダーで拡大。点線の間がサムネイルになるよ。人の顔やスライド・資料は入れないでね。授業中に撮るときは先生のルールに従ってね。</div>
     <div class="crop"><canvas id="cv" width="${W}" height="${H}"></canvas><div class="sq"></div></div>
     <input type="range" id="zm" min="1" max="3" step="0.01" value="1" aria-label="拡大">
-    <div class="phrow"><button data-act="ccancel">やめる</button><button data-act="cok" style="background:var(--pink);color:#fff">この範囲でのせる</button></div>`;
+    <div class="phrow"><button data-act="ccancel">キャンセル</button><button data-act="cok" style="background:var(--pink);color:#fff">完了</button></div>`;
   const cv = document.getElementById('cv');
   drawCrop();
   let drag = null;
@@ -1088,8 +1088,8 @@ function friendSheetHTML(f){
   const d = dayIdx(), t = todayStr();
   const today = d<0 ? [] : f.classes.filter(c => c.day===d).sort((a,b) => a.period-b.period);
   let h = `<div class="fhead">${avatar(f.emoji,f.bg,60)}<div style="flex:1;min-width:0"><h3>${f.name}</h3><span class="fac">${f.univ} ${f.fac}</span></div>
-    <button class="edb" data-act="unfriend" data-v="${f.id}" aria-label="友だちをやめる">${ic('unfriend', 'uf')}</button></div>`;
-  if(!sameUniv(f)) h += `<p class="rule">${f.name}はちがう大学。授業の時間も${f.name}の大学のものです。</p>`;
+    <button class="edb" data-act="unfriend" data-v="${f.id}" aria-label="つながりを解除">${ic('unfriend', 'uf')}</button></div>`;
+  if(!sameUniv(f)) h += `<p class="rule">${f.name}の大学の授業時間で表示しています。</p>`;
   if(d>=0){
     h += `<div class="f">きょう</div><div class="card" style="padding:4px 16px">` + (today.length ? today.map(c => {
       const r = fRec(f, c, t), ph = phaseOf(t, c);
@@ -1132,7 +1132,7 @@ function addFromKey(k){
   if(clash){ toast(`${DAYS[src.day]}${src.period}限は「${clash.name}」が入っています`); return false; }
   S.classes.push({id:uid(), name:src.name, day:src.day, period:src.period, room:src.room, color:COLORS[S.classes.length % COLORS.length], got:false, shareGot:false});
   if(!save()){ render(); return false; }
-  render(); toast(`✓ ${src.name}(${DAYS[src.day]}${src.period}限)を追加しました`); return true;
+  render(); toast(`${DAYS[src.day]}${src.period}限に「${src.name}」を追加しました`); return true;
 }
 
 /* ============================================================
@@ -1177,15 +1177,15 @@ function paintAdd(){
 }
 function classForm(c, isNew){
   editColor = c.color;
-  return `<label class="f" for="eName">授業名</label><input class="tx" id="eName" value="${esc(c.name)}" placeholder="例:心理学概論" maxlength="30">
+  return `<label class="f" for="eName">授業名</label><input class="tx" id="eName" value="${esc(c.name)}" placeholder="例：心理学概論" maxlength="30">
     <div style="display:flex;gap:10px">
       <div style="flex:1"><label class="f" for="eDay">曜日</label><select class="tx" id="eDay">${DAYS.map((x,i) => `<option value="${i}" ${i===c.day?'selected':''}>${x}曜</option>`).join('')}</select></div>
       <div style="flex:1"><label class="f" for="ePer">時限</label><select class="tx" id="ePer">${PER().map((p,i) => `<option value="${i+1}" ${i+1===c.period?'selected':''}>${i+1}限 ${p[0]}〜</option>`).join('')}</select></div>
     </div>
-    <label class="f" for="eS">時間(この授業だけ違うときに変更)</label>
+    <label class="f" for="eS">時間(この授業のみ)</label>
     <div style="display:flex;align-items:center;gap:8px"><input class="tx" type="time" id="eS" style="flex:1;min-width:0" value="${fmtMin(win(c).s).padStart(5,'0')}"><span>–</span><input class="tx" type="time" id="eE" style="flex:1;min-width:0" value="${fmtMin(win(c).e).padStart(5,'0')}"></div>
-    <label class="f" for="eRoom">教室(任意)</label><input class="tx" id="eRoom" value="${esc(c.room)}" placeholder="例:2-301" maxlength="20">
-    <label class="f">色</label><div class="colors" id="eCol">${COLORS.map(x => `<button data-act="ecol" data-v="${x}" class="${x===c.color?'on':''}" style="background:${x}" aria-label="色"></button>`).join('')}</div>
+    <label class="f" for="eRoom">教室(任意)</label><input class="tx" id="eRoom" value="${esc(c.room)}" placeholder="例：2-301" maxlength="20">
+    <label class="f">色</label><div class="colors" id="eCol">${COLORS.map((x, i) => `<button data-act="ecol" data-v="${x}" class="${x===c.color?'on':''}" style="background:${x}" aria-label="色${i+1}"></button>`).join('')}</div>
     <button class="btn" data-act="esave" data-v="${isNew ? '' : c.id}">${isNew ? '追加する' : '保存する'}</button>`;
 }
 function openEdit(cid){
@@ -1202,20 +1202,20 @@ async function saveClass(id){
   const nd = {name, day:+document.getElementById('eDay').value, period:+document.getElementById('ePer').value,
     room:document.getElementById('eRoom').value.trim(), color:editColor};
   { const P = PER()[nd.period-1], sv = $('eS').value.replace(/^0(\d)/,'$1'), ev = $('eE').value.replace(/^0(\d)/,'$1');
-    if(sv && ev && toMin(sv) >= toMin(ev)){ toast('終わりは始まりより後にしてね'); return; }
+    if(sv && ev && toMin(sv) >= toMin(ev)){ toast('終了は開始より後にしてね'); return; }
     nd.s = sv && sv!==P[0] ? sv : null; nd.e = ev && ev!==P[1] ? ev : null; }
   const clash = S.classes.find(x => x.day===nd.day && x.period===nd.period && (!c || x.id!==c.id));
   if(clash){ toast(`${DAYS[nd.day]}${nd.period}限は「${clash.name}」が入っています`); return; }
   if(c){
     const moved = c.day!==nd.day || c.period!==nd.period;
     if(moved && S.recs.some(r => r.classId===c.id)){
-      if(!await ask('曜日・時限を変えると、この授業の ☺︎ と写真は消えます。変更しますか？', '変更する')) return;
+      if(!await ask('曜日・時限を変えると、この授業の ☺︎ と写真は消えます。変更しますか？', '変更')) return;
       S.recs = S.recs.filter(r => r.classId!==c.id);
     }
     Object.assign(c, nd);
   } else S.classes.push({id:uid(), got:false, shareGot:false, ...nd});
   if(!save()){ render(); return; }
-  closeSheet(); render(); toast(c ? '保存しました' : `${name} を追加しました`);
+  closeSheet(); render(); toast(c ? '保存しました' : `「${name}」を追加しました`);
 }
 
 /* ============================================================
@@ -1242,7 +1242,7 @@ function renderFriends(resetScroll){
       <label class="f">${ic('group')} グループ</label>
       <div class="card" style="padding:4px 16px;background:#fff">${S.groups.map(g => `<div class="li"><span class="t"><b>${esc(g.name)}</b><span>${g.members.map(id => S.friendState[id]==='friend' ? fById(id)?.name : null).filter(Boolean).join('・') || '—'}</span></span><button class="tog" data-act="gdel" data-v="${g.id}" aria-label="削除">${ic('trash')}</button></div>`).join('')
         || '<div class="empty" style="padding:12px">—</div>'}</div>
-      <input class="tx" id="gName" placeholder="＋ 新しいグループ" maxlength="16" value="${esc(grpDraft.name)}">
+      <input class="tx" id="gName" placeholder="新しいグループ名" maxlength="16" value="${esc(grpDraft.name)}">
       ${fr.length ? `<div class="chips" style="margin-top:10px">${fr.map(f => `<button data-act="gmem" data-v="${f.id}" class="${grpDraft.members.includes(f.id)?'on':''}" aria-pressed="${grpDraft.members.includes(f.id)}">${f.emoji} ${f.name}</button>`).join('')}</div>` : ''}
       <button class="btn" data-act="gadd" style="margin-top:12px;padding:13px;font-size:15px" aria-label="グループを作る">＋ ${ic('group')}</button></div></details>`;
   paintScreen(h, resetScroll);
@@ -1257,14 +1257,14 @@ function renderFriends(resetScroll){
 function renderMe(resetScroll){
   const st = S.settings, dm = st.demo;
   const sec = (id, title, body) => `<details class="sec" data-sec="${id}" ${OPENSEC.has(id)?'open':''}><summary>${title}</summary><div class="in">${body}</div></details>`;
-  const h = `<div class="back"><button data-act="close" aria-label="戻る">${BACK}</button><h3>プロフィール</h3></div>
+  const h = `<div class="back"><button data-act="close" aria-label="戻る">${BACK}</button><h3>設定</h3></div>
     <div class="mecard">${meAv(72)}<div style="min-width:0"><b>${esc(S.me.name||'あなた')}</b><span>${esc(S.me.univ)} ${esc(S.me.fac)}</span></div></div>`
-    + sec('prof', `${ic('edit')} プロフィール`, `
+    + sec('prof', `${ic('edit')} プロフィールを編集`, `
     <label class="f" style="margin-top:0" for="mName">名前</label><input class="tx" id="mName" value="${esc(S.me.name)}" maxlength="16">
     <label class="f" for="mUniv">大学</label><input class="tx" id="mUniv" value="${esc(S.me.univ)}" list="univs" maxlength="20"><datalist id="univs">${UNIVS.map(x => `<option value="${x}">`).join('')}</datalist>
     <label class="f" for="mFac">学部</label><input class="tx" id="mFac" value="${esc(S.me.fac)}" list="facs" maxlength="16"><datalist id="facs">${FACULTIES.map(x => `<option value="${x}">`).join('')}</datalist>
     <label class="f">アイコン</label>
-    <div class="phrow" style="margin-top:0;margin-bottom:10px"><button data-act="avpick" aria-label="写真を選ぶ">${ic('camera')}</button>${S.me.photo ? `<button data-act="avdel" aria-label="写真をやめる">${ic('trash')}</button>` : ''}</div>
+    <div class="phrow" style="margin-top:0;margin-bottom:10px"><button data-act="avpick" aria-label="写真を選ぶ">${ic('camera')}</button>${S.me.photo ? `<button data-act="avdel" aria-label="写真を削除">${ic('trash')}</button>` : ''}</div>
     <div class="emoji-pick">${ME_EMOJI.map(e => `<button data-act="memo" data-v="${e}" class="${e===S.me.emoji&&!S.me.photo?'on':''}">${e}</button>`).join('')}</div>
     <div class="colors" style="margin-top:12px">${BGS.map((b,i) => `<button data-act="mbg" data-v="${i}" class="${i===S.me.bg?'on':''}" style="background:${b}" aria-label="背景${i+1}"></button>`).join('')}</div>`)
     + sec('time', `${ic('clock')} 授業の時間`, `
@@ -1278,7 +1278,7 @@ function renderMe(resetScroll){
       <div style="display:flex;gap:10px;margin-top:10px">
         <select class="tx" id="dDay" ${dm.on?'':'disabled'}>${DAYS.map((x,i) => `<option value="${i}" ${i===dm.day?'selected':''}>${x}曜</option>`).join('')}</select>
         <input class="tx" type="time" id="dTime" value="${String(Math.floor(dm.min/60)).padStart(2,'0')}:${String(dm.min%60).padStart(2,'0')}" ${dm.on?'':'disabled'}></div>`)
-    + sec('about', `${SMILE_T} について`, `<p class="note" style="margin:0">・${ic('smile')}(来た)は本人の自己申告です。大学の正式な出席記録ではありません。<br>・押していないことは欠席を意味しません。<br>・写真は任意です。人の顔や授業の資料は写さず、授業中に撮るときは先生のルールに従ってください。<br>・データはこの端末に保存されます(プロトタイプ)。</p>`)
+    + sec('about', `${SMILE_T} について`, `<p class="note" style="margin:0">・${ic('smile')}(来た)は本人の自己申告です。大学の正式な出席記録ではありません。<br>・押していなくても欠席とは限りません。<br>・写真は任意です。人の顔や授業の資料は写さず、授業中に撮るときは先生のルールに従ってください。<br>・データはこの端末に保存されます(プロトタイプ)。</p>`)
     + `
     <button class="btn danger" data-act="reset">データをリセット</button>`;
   paintScreen(h, resetScroll); bindSecs();
@@ -1290,7 +1290,7 @@ function renderMe(resetScroll){
   PER().slice(0, myRows()).forEach((_, i) => ['S','E'].forEach(k => { const el = $(`p${k}${i}`); el.onchange = () => {
     const P = PER().map(x => [...x]); const v = el.value.replace(/^0(\d)/, '$1'); if(!v) return;
     P[i][k==='S'?0:1] = v;
-    if(toMin(P[i][0]) >= toMin(P[i][1])){ toast('終わりは始まりより後にしてね'); renderMe(false); return; }
+    if(toMin(P[i][0]) >= toMin(P[i][1])){ toast('終了は開始より後にしてね'); renderMe(false); return; }
     S.settings.periods = P; if(!save()) return; buildFriends(); render(); renderMe(false); }; }));
   bind('dTime', v => { if(!v) return; S.settings.demo.min = toMin(v); applyTime(); });
 }
@@ -1307,19 +1307,19 @@ function renderOnb(){
     const inv = fById('f1');
     el.innerHTML = `${steps}<div class="logo" style="margin-top:34px">KOMALOG</div>
       <h1>ただの時間割。<br>なのに、<br>友だちの気配がする。</h1>
-      <p class="lead">開くと、友だちがきょうどの授業に来ているか分かる。教室に着いたら<span class="nb">${SMILE_T}を押すだけ。</span></p>
+      <p class="lead">開くと、きょう友だちがどの授業に来ているか分かる。教室に着いたら<span class="nb">${SMILE_T}を押すだけ。</span></p>
       <div style="text-align:center;margin-top:22px">${STAR(116)}</div>
-      <div class="inv">${avatar(inv.emoji,inv.bg,44)}<div>${inv.name} から招待が届いています<div class="note" style="margin:2px 0 0">承認した友だちとだけつながります</div></div></div>
-      <div style="margin-top:auto;padding-top:26px"><button class="btn pk" data-act="onb-accept">${inv.name} の招待を承認してはじめる</button>
+      <div class="inv">${avatar(inv.emoji,inv.bg,44)}<div>${inv.name}から招待が届いています<div class="note" style="margin:2px 0 0">承認した友だちとだけつながります</div></div></div>
+      <div style="margin-top:auto;padding-top:26px"><button class="btn pk" data-act="onb-accept">承認してはじめる</button>
       <button class="btn ghost" data-act="onb-demo" style="margin-top:10px">デモの時間割で見てみる</button>
       <p class="note" style="text-align:center">デモでは友だち4人とつながった状態で始まります</p></div>`;
   } else if(s===1){
     el.innerHTML = `${steps}<h1>プロフィール</h1><p class="lead">友だちに表示されます。</p>
-      <label class="f" for="oName">名前</label><input class="tx" id="oName" maxlength="16" placeholder="例:たろう" value="${esc(S.me.name)}">
-      <label class="f" for="oUniv">大学</label><input class="tx" id="oUniv" list="univs" maxlength="20" placeholder="例:中央大学" value="${esc(S.me.univ)}"><datalist id="univs">${UNIVS.map(x => `<option value="${x}">`).join('')}</datalist>
-      <label class="f" for="oFac">学部</label><input class="tx" id="oFac" list="ofacs" maxlength="16" placeholder="例:文学部" value="${esc(S.me.fac)}"><datalist id="ofacs">${FACULTIES.map(x => `<option value="${x}">`).join('')}</datalist>
+      <label class="f" for="oName">名前</label><input class="tx" id="oName" maxlength="16" placeholder="例：たろう" value="${esc(S.me.name)}">
+      <label class="f" for="oUniv">大学</label><input class="tx" id="oUniv" list="univs" maxlength="20" placeholder="例：中央大学" value="${esc(S.me.univ)}"><datalist id="univs">${UNIVS.map(x => `<option value="${x}">`).join('')}</datalist>
+      <label class="f" for="oFac">学部</label><input class="tx" id="oFac" list="ofacs" maxlength="16" placeholder="例：文学部" value="${esc(S.me.fac)}"><datalist id="ofacs">${FACULTIES.map(x => `<option value="${x}">`).join('')}</datalist>
       <label class="f">アイコン</label>
-      <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">${meAv(52)}<button class="lnk" style="margin:0" data-act="avpick">${ic('camera')} 自分の写真を選ぶ</button></div>
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">${meAv(52)}<button class="lnk" style="margin:0" data-act="avpick">${ic('camera')} 写真を選ぶ</button></div>
       <div class="emoji-pick">${ME_EMOJI.map(e => `<button data-act="onb-emo" data-v="${e}" class="${e===S.me.emoji?'on':''}">${e}</button>`).join('')}</div>
       <div style="margin-top:auto;padding-top:26px"><button class="btn pk" data-act="onb-next">次へ</button><button class="btn quiet" data-act="onb-back">戻る</button></div>`;
     const n = document.getElementById('oName'), f = document.getElementById('oFac');
@@ -1358,7 +1358,7 @@ function finishOnb(demo){
   S.onboarded = true; save();
   document.getElementById('onb').hidden = true; $('app').inert = false; $('nav').inert = false;
   tab = 'today'; applyTime(); scrollToNow();
-  if(!demo) toastH(glyph(S.classes.some(c => c.day===dayIdx()) ? '準備OK。教室に着いたら ☺︎' : S.classes.length ? '準備OK。授業の日に ☺︎ が出ます' : '授業は ＋ からいつでも追加できます'));
+  if(!demo) toastH(glyph(S.classes.some(c => c.day===dayIdx()) ? '準備OK。教室に着いたら ☺︎' : S.classes.length ? '準備OK。授業の日に ☺︎ が出ます' : '授業は＋からいつでも追加できます'));
 }
 
 /* ============================================================
@@ -1470,7 +1470,7 @@ const ACT = {
   here: v => {
     const [cid, date] = v.split('|'); const c = S.classes.find(x => x.id===cid); if(!c) return;
     if(recOf(cid, date)){ if(!CS) openClass(cid, date); return; }
-    if(!canRecord(date, c)){ toast(phaseOf(date,c)==='future' ? `${fmtMin(win(c).s-10)} から押せます` : '今週より前は記録できません'); return; }
+    if(!canRecord(date, c)){ toast(phaseOf(date,c)==='future' ? `${fmtMin(win(c).s-10)}から押せます` : '今週より前は記録できません'); return; }
     const r = checkIn(cid, date); if(!r) return;
     if(CS) renderClass();
     render();
@@ -1493,7 +1493,7 @@ const ACT = {
     if(!recOf(CS.cid, CS.date) && !CS.draft.kind) return;
     const c = S.classes.find(x => x.id===CS.cid); if(!c) return;
     const d = CS.draft, existed = recOf(CS.cid, CS.date);
-    if(!existed){ const nr = checkIn(CS.cid, CS.date, d.photo || undefined, d.kind); if(!nr) return; if(nr.dropped){ delete nr.dropped; d.photo = null; toast('写真は容量がいっぱいでのせられませんでした'); } }
+    if(!existed){ const nr = checkIn(CS.cid, CS.date, d.photo || undefined, d.kind); if(!nr) return; if(nr.dropped){ delete nr.dropped; d.photo = null; toast('容量がいっぱいで、写真はのせられませんでした'); } }
     const r = recOf(CS.cid, CS.date), cc = S.classes.find(x => x.id===CS.cid);
     r.comment = d.comment.trim(); r.aud = CS.aud; cc.aud = CS.aud; if(existed) r.photo = d.photo;
     if(!save()){ renderClass(); return; }
@@ -1503,9 +1503,9 @@ const ACT = {
   audset: v => { const [cid, date, a] = v.split('|'); const r = recOf(cid, date), c = S.classes.find(x => x.id===cid); if(!r || !c) return;
     r.aud = a; c.aud = a; if(!save()) return; if(AP && AP.back) openClass(cid, date); else closeSheet(); render(); toastH(`${audIcon(a)} ${esc(audName(a))}`); },
   got: v => { const c = S.classes.find(x => x.id===v); if(!c) return; c.got = !c.got; if(!c.got) c.shareGot = false;
-    const ok = save(); refreshSem(v); if(ok && c.got) toastH(`${ic('celebrate')} 単位GET！(自分だけに表示)`); },
+    const ok = save(); refreshSem(v); if(ok && c.got) toastH(`${ic('celebrate')} 単位GET！`); },
   share: v => { const c = S.classes.find(x => x.id===v); if(!c || !c.got) return; c.shareGot = !c.shareGot;
-    const ok = save(); refreshSem(v); if(ok) toast(c.shareGot ? '友だちに見せています' : '自分だけに戻しました'); },
+    const ok = save(); refreshSem(v); if(ok) toast(c.shareGot ? '友だちに公開しました' : '自分だけに戻しました'); },
   edit: v => openEdit(v),
   friend: v => openFriend(v),
   fpost: v => openFriendPost(v),
@@ -1519,41 +1519,41 @@ const ACT = {
     if(S.classes.some(m => key(m)===v)){ toastH(`${ic('sameclass')} あなたも受けている授業です`); return; }
     const clash = S.classes.find(m => m.day===+d && m.period===+p);
     if(clash){ toast(`${DAYS[+d]}${p}限は「${clash.name}」が入っています`); return; }
-    if(await ask(`「%s」(${DAYS[+d]}${p}限)を自分の時間割にも追加しますか？`, '追加する', '', name) && addFromKey(v)) openFriend(FSID);
+    if(await ask(`「%s」(${DAYS[+d]}${p}限)を自分の時間割にも追加しますか？`, '追加', '', name) && addFromKey(v)) openFriend(FSID);
   },
   add: v => { if(v==='today') openAdd(dayIdx(), null); else if(v){ const [d,p] = v.split('-').map(Number); openAdd(d, p); } else openAdd(null, null); },
   amode: v => { ADD.mode = v; renderAdd(); },
   addk: v => { if(!addFromKey(v)) return; if(ADD && ADD.p!=null) closeSheet(); else renderAdd(); },
   ecol: (v, el) => { editColor = v; document.querySelectorAll('#eCol button').forEach(b => b.classList.toggle('on', b===el)); },
   esave: v => saveClass(v),
-  edel: async v => { const c = S.classes.find(x => x.id===v); if(!c || !await ask('「%s」を削除しますか？ この授業の ☺︎ と写真も消えます。', '削除する', '', c.name)) return;
+  edel: async v => { const c = S.classes.find(x => x.id===v); if(!c || !await ask('「%s」を削除しますか？\nこの授業の ☺︎ と写真も消えます。', '削除', '', c.name)) return;
     S.classes = S.classes.filter(x => x.id!==v); S.recs = S.recs.filter(r => r.classId!==v); save(); closeSheet(); render(); },
   sclose: () => closeSheet(),
   close: () => closeScreen(),
   talk: v => { closeSheet(); openTalk(v); },
   friends: () => { closeSheet(); renderFriends(true); },
   me: () => { closeSheet(); renderMe(true); },
-  approve: v => { S.friendState[v] = 'friend'; if(!save()){ renderFriends(false); return; } renderFriends(false); render(); toast(`${fById(v).name} とつながりました`); },
+  approve: v => { S.friendState[v] = 'friend'; if(!save()){ renderFriends(false); return; } renderFriends(false); render(); toast(`${fById(v).name}とつながりました`); },
   decline: v => { S.friendState[v] = 'later'; save(); renderFriends(false); render(); },
-  unfriend: async v => { const f = fById(v); if(!f || !await ask('%s と友だちをやめますか？', 'やめる', '', f.name)) return;
+  unfriend: async v => { const f = fById(v); if(!f || !await ask('%sとのつながりを解除しますか？', '解除', '', f.name)) return;
     S.friendState[v] = 'none'; S.groups.forEach(g => { g.members = g.members.filter(x => x!==v); });
     grpDraft.members = grpDraft.members.filter(x => x!==v);
-    save(); closeSheet(); render(); if($('scr').classList.contains('open') && $('audSel')) renderFriends(false); toast(`${f.name} とのつながりを解除しました`); },
+    save(); closeSheet(); render(); if($('scr').classList.contains('open') && $('audSel')) renderFriends(false); toast(`${f.name}とのつながりを解除しました`); },
   invite: async () => {
-    const text = `KOMALOGで時間割つなごう。ID: @${S.me.handle}`;
+    const text = `KOMALOGで時間割をシェアしよう。ID: @${S.me.handle}`;
     if(navigator.share){ try{ await navigator.share({text}); return; }catch(e){ if(e && e.name==='AbortError') return; } }
     try{ await navigator.clipboard.writeText(text); toast('招待メッセージをコピーしました'); }catch(e){ toast(text); }
   },
   addfr: () => { const v = $('addId').value.trim().replace(/^@/, ''); if(!v){ toast('IDを入れてね'); return; }
-    if(!S.sentReq.includes(v)) S.sentReq.push(v); if(!save()){ renderFriends(false); return; } renderFriends(false); toast('申請しました。承認されると時間割が見えます'); },
+    if(!S.sentReq.includes(v)) S.sentReq.push(v); if(!save()){ renderFriends(false); return; } renderFriends(false); toast('申請しました'); },
   gmem: v => { const i = grpDraft.members.indexOf(v); if(i>=0) grpDraft.members.splice(i,1); else grpDraft.members.push(v); renderFriends(false); },
   gadd: () => { const name = grpDraft.name.trim(); if(!name){ toast('グループ名を入れてね'); return; }
-    if(audOptions().some(o => o[1]===name)){ toast('同じ名前があります'); return; }
+    if(audOptions().some(o => o[1]===name)){ toast('同じ名前は使えません'); return; }
     S.groups.push({id:uid(), name, members:grpDraft.members.filter(id => S.friendState[id]==='friend')});
     if(!save()){ renderFriends(false); return; }
     grpDraft = {name:'', members:[]}; renderFriends(false); toast('グループを作りました'); },
   gdel: async v => { const g = S.groups.find(x => x.id===v);
-    if(!g || !await ask('「%s」を削除しますか？\nこのグループに見せていた ☺︎ と写真は「me」になります。', '削除する', '', g.name)) return;
+    if(!g || !await ask('「%s」を削除しますか？\nこのグループに見せていた ☺︎ と写真は「me」になります。', '削除', '', g.name)) return;
     const a = 'g:'+v, wasDefault = S.settings.aud===a;
     S.groups = S.groups.filter(x => x.id!==v);
     if(wasDefault) S.settings.aud = 'private'; // 見える範囲を勝手に広げない
@@ -1561,14 +1561,14 @@ const ACT = {
     S.classes.forEach(c => { if(c.aud===a) c.aud = 'private'; });
     if(!save()){ renderFriends(false); return; }
     renderFriends(false);
-    toastH(glyph(wasDefault ? '削除しました。公開範囲も「me」になりました' : '削除しました。このグループに見せていた ☺︎ と写真は「me」になりました')); },
+    toastH(glyph(wasDefault ? '削除しました。公開範囲も「me」になりました' : '削除しました')); },
   memo: v => { S.me.emoji = v; S.me.photo = null; save(); renderMe(false); render(); },
   avpick: () => $('avIn').click(),
   avdel: () => { S.me.photo = null; save(); renderMe(false); render(); },
   mbg: v => { S.me.bg = +v; save(); renderMe(false); render(); },
   preset: v => { S.settings.preset = +v; S.settings.periods = null; save(); buildFriends(); renderMe(false); render(); },
   demo: v => { S.settings.demo.on = v==='1'; save(); applyTime(); renderMe(false); },
-  reset: async () => { if(!await ask('時間割・☺︎・写真・設定をすべて消して、最初からにしますか？', 'リセット')) return; try{ localStorage.removeItem(KEY); }catch(e){} location.reload(); },
+  reset: async () => { if(!await ask('時間割・☺︎・写真・設定をすべてリセットしますか？', 'リセット')) return; try{ localStorage.removeItem(KEY); }catch(e){} location.reload(); },
   'onb-accept': () => { S.friendState.f1 = 'friend'; if(!S.me.univ) S.me.univ = fById('f1').univ; ONB.step = 1; renderOnb(); $('onb').scrollTop = 0; },
   'onb-next': () => { ONB.step++; renderOnb(); $('onb').scrollTop = 0; },
   'onb-back': () => { ONB.step = Math.max(0, ONB.step-1); if(ONB.step===0) S.friendState.f1 = 'request'; renderOnb(); },
