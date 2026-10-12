@@ -422,7 +422,7 @@
 'use strict';
 /* ============================================================
    KOMALOG — ただの時間割なのに、友だちの気配がする。
-   できること: 時間割 / 着いたら☺︎(来た) / マスに写真を一枚 / 学期末の単位GET印 / 見える人を選ぶ
+   できること: 時間割 / 着いたら☺︎(いる) / マスに写真を一枚 / 学期末の単位GET印 / 見える人を選ぶ
    ============================================================ */
 
 /* ---------- 定数 ---------- */
@@ -603,7 +603,9 @@ const isSkip = r => !!r && r.kind==='skip';
 const isOff = r => !!r && r.kind==='off'; // 休講
 const isAway = r => isSkip(r) || isOff(r); // 出席しない(飛ぶ・休講)
 const awayIc = r => ic(isOff(r) ? 'off' : 'skip');
-const kindIc = r => isAway(r) ? ic(isOff(r) ? 'off' : 'skip', '', isOff(r) ? '休講' : '飛ぶ') : ic('smile', '', '来た');
+// ☺︎ は「いる」(状態)。授業が終わったら「いた」
+const hereW = (date, c) => phaseOf(date, c)==='past' ? 'いた' : 'いる';
+const kindIc = (r, c) => isAway(r) ? ic(isOff(r) ? 'off' : 'skip', '', isOff(r) ? '休講' : '飛ぶ') : ic('smile', '', c ? hereW(r.date, c) : 'いる');
 // 飛ぶ・休講は、今週なら授業の前からでも選べる
 const canAway = date => date >= weekDates(0)[0] && date <= weekDates(0)[4];
 const fHere = (f, c, date) => { const r = fRec(f, c, date); return r && !isAway(r) ? r : null; };
@@ -641,7 +643,7 @@ const audFor = (c, date) => (CS && CS.cid===c.id && CS.date===date) ? CS.aud : (
 document.body.insertAdjacentHTML('afterbegin', `<svg class="isprite" aria-hidden="true" focusable="false"><defs>${Object.entries(ICONS).map(([k, v]) => `<symbol id="i-${k}" viewBox="0 0 24 24">${v}</symbol>`).join('')}</defs></svg>`);
 // alt は読み上げ用(画面には出ない)。意味を持つアイコンにだけ付ける
 const ic = (id, cls='', alt='') => `<svg class="ico${cls ? ' '+cls : ''}" aria-hidden="true" focusable="false"><use href="#i-${id}" width="100%" height="100%"/></svg>${alt ? `<span class="vh">${alt}</span>` : ''}`;
-const SMILE_T = ic('smile', '', '「来た」');
+const SMILE_T = ic('smile', '', '☺︎');
 // 文章の中の ☺︎ を、描いた ☺︎ に置きかえる(エスケープしてから)
 const glyph = t => esc(t).replace(/☺︎/g, SMILE_T);
 
@@ -694,8 +696,8 @@ function heroHTML(){
   let line;
   if(d<0) line = `${md(t)}・授業なし`;
   else if(!fr.length) line = `${md(t)}・${ic('clock')}${nowLabel()}`;
-  else line = `${md(t)}・${ic('clock')}${nowLabel()}<br>${ic('smile', '', '来た人:')}${inNow ? `${inNow}人が授業中` : came ? `きょう${came}人` : 'まだ0人'}`;
-  const strip = list.length ? `<div class="fstrip">${list.map(x => `<button class="fp" data-act="friend" data-v="${x.f.id}" aria-label="${x.f.name}${x.lc ? `、${x.lc.period}限 ${esc(x.lc.name)}に来た` : ''}">
+  else line = `${md(t)}・${ic('clock')}${nowLabel()}${inNow ? `<br>${ic('smile', '', '☺︎')}${inNow}人が授業中` : came ? `<br>${ic('smile', '', '☺︎')}きょう${came}人` : ''}`;
+  const strip = list.length ? `<div class="fstrip">${list.map(x => `<button class="fp" data-act="friend" data-v="${x.f.id}" aria-label="${x.f.name}${x.lc ? `、${x.lc.period}限 ${esc(x.lc.name)}に${hereW(t, x.lc)}` : ''}">
       <span class="ring ${x.lc?'ok':''}">${avatar(x.f.emoji,x.f.bg,46)}${x.lc ? `<i class="pb">${x.lc.period}限</i>` : ''}</span><b>${x.f.name}</b></button>`).join('')}</div>`
     : (!fr.length ? `<button class="lnk" data-act="friends">友だちとつながる</button>` : '');
   return `<div class="card hero"><div class="top"><div style="flex:1;min-width:0"><h2>${d<0 ? '週末' : `${DAYS[d]}曜日`}</h2><p>${line}</p></div>${STAR(86)}</div>${strip}</div>`;
@@ -706,7 +708,7 @@ function classRow(c, date, isNext){
   let who = '';
   if(came.length) who = `<div class="who"><span class="v">${ic('smile')}</span><span class="t">${names(came.map(x=>x.f))}</span></div>`;
   else if(fr.length) who = `<div class="who gray"><span class="v">${ic('sameclass')}</span><span class="t">${names(fr.map(x=>x.f))}</span></div>`;
-  const label = isOff(r) ? '休講' : isSkip(r) ? '飛ぶ' : r ? '来た(記録済み)' : can ? '「来た」を記録' : `${fmtMin(win(c).s-10)}から押せます`;
+  const label = isOff(r) ? '休講' : isSkip(r) ? '飛ぶ' : r ? hereW(date, c) : can ? 'いる' : `${fmtMin(win(c).s-10)}から押せます`;
   const sc = isAway(r) ? 'skip' : r ? 'done' : !can ? 'wait' : ph==='past' ? 'past' : '';
   return `<div class="row ${ph==='now'?'now':''} ${isNext?'next':''}" data-act="cls" data-v="${c.id}|${date}" role="button" tabindex="0" aria-label="${c.period}限 ${esc(c.name)}">
     ${thumbHTML(c, r, c.got)}
@@ -759,7 +761,7 @@ function gridHTML(classes, wd, owner){
       const came = isMe && isToday ? friendsIn(c).filter(x => fHere(x.f, x.fc, wd[d])).map(x => x.f) : [];
       const act = isMe ? `data-act="cls" data-v="${c.id}|${wd[d]}"` : `data-act="fpost" data-v="${owner.id}|${c.id}|${wd[d]}"`;
       h += `<button class="cell ${r&&(r.photo||r.ph)?'ph':''} ${isToday&&p===curP?'now':''}" style="${bg}" ${act}
-          aria-label="${DAYS[d]}${p}限、${esc(c.name)}${mk?(isOff(r)?'、休講':isSkip(r)?'、飛ぶ':'、来た'):''}${came.length?`、${names(came)}が来た`:''}${got?'、単位GET':''}${same?'、同じ授業':''}">
+          aria-label="${DAYS[d]}${p}限、${esc(c.name)}${mk?(isOff(r)?'、休講':isSkip(r)?'、飛ぶ':'、'+hereW(wd[d], c)):''}${came.length?`、${names(came)}が${hereW(wd[d], c)}`:''}${got?'、単位GET':''}${same?'、同じ授業':''}">
         <span>${esc(c.name)}</span><span class="rm">${esc(c.room||'')}</span>
         ${same ? `<span class="same">${ic('sameclass')}</span>` : ''}${mk ? (isAway(r) ? `<span class="mk aw" style="background:${isOff(r)?'#e8e8e8':'#fff3c4'}">${awayIc(r)}</span>` : `<span class="mk">${MK_SMILE}</span>`) : ''}${got ? '<span class="gt">GET</span>' : ''}${came.length ? `<span class="fr">${faces(came,14)}</span>` : ''}</button>`;
     }
@@ -863,7 +865,7 @@ function postCard({f, c, r}, clickable=true, bar=true){
     : `${meAv(38)}<span class="t"><b>あなた${r.aud==='private' ? ' '+ic('lock', '', '(me)') : ''}</b><span>${c.period}限 ${esc(c.name)}</span></span>`;
   // 投稿を押すと投稿(とコメント)、人を押すとその人の時間割
   const who = clickable ? `<button class="pwho" ${f ? `data-act="friend" data-v="${f.id}"` : `data-act="cls" data-v="${c.id}|${r.date}"`}>${whoInner}</button>` : `<span class="pwho">${whoInner}</span>`;
-  const mark = `${kindIc(r)} ${isAway(r) ? (ymd(new Date(r.ts - 4*36e5)) < r.date ? md(r.date) : hm(r.ts)) : r.late ? 'あとから' : hm(r.ts)}`;
+  const mark = `${kindIc(r, c)} ${isAway(r) ? (ymd(new Date(r.ts - 4*36e5)) < r.date ? md(r.date) : hm(r.ts)) : r.late ? 'あとから' : hm(r.ts)}`;
   const open = clickable ? `role="button" tabindex="0" data-act="cmts" data-v="${r.id}"` : '';
   return `<div class="post"><div class="phead" ${open}>${ph}<span class="pm">${who}<time>${mark}</time></span>${r.comment ? `<span class="cm">${esc(r.comment)}</span>` : ''}</div>${bar ? postBar(f, r) : ''}</div>`;
 }
@@ -927,7 +929,7 @@ function render(){
 }
 
 /* ============================================================
-   授業のシート(来た・写真・見える人・学期末の印)
+   授業のシート(いる・写真・見える人・学期末の印)
    ============================================================ */
 let CS = null; // 開いている授業シート {cid, date, aud}
 const newDraft = (c, date, r) => ({kind: r ? (r.kind || 'here') : canRecord(date, c) ? 'here' : null, comment: r && r.comment || '', photo: r && r.photo || null});
@@ -958,15 +960,15 @@ function paintClass(){
   let h = `<div style="display:flex;align-items:flex-start;gap:8px"><h3 style="flex:1;min-width:0">${esc(c.name)}</h3><button class="edb" data-act="edit" data-v="${c.id}" aria-label="授業を編集">${ic('edit')}</button></div><div class="sub">${md(date)}(${DAYS[c.day]}) ${c.period}限 ${timeText(c)}${c.room ? ` ・ ${ic('pin')}${esc(c.room)}` : ''}</div>`;
   // 会話は投稿へのリアクションとコメントに一本化(授業ごとのトークは外した)
   if(fr.length) h += `<div class="fline">${fr.map(({f,fc}) => { const x = isToday && fHere(f, fc, date);
-    return `<button class="fchip ${x?'ok':''}" data-act="friend" data-v="${f.id}">${avatar(f.emoji,f.bg,28)}${f.name}${x ? ' <small>来た</small>' : ''}</button>`; }).join('')}</div>`;
+    return `<button class="fchip ${x?'ok':''}" data-act="friend" data-v="${f.id}">${avatar(f.emoji,f.bg,28)}${f.name}${x ? ` <small>${hereW(date, fc)}</small>` : ''}</button>`; }).join('')}</div>`;
   const canSk = canAway(date), d = CS.draft;
   if(isAway(r)) h += `<div class="herest"><span class="smile skip">${awayIc(r)}</span>${isOff(r) ? '休講' : '飛ぶ'} <small>${hm(r.ts)}</small>${recBtns(r)}</div>`;
-  else if(r) h += `<div class="herest"><span class="smile done">${SMILE}</span>来た <small>${r.late ? 'あとから' : hm(r.ts)}</small>${recBtns(r)}</div>`;
+  else if(r) h += `<div class="herest"><span class="smile done">${SMILE}</span>${hereW(date, c)} <small>${r.late ? 'あとから' : hm(r.ts)}</small>${recBtns(r)}</div>`;
   if(r || can || canSk){
     // 投稿する枠(ひとつのカードにまとめる)
     h += `<div class="composer">`;
     if(!r) h += `<div class="cmp-top">${meAv(36)}<div class="seg">
-        <button data-act="dkind" data-v="here" class="${d.kind==='here'?'on':''}" ${can?'':'disabled'}>${ic('smile')}来た${can ? '' : ` <small>${fmtMin(win(c).s-10)}〜</small>`}</button>
+        <button data-act="dkind" data-v="here" class="${d.kind==='here'?'on':''}" ${can?'':'disabled'}>${ic('smile')}いる${can ? '' : ` <small>${fmtMin(win(c).s-10)}〜</small>`}</button>
         <button data-act="dkind" data-v="skip" class="${d.kind==='skip'?'on':''}" ${canSk?'':'disabled'}>${ic('skip')}飛ぶ</button>
         <button data-act="dkind" data-v="off" class="${d.kind==='off'?'on':''}" ${canSk?'':'disabled'}>${ic('off')}休講</button></div></div>`;
     h += `<input class="cmp-in" id="cmIn" maxlength="60" autocomplete="off" aria-label="ひとこと" value="${esc(d.comment)}">`;
@@ -1005,7 +1007,7 @@ function refreshSem(cid){
   if(c && box) keepFocus(() => { box.innerHTML = semHTML(c); });
   render();
 }
-// ☺︎(来た)を記録。photo を渡すと写真も付ける。容量不足で写真が入らないときは「来た」だけ残す
+// ☺︎(いる)を残す。photo を渡すと写真も付ける。容量不足で写真が入らないときは ☺︎ だけ残す
 function checkIn(cid, date, photo, kind){
   const c0 = S.classes.find(x => x.id===cid); if(!c0) return null;
   const existed = !!recOf(cid, date);
@@ -1094,7 +1096,7 @@ function friendSheetHTML(f){
     h += `<div class="f">きょう</div><div class="card" style="padding:4px 16px">` + (today.length ? today.map(c => {
       const r = fRec(f, c, t), ph = phaseOf(t, c);
       return `<div class="li">${thumbHTML(c, r, c.shareGot)}<div class="t"><span>${c.period}限 ${timeText(c)}</span><b>${esc(c.name)}</b></div>
-        <span class="st ${r&&!isAway(r)?'ok':''}">${isAway(r) ? kindIc(r) : r ? `${ic('smile')} 来た` : ph==='future' ? ic('pending', '', 'これから') : ''}</span></div>`; }).join('')
+        <span class="st ${r&&!isAway(r)?'ok':''}">${isAway(r) ? kindIc(r, c) : r ? `${ic('smile')} ${ph==='past' ? 'いた' : 'いる'}` : ph==='future' ? ic('pending', '', 'これから') : ''}</span></div>`; }).join('')
       : '<div class="empty" style="padding:16px">きょうは授業なし</div>') + '</div>';
   }
   h += `<div class="f">時間割</div><div class="card ttc">${gridHTML(f.classes, weekDates(0), f)}</div>
@@ -1278,7 +1280,7 @@ function renderMe(resetScroll){
       <div style="display:flex;gap:10px;margin-top:10px">
         <select class="tx" id="dDay" ${dm.on?'':'disabled'}>${DAYS.map((x,i) => `<option value="${i}" ${i===dm.day?'selected':''}>${x}曜</option>`).join('')}</select>
         <input class="tx" type="time" id="dTime" value="${String(Math.floor(dm.min/60)).padStart(2,'0')}:${String(dm.min%60).padStart(2,'0')}" ${dm.on?'':'disabled'}></div>`)
-    + sec('about', `${SMILE_T} について`, `<p class="note" style="margin:0">・${ic('smile')}(来た)は本人の自己申告です。大学の正式な出席記録ではありません。<br>・押していなくても欠席とは限りません。<br>・写真は任意です。人の顔や授業の資料は写さず、授業中に撮るときは先生のルールに従ってください。<br>・データはこの端末に保存されます(プロトタイプ)。</p>`)
+    + sec('about', `${SMILE_T} について`, `<p class="note" style="margin:0">・${ic('smile', '', '☺︎')}は本人の自己申告です。大学の正式な出席記録ではありません。<br>・押していなくても欠席とは限りません。<br>・写真は任意です。人の顔や授業の資料は写さず、授業中に撮るときは先生のルールに従ってください。<br>・データはこの端末に保存されます(プロトタイプ)。</p>`)
     + `
     <button class="btn danger" data-act="reset">データをリセット</button>`;
   paintScreen(h, resetScroll); bindSecs();
@@ -1307,7 +1309,7 @@ function renderOnb(){
     const inv = fById('f1');
     el.innerHTML = `${steps}<div class="logo" style="margin-top:34px">KOMALOG</div>
       <h1>ただの時間割。<br>なのに、<br>友だちの気配がする。</h1>
-      <p class="lead">開くと、きょう友だちがどの授業に来ているか分かる。教室に着いたら<span class="nb">${SMILE_T}を押すだけ。</span></p>
+      <p class="lead">開くと、きょう友だちがどの授業にいるか分かる。教室に着いたら<span class="nb">${SMILE_T}を押すだけ。</span></p>
       <div style="text-align:center;margin-top:22px">${STAR(116)}</div>
       <div class="inv">${avatar(inv.emoji,inv.bg,44)}<div>${inv.name}から招待が届いています<div class="note" style="margin:2px 0 0">承認した友だちとだけつながります</div></div></div>
       <div style="margin-top:auto;padding-top:26px"><button class="btn pk" data-act="onb-accept">承認してはじめる</button>
@@ -1470,12 +1472,12 @@ const ACT = {
   here: v => {
     const [cid, date] = v.split('|'); const c = S.classes.find(x => x.id===cid); if(!c) return;
     if(recOf(cid, date)){ if(!CS) openClass(cid, date); return; }
-    if(!canRecord(date, c)){ toast(phaseOf(date,c)==='future' ? `${fmtMin(win(c).s-10)}から押せます` : '今週より前は記録できません'); return; }
+    if(!canRecord(date, c)){ toast(phaseOf(date,c)==='future' ? `${fmtMin(win(c).s-10)}から押せます` : '今週より前は押せません'); return; }
     const r = checkIn(cid, date); if(!r) return;
     if(CS) renderClass();
     render();
     const b = [...document.querySelectorAll('#app .smile')].find(x => x.dataset.v===v); if(b) b.classList.add('pop');
-    actToast(`${ic('smile', '', '来た')} ✓  ${audIcon(r.aud)}<span class="vh">公開範囲:</span> ${esc(audName(r.aud))}`, 'audpick', `${cid}|${date}`);
+    actToast(`${ic('smile', '', hereW(date, c))} ✓  ${audIcon(r.aud)}<span class="vh">公開範囲:</span> ${esc(audName(r.aud))}`, 'audpick', `${cid}|${date}`);
   },
   skip: v => { const [cid, date] = v.split('|'); const r = checkIn(cid, date, undefined, 'skip'); if(!r) return;
     renderClass(); render(); toast(`🏃 飛んだ ・ ${audName(r.aud)}に見える`); const cm = $('cmIn'); if(cm) cm.focus(); },
@@ -1498,7 +1500,7 @@ const ACT = {
     r.comment = d.comment.trim(); r.aud = CS.aud; cc.aud = CS.aud; if(existed) r.photo = d.photo;
     if(!save()){ renderClass(); return; }
     closeSheet(); render();
-    actToast(`${kindIc(r)} ✓  ${audIcon(r.aud)}<span class="vh">公開範囲:</span> ${esc(audName(r.aud))}`, 'audpick', `${r.classId}|${r.date}`); },
+    actToast(`${kindIc(r, cc)} ✓  ${audIcon(r.aud)}<span class="vh">公開範囲:</span> ${esc(audName(r.aud))}`, 'audpick', `${r.classId}|${r.date}`); },
   audpick: v => { $('toast').classList.remove('on'); openAudPick(v); },
   audset: v => { const [cid, date, a] = v.split('|'); const r = recOf(cid, date), c = S.classes.find(x => x.id===cid); if(!r || !c) return;
     r.aud = a; c.aud = a; if(!save()) return; if(AP && AP.back) openClass(cid, date); else closeSheet(); render(); toastH(`${audIcon(a)} ${esc(audName(a))}`); },
@@ -1602,7 +1604,7 @@ document.addEventListener('contextmenu', e => { if(e.target.closest('#app [data-
 function longPress(v){
   const [cid, date] = v.split('|'); const c = S.classes.find(x => x.id===cid); if(!c) return;
   if(navigator.vibrate) try{ navigator.vibrate(15); }catch(e){}
-  if(recOf(cid, date)){ toast('もう記録してあります'); return; }
+  if(recOf(cid, date)){ toast('もう押してあります'); return; }
   ACT.here(v);
 }
 document.addEventListener('keydown', e => {
