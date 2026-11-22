@@ -7,13 +7,17 @@ import {
 } from '../importExport/csvImport';
 import { bulkPutWords, getAllWords } from '../db/repositories';
 import { useUiStore } from '../stores/uiStore';
+import { useBookStore } from '../stores/bookStore';
 
 interface Props {
   onImported?: (count: number) => void;
 }
 
 export function CsvImportPanel({ onImported }: Props) {
+  const activeBookId = useBookStore((s) => s.activeBookId);
+  const bookName = useBookStore((s) => s.books.find((book) => book.id === s.activeBookId)?.name ?? '選択中の単語帳');
   const fileRef = useRef<HTMLInputElement>(null);
+  const [importBookId, setImportBookId] = useState<string | null>(null);
   const [parseResult, setParseResult] = useState<CsvParseResult | null>(null);
   const [conflictCount, setConflictCount] = useState(0);
   const [policy, setPolicy] = useState<ConflictPolicy>('overwrite');
@@ -22,13 +26,17 @@ export function CsvImportPanel({ onImported }: Props) {
   const showToast = useUiStore((s) => s.showToast);
 
   const handleFile = async (file: File) => {
+    const destinationId = activeBookId;
+    setParseResult(null);
+    setImportBookId(destinationId);
+    setConflictCount(0);
     setBusy(true);
     try {
       const text = await file.text();
       const result = parseCsvText(text);
       setParseResult(result);
       if (!result.columnError) {
-        const existing = await getAllWords();
+        const existing = await getAllWords(destinationId);
         const existingNumbers = new Set(existing.map((w) => w.number));
         setConflictCount(result.rows.filter((r) => existingNumbers.has(r.number)).length);
       }
@@ -40,7 +48,7 @@ export function CsvImportPanel({ onImported }: Props) {
   };
 
   const doImport = async () => {
-    if (!parseResult || parseResult.columnError) return;
+    if (!parseResult || parseResult.columnError || importBookId !== activeBookId) return;
     if (parseResult.errors.length > 0 && !importValidOnly) {
       showToast('エラー行があります。正常行のみ取り込むか、CSVを修正してください。', 'error');
       return;
@@ -51,9 +59,9 @@ export function CsvImportPanel({ onImported }: Props) {
     }
     setBusy(true);
     try {
-      const existing = await getAllWords();
-      const plan = buildImportPlan(parseResult.rows, existing, policy, policy === 'add_new');
-      await bulkPutWords([...plan.toCreate, ...plan.toUpdate]);
+      const existing = await getAllWords(importBookId);
+      const plan = buildImportPlan(parseResult.rows, existing, policy, policy === 'add_new', importBookId);
+      await bulkPutWords([...plan.toCreate, ...plan.toUpdate], importBookId);
       const count = plan.toCreate.length + plan.toUpdate.length;
       showToast(
         `${count}語を取り込みました（新規${plan.toCreate.length}・更新${plan.toUpdate.length}・スキップ${plan.skipped.length}）`,
@@ -71,6 +79,7 @@ export function CsvImportPanel({ onImported }: Props) {
 
   return (
     <div className="csv-import">
+      <p className="hint">取り込み先: <strong>{bookName}</strong>。ほかの単語帳には追加・上書きされません。</p>
       <input
         ref={fileRef}
         type="file"
@@ -101,7 +110,7 @@ export function CsvImportPanel({ onImported }: Props) {
               )}
               {conflictCount > 0 && (
                 <div className="csv-conflict">
-                  <p>既存の番号と一致する行が {conflictCount} 件あります。処理方法:</p>
+                  <p>この単語帳の既存の番号と一致する行が {conflictCount} 件あります。処理方法:</p>
                   <label>
                     <input
                       type="radio"
@@ -182,6 +191,7 @@ export function CsvImportPanel({ onImported }: Props) {
                 onClick={() => void doImport()}
                 disabled={
                   busy ||
+                  importBookId !== activeBookId ||
                   parseResult.rows.length === 0 ||
                   (parseResult.errors.length > 0 && !importValidOnly)
                 }

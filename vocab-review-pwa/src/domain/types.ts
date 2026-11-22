@@ -14,8 +14,19 @@ export type AttemptPhase =
 /** カード上でユーザーが選ぶ自己判定 */
 export type Judgment = 'correct' | 'ambiguous' | 'wrong' | 'dont_know';
 
+export const DEFAULT_BOOK_ID = 'default';
+
+export interface Book {
+  id: string;
+  name: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Word {
   id: string;
+  /** 旧データで未指定の場合は既定の単語帳に属する。 */
+  bookId?: string;
   number: number;
   word: string;
   meaning: string;
@@ -66,6 +77,7 @@ export type SessionMode = 'daily' | 'diagnosis' | 'custom';
 
 export interface StudySession {
   id: string;
+  bookId?: string;
   localStudyDate: string;
   mode: SessionMode;
   /** custom セッションの内訳（追加学習・発音確認） */

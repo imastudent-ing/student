@@ -18,8 +18,10 @@ export function SessionSummaryPage() {
 
   useEffect(() => {
     if (!sessionId) return;
+    let cancelled = false;
     void (async () => {
       const s = await getSession(sessionId);
+      if (cancelled) return;
       if (!s) {
         navigate('/', { replace: true });
         return;
@@ -28,9 +30,11 @@ export function SessionSummaryPage() {
       const targetIds = s.summary.retestTargetWordIds;
       if (targetIds.length > 0) {
         const words = await db.words.bulkGet(targetIds);
+        if (cancelled) return;
         setWrongWords(words.filter((w): w is Word => w !== undefined));
       }
     })();
+    return () => { cancelled = true; };
   }, [sessionId, navigate]);
 
   if (!session) {

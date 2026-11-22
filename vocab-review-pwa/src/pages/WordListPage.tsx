@@ -6,6 +6,7 @@ import { formatDateJa, isOverdue, nowIso, todayStr } from '../utils/dates';
 import { newId } from '../utils/ids';
 import { validateWordForm } from '../importExport/validators';
 import { useUiStore } from '../stores/uiStore';
+import { useBookStore } from '../stores/bookStore';
 
 type Tab =
   | 'all'
@@ -34,6 +35,7 @@ const STATE_LABEL: Record<WordState, string> = {
 };
 
 export function WordListPage() {
+  const bookId = useBookStore((s) => s.activeBookId);
   const [searchParams, setSearchParams] = useSearchParams();
   const showToast = useUiStore((s) => s.showToast);
   const [words, setWords] = useState<Word[]>([]);
@@ -102,6 +104,7 @@ export function WordListPage() {
     const now = nowIso();
     await putWord({
       id: newId(),
+      bookId,
       number: Number(form.number),
       word: form.word.trim(),
       meaning: form.meaning.trim(),

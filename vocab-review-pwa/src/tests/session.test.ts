@@ -9,7 +9,15 @@ import {
   type WordProgress,
   type WordState
 } from '../domain/types';
-import { exportBackup, importBackup } from '../db/repositories';
+import {
+  bulkPutWords,
+  createBook,
+  exportBackup,
+  getActiveBookId,
+  getAllAttempts,
+  importBackup,
+  setActiveBookId
+} from '../db/repositories';
 
 const DAY1 = new Date(2026, 7, 20, 9, 0, 0); // 2026-08-20
 const DAY2 = new Date(2026, 7, 21, 9, 0, 0);
@@ -79,7 +87,9 @@ beforeEach(async () => {
     db.sessions.clear(),
     db.attempts.clear(),
     db.retestQueue.clear(),
-    db.settings.clear()
+    db.settings.clear(),
+    db.books.clear(),
+    db.preferences.clear()
   ]);
   resetStore();
   useSettingsStore.setState({ settings: { ...DEFAULT_SETTINGS }, loaded: true });
@@ -245,6 +255,112 @@ describe('学習セッション', () => {
     const p = await db.progress.get('word-1');
     expect(p?.pronunciationState).toBe('needs_review');
     expect(p?.separateDaySuccessStreak).toBe(1); // 意味の判定とは独立
+  });
+});
+
+describe('単語帳ごとの学習', () => {
+  async function seedBooks() {
+    const firstBookId = await getActiveBookId();
+    const secondBook = await createBook('熟語帳');
+    const firstWord = { ...makeWord(1), bookId: firstBookId };
+    const secondWord = { ...makeWord(1), id: 'idiom-1', word: 'look forward to', bookId: secondBook.id };
+    await bulkPutWords([firstWord, secondWord]);
+    for (const word of [firstWord, secondWord]) {
+      await db.progress.put({
+        ...createDefaultProgress(word.id, '2026-08-01T00:00:00.000Z'),
+        state: 'weak',
+        dueDate: '2026-08-20',
+        pronunciationState: 'needs_review'
+      });
+    }
+    return { firstBookId, secondBookId: secondBook.id, firstWord, secondWord };
+  }
+
+  it('同じ番号でも出題・進捗・当日の回答履歴が混ざらない', async () => {
+    const { firstBookId, secondBookId, firstWord, secondWord } = await seedBooks();
+    const firstSessionId = await useSessionStore.getState().startDailySession();
+    expect((await db.sessions.get(firstSessionId!))?.bookId).toBe(firstBookId);
+    expect(useSessionStore.getState().session?.queueWordIds).toEqual([firstWord.id]);
+    await answer('correct');
+
+    await setActiveBookId(secondBookId);
+    resetStore();
+    expect(await getAllAttempts()).toEqual([]);
+    const secondSessionId = await useSessionStore.getState().startDailySession();
+    expect((await db.sessions.get(secondSessionId!))?.bookId).toBe(secondBookId);
+    expect(useSessionStore.getState().session?.queueWordIds).toEqual([secondWord.id]);
+    await answer('wrong');
+    expect((await db.progress.get(firstWord.id))?.totalFastCorrect).toBe(1);
+    expect((await db.progress.get(firstWord.id))?.totalWrong).toBe(0);
+    expect((await db.progress.get(secondWord.id))?.totalWrong).toBe(1);
+    expect((await getAllAttempts()).map((attempt) => attempt.wordId)).toEqual([secondWord.id]);
+  });
+
+  it('診断と発音確認も選択中の単語帳だけを出題する', async () => {
+    const { secondBookId, secondWord } = await seedBooks();
+    await setActiveBookId(secondBookId);
+    await useSessionStore.getState().startDiagnosisSession({
+      startNumber: 1,
+      endNumber: 1,
+      count: 10,
+      order: 'sequential',
+      unassessedOnly: false,
+      excludeWeak: false,
+      excludeMastered: false
+    });
+    expect(useSessionStore.getState().session?.queueWordIds).toEqual([secondWord.id]);
+    await useSessionStore.getState().startPronunciationSession();
+    expect(useSessionStore.getState().session?.queueWordIds).toEqual([secondWord.id]);
+    expect(useSessionStore.getState().currentCard?.phase).toBe('pronunciation');
+  });
+
+  it('別の単語帳で開始しても前の学習を中断状態で残し、再テストも再開する', async () => {
+    const { firstBookId, secondBookId, firstWord, secondWord } = await seedBooks();
+    const firstSessionId = await useSessionStore.getState().startDailySession();
+    await answer('wrong');
+    const retestId = useSessionStore.getState().retestItems[0].id;
+    expect(useSessionStore.getState().currentCard?.kind).toBe('retest');
+
+    await setActiveBookId(secondBookId);
+    resetStore();
+    expect(await useSessionStore.getState().resumeSession()).toBe(false);
+    const secondSessionId = await useSessionStore.getState().startDailySession();
+    expect(useSessionStore.getState().currentCard?.wordId).toBe(secondWord.id);
+    expect((await db.sessions.get(firstSessionId!))?.status).toBe('active');
+
+    await setActiveBookId(firstBookId);
+    resetStore();
+    expect(await useSessionStore.getState().resumeSession()).toBe(true);
+    expect(useSessionStore.getState().session?.id).toBe(firstSessionId);
+    expect(useSessionStore.getState().currentCard?.wordId).toBe(firstWord.id);
+    expect(useSessionStore.getState().currentCard?.kind).toBe('retest');
+    expect(useSessionStore.getState().retestItems[0].id).toBe(retestId);
+    expect((await db.sessions.get(secondSessionId!))?.status).toBe('active');
+  });
+
+  it('開始処理中はbusyになり、二重開始を防ぐ', async () => {
+    await seedBooks();
+    const first = useSessionStore.getState().startDailySession();
+    expect(useSessionStore.getState().busy).toBe(true);
+    expect(await useSessionStore.getState().startDailySession()).toBeNull();
+    await first;
+    expect(await db.sessions.count()).toBe(1);
+    expect(useSessionStore.getState().busy).toBe(false);
+  });
+
+  it('最終回答後に単語帳を切り替えても、戻ったときにセッションを完了できる', async () => {
+    const { firstBookId, secondBookId } = await seedBooks();
+    const sessionId = await useSessionStore.getState().startDailySession();
+    useSessionStore.getState().reveal();
+    useSessionStore.setState({ elapsedMs: 1000 });
+    await useSessionStore.getState().judge('correct');
+
+    await setActiveBookId(secondBookId);
+    resetStore();
+    await setActiveBookId(firstBookId);
+    expect(await useSessionStore.getState().resumeSession()).toBe(true);
+    expect((await db.sessions.get(sessionId!))?.status).toBe('completed');
+    expect(useSessionStore.getState().finishedSessionId).toBe(sessionId);
   });
 });
 
