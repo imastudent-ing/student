@@ -843,3 +843,46 @@ body {
 .onboarding-list {
   padding-left: 20px;
 }
+
+/* ============ 単語帳の切り替え ============ */
+.book-header {
+  max-width: 560px;
+  margin: 0 auto;
+  padding: calc(12px + env(safe-area-inset-top)) 16px 0;
+}
+.book-toolbar {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.book-select-label {
+  flex: 1 1 220px;
+  min-width: 0;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.book-select-label select {
+  min-height: 44px;
+  text-overflow: ellipsis;
+}
+.book-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+}
+.book-hint {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin: 6px 0 0;
+}
+.book-name-label {
+  display: block;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  margin: 12px 0 4px;
+}

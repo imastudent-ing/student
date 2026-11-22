@@ -3,6 +3,7 @@ import { db } from '../db/database';
 import {
   attemptsForSession,
   firstAttemptedWordIds,
+  getActiveBookId,
   getActiveSession,
   getAllProgress,
   getAllWords,
@@ -139,8 +140,8 @@ function computeCard(
   return null;
 }
 
-async function abandonActive(): Promise<void> {
-  const active = await getActiveSession();
+async function abandonActive(bookId: string): Promise<void> {
+  const active = await getActiveSession(bookId);
   if (active) {
     active.status = 'abandoned';
     active.updatedAt = nowIso();
@@ -193,15 +194,17 @@ export const useSessionStore = create<SessionStore>((set, get) => {
   }
 
   async function startSession(
+    bookId: string,
     mode: StudySession['mode'],
     queueWordIds: string[],
     customKind?: StudySession['customKind']
   ): Promise<string | null> {
     if (queueWordIds.length === 0) return null;
-    await abandonActive();
+    await abandonActive(bookId);
     const now = nowIso();
     const session: StudySession = {
       id: newId(),
+      bookId,
       localStudyDate: todayStr(),
       mode,
       customKind,
@@ -226,6 +229,20 @@ export const useSessionStore = create<SessionStore>((set, get) => {
     });
     await presentCard(session, []);
     return session.id;
+  }
+
+  /** Keep the selected book fixed while loading or resuming its session. */
+  async function withSessionOperation<T>(
+    busyResult: T,
+    operation: (bookId: string) => Promise<T>
+  ): Promise<T> {
+    if (get().busy) return busyResult;
+    set({ busy: true });
+    try {
+      return await operation(await getActiveBookId());
+    } finally {
+      set({ busy: false });
+    }
   }
 
   async function finishSession(status: 'completed' | 'abandoned') {
@@ -267,43 +284,43 @@ export const useSessionStore = create<SessionStore>((set, get) => {
     finishedSessionId: null,
     busy: false,
 
-    startDailySession: async () => {
+    startDailySession: () => withSessionOperation<string | null>(null, async (bookId) => {
       const s = settings();
       const today = todayStr();
       const [words, progressList, attempted] = await Promise.all([
-        getAllWords(),
-        getAllProgress(),
+        getAllWords(bookId),
+        getAllProgress(bookId),
         firstAttemptedWordIds(today)
       ]);
       const result = buildDailyQueue(words, progressList, s, today, {
         excludeWordIds: attempted
       });
-      return startSession('daily', result.queueWordIds);
-    },
+      return startSession(bookId, 'daily', result.queueWordIds);
+    }),
 
-    startExtraSession: async () => {
+    startExtraSession: () => withSessionOperation<string | null>(null, async (bookId) => {
       const s = settings();
       const today = todayStr();
       const [words, progressList, attempted] = await Promise.all([
-        getAllWords(),
-        getAllProgress(),
+        getAllWords(bookId),
+        getAllProgress(bookId),
         firstAttemptedWordIds(today)
       ]);
       const result = buildDailyQueue(words, progressList, s, today, {
         excludeWordIds: attempted
       });
-      return startSession('custom', result.queueWordIds, 'extra');
-    },
+      return startSession(bookId, 'custom', result.queueWordIds, 'extra');
+    }),
 
-    startDiagnosisSession: async (config) => {
-      const [words, progressList] = await Promise.all([getAllWords(), getAllProgress()]);
+    startDiagnosisSession: (config) => withSessionOperation<string | null>(null, async (bookId) => {
+      const [words, progressList] = await Promise.all([getAllWords(bookId), getAllProgress(bookId)]);
       const queue = buildDiagnosisQueue(words, progressList, config);
-      return startSession('diagnosis', queue);
-    },
+      return startSession(bookId, 'diagnosis', queue);
+    }),
 
-    startPronunciationSession: async () => {
-      const progressList = await getAllProgress();
-      const words = await getAllWords();
+    startPronunciationSession: () => withSessionOperation<string | null>(null, async (bookId) => {
+      const progressList = await getAllProgress(bookId);
+      const words = await getAllWords(bookId);
       const wordMap = new Map(words.map((w) => [w.id, w]));
       const queue = progressList
         .filter((p) => p.pronunciationState === 'needs_review')
@@ -312,19 +329,19 @@ export const useSessionStore = create<SessionStore>((set, get) => {
           const w = wordMap.get(id);
           return w !== undefined && w.word.trim() !== '';
         });
-      return startSession('custom', queue, 'pronunciation');
-    },
+      return startSession(bookId, 'custom', queue, 'pronunciation');
+    }),
 
-    resumeSession: async () => {
-      const session = await getActiveSession();
+    resumeSession: () => withSessionOperation(false, async (bookId) => {
+      const session = await getActiveSession(bookId);
       if (!session) return false;
       const retestItems = await retestItemsForSession(session.id);
       const wordIds = [...new Set([...session.queueWordIds, ...retestItems.map((r) => r.wordId)])];
       const wordsCache = await loadWordCache(wordIds);
-      set({ wordsCache, finishedSessionId: null, undoSnapshot: null });
+      set({ session, wordsCache, finishedSessionId: null, undoSnapshot: null });
       await presentCard(session, retestItems);
       return true;
-    },
+    }),
 
     reveal: () => {
       const { revealed, shownAtMs, currentCard } = get();

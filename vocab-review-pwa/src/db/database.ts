@@ -2,6 +2,7 @@ import Dexie, { type Table } from 'dexie';
 import type {
   AppSettings,
   Attempt,
+  Book,
   RetestQueueItem,
   StudySession,
   Word,
@@ -14,7 +15,14 @@ export interface SettingsRow {
   value: AppSettings;
 }
 
+export interface PreferenceRow {
+  id: string;
+  value: string;
+}
+
 export class VocabDatabase extends Dexie {
+  books!: Table<Book, string>;
+  preferences!: Table<PreferenceRow, string>;
   words!: Table<Word, string>;
   progress!: Table<WordProgress, string>;
   sessions!: Table<StudySession, string>;

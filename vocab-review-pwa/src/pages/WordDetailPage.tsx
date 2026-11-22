@@ -45,9 +45,10 @@ export function WordDetailPage() {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [confirmReset, setConfirmReset] = useState(false);
 
-  const reload = async () => {
+  const reload = async (isCancelled: () => boolean = () => false) => {
     if (!id) return;
     const w = await getWord(id);
+    if (isCancelled()) return;
     if (!w) {
       navigate('/words', { replace: true });
       return;
@@ -58,7 +59,9 @@ export function WordDetailPage() {
   };
 
   useEffect(() => {
-    void reload();
+    let cancelled = false;
+    void reload(() => cancelled);
+    return () => { cancelled = true; };
   }, [id]);
 
   if (!word || !progress) {

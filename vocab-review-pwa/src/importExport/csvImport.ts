@@ -1,5 +1,5 @@
 import Papa from 'papaparse';
-import type { Word } from '../domain/types';
+import { DEFAULT_BOOK_ID, type Word } from '../domain/types';
 import { newId } from '../utils/ids';
 import { nowIso } from '../utils/dates';
 
@@ -140,9 +140,13 @@ export function buildImportPlan(
   rows: ParsedCsvRow[],
   existingWords: Word[],
   policy: ConflictPolicy,
-  includeDuplicates: boolean
+  includeDuplicates: boolean,
+  bookId?: string
 ): ImportPlan {
-  const existingByNumber = new Map(existingWords.map((w) => [w.number, w]));
+  const scopedWords = bookId === undefined
+    ? existingWords
+    : existingWords.filter((word) => (word.bookId ?? DEFAULT_BOOK_ID) === bookId);
+  const existingByNumber = new Map(scopedWords.map((w) => [w.number, w]));
   const now = nowIso();
   const toCreate: Word[] = [];
   const toUpdate: Word[] = [];
@@ -175,10 +179,10 @@ export function buildImportPlan(
       } else if (policy === 'overwrite') {
         toUpdate.push({ ...existing, ...fields });
       } else {
-        toCreate.push({ id: newId(), createdAt: now, ...fields });
+        toCreate.push({ id: newId(), bookId, createdAt: now, ...fields });
       }
     } else {
-      toCreate.push({ id: newId(), createdAt: now, ...fields });
+      toCreate.push({ id: newId(), bookId, createdAt: now, ...fields });
     }
   }
   return { toCreate, toUpdate, skipped };

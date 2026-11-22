@@ -81,6 +81,21 @@ describe('インポート計画', () => {
     expect(plan.toCreate.length).toBe(2);
     expect(plan.toCreate.every((w) => w.id !== 'existing-1')).toBe(true);
   });
+
+  it('別の単語帳の同じ番号を上書きしない', () => {
+    const plan = buildImportPlan(rows, existing, 'overwrite', false, 'idioms');
+    expect(plan.toUpdate).toEqual([]);
+    expect(plan.toCreate).toHaveLength(2);
+    expect(plan.toCreate.every((word) => word.bookId === 'idioms')).toBe(true);
+  });
+
+  it('選択した単語帳の上書きではIDと所属を保持する', () => {
+    const books = [existing[0], { ...existing[0], id: 'idiom-1', bookId: 'idioms' }];
+    const plan = buildImportPlan(rows, books, 'overwrite', false, 'idioms');
+    expect(plan.toUpdate).toHaveLength(1);
+    expect(plan.toUpdate[0]).toMatchObject({ id: 'idiom-1', bookId: 'idioms', word: 'example' });
+    expect(plan.toCreate[0].bookId).toBe('idioms');
+  });
 });
 
 describe('CSVエクスポート', () => {

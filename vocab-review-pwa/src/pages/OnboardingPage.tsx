@@ -5,24 +5,29 @@ import { ConfirmDialog } from '../components/ConfirmDialog';
 import { createEmptyDataset, wordCount } from '../db/repositories';
 import { restoreFromJson } from '../importExport/jsonBackup';
 import { useUiStore } from '../stores/uiStore';
+import { useBookStore } from '../stores/bookStore';
+import { useSettingsStore } from '../stores/settingsStore';
 
 export function OnboardingPage() {
   const navigate = useNavigate();
   const showToast = useUiStore((s) => s.showToast);
+  const activeBookId = useBookStore((s) => s.activeBookId);
+  const bookName = useBookStore((s) => s.books.find((book) => book.id === s.activeBookId)?.name ?? '選択中の単語帳');
   const [hasWords, setHasWords] = useState(false);
   const [confirmEmpty, setConfirmEmpty] = useState(false);
   const [busy, setBusy] = useState(false);
   const restoreRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    void wordCount().then((c) => setHasWords(c > 0));
-  }, []);
+    void wordCount(activeBookId).then((c) => setHasWords(c > 0));
+  }, [activeBookId]);
 
   const handleRestore = async (file: File) => {
     setBusy(true);
     try {
       const text = await file.text();
       await restoreFromJson(text);
+      await Promise.all([useBookStore.getState().load(), useSettingsStore.getState().load()]);
       showToast('バックアップから復元しました。', 'success');
       navigate('/');
     } catch (e) {
@@ -35,6 +40,10 @@ export function OnboardingPage() {
   return (
     <div className="page">
       <h1 className="page-title">{hasWords ? 'データ管理' : 'ようこそ'}</h1>
+      <p className="hint">
+        「{bookName}」に単語・熟語を登録します。別の教材は画面上部の「単語帳を追加」から作成できます。
+        単語番号・学習履歴・出題は単語帳ごとに分かれます。
+      </p>
       {!hasWords && (
         <div className="card">
           <p>
@@ -78,6 +87,7 @@ export function OnboardingPage() {
 
       <section className="card">
         <h2>バックアップから復元する</h2>
+        <p className="hint">復元すると、すべての単語帳・学習履歴・設定がバックアップの内容に置き換わります。</p>
         <input
           ref={restoreRef}
           type="file"
@@ -100,12 +110,12 @@ export function OnboardingPage() {
       <ConfirmDialog
         open={confirmEmpty}
         title="空データを作成"
-        message="1〜1900の空レコードを作成します。既存の番号はスキップされます。"
+        message={`「${bookName}」に1〜1900の空レコードを作成します。この単語帳の既存の番号はスキップされます。`}
         confirmLabel="作成する"
         onConfirm={() => {
           setConfirmEmpty(false);
           setBusy(true);
-          void createEmptyDataset(1900)
+          void createEmptyDataset(1900, activeBookId)
             .then((n) => {
               showToast(`${n}件の空レコードを作成しました。`, 'success');
               setHasWords(true);

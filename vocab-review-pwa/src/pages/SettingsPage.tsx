@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSettingsStore } from '../stores/settingsStore';
+import { useBookStore } from '../stores/bookStore';
 import { useUiStore } from '../stores/uiStore';
 import { CsvImportPanel } from '../components/CsvImportPanel';
 import { ConfirmDialog } from '../components/ConfirmDialog';
@@ -15,6 +16,8 @@ export function SettingsPage() {
   const navigate = useNavigate();
   const settings = useSettingsStore((s) => s.settings);
   const update = useSettingsStore((s) => s.update);
+  const activeBookId = useBookStore((s) => s.activeBookId);
+  const bookName = useBookStore((s) => s.books.find((book) => book.id === s.activeBookId)?.name ?? '選択中の単語帳');
   const showToast = useUiStore((s) => s.showToast);
   const [confirmReset, setConfirmReset] = useState(false);
   const [confirmDeleteAll, setConfirmDeleteAll] = useState(false);
@@ -243,16 +246,17 @@ export function SettingsPage() {
         <h3>CSVインポート</h3>
         <CsvImportPanel />
         <h3>エクスポート・バックアップ</h3>
+        <p className="hint">CSVは「{bookName}」のみ、JSONはすべての単語帳・学習履歴・設定を保存します。</p>
         <div className="detail-actions">
           <button
             className="btn btn-secondary"
             onClick={() => {
-              void getAllWords().then((words) => {
-                downloadFile(`vocab-${todayStr()}.csv`, wordsToCsv(words), 'text/csv');
+              void getAllWords(activeBookId).then((words) => {
+                downloadFile(`vocab-${activeBookId}-${todayStr()}.csv`, wordsToCsv(words), 'text/csv');
               });
             }}
           >
-            CSVエクスポート
+            この単語帳のCSVエクスポート
           </button>
           <button
             className="btn btn-secondary"
@@ -262,10 +266,11 @@ export function SettingsPage() {
               });
             }}
           >
-            JSONバックアップ
+            全単語帳のJSONバックアップ
           </button>
         </div>
         <h3>JSON復元</h3>
+        <p className="hint">すべての単語帳・学習履歴・設定をバックアップの内容に置き換えます。</p>
         <input
           type="file"
           accept=".json,application/json"
@@ -276,7 +281,8 @@ export function SettingsPage() {
             void file
               .text()
               .then(restoreFromJson)
-              .then(() => {
+              .then(async () => {
+                await Promise.all([useBookStore.getState().load(), useSettingsStore.getState().load()]);
                 showToast('復元しました。', 'success');
                 navigate('/');
               })
@@ -299,26 +305,30 @@ export function SettingsPage() {
       <ConfirmDialog
         open={confirmReset}
         title="全履歴リセット"
-        message="すべての学習履歴・進捗を削除します。単語データは残ります。元に戻せません。"
+        message="すべての単語帳の学習履歴・進捗を削除します。単語帳と単語データは残ります。元に戻せません。"
         confirmLabel="リセットする"
         danger
         requireText="リセット"
         onConfirm={() => {
           setConfirmReset(false);
-          void resetAllHistory().then(() => showToast('履歴をリセットしました。', 'success'));
+          void resetAllHistory().then(async () => {
+            await useBookStore.getState().load();
+            showToast('すべての単語帳の履歴をリセットしました。', 'success');
+          });
         }}
         onCancel={() => setConfirmReset(false)}
       />
       <ConfirmDialog
         open={confirmDeleteAll}
         title="全データ削除"
-        message="単語・履歴・設定をすべて削除します。元に戻せません。"
+        message="すべての単語帳・単語・履歴・設定を削除します。元に戻せません。"
         confirmLabel="すべて削除する"
         danger
         requireText="削除"
         onConfirm={() => {
           setConfirmDeleteAll(false);
-          void deleteAllData().then(() => {
+          void deleteAllData().then(async () => {
+            await Promise.all([useBookStore.getState().load(), useSettingsStore.getState().load()]);
             showToast('すべてのデータを削除しました。');
             navigate('/onboarding');
           });

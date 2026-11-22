@@ -8,15 +8,7 @@ import { useUiStore } from '../stores/uiStore';
 const PRESETS: Array<{ label: string; config: Partial<DiagnosisConfig> }> = [
   { label: '未診断100語', config: { count: 100, unassessedOnly: true, order: 'sequential' } },
   { label: '未診断200語', config: { count: 200, unassessedOnly: true, order: 'sequential' } },
-  { label: '1〜800', config: { startNumber: 1, endNumber: 800, count: 800, order: 'sequential' } },
-  {
-    label: '801〜1500',
-    config: { startNumber: 801, endNumber: 1500, count: 700, order: 'sequential' }
-  },
-  {
-    label: '1501〜1900',
-    config: { startNumber: 1501, endNumber: 1900, count: 400, order: 'sequential' }
-  },
+  { label: '全範囲から番号順100語', config: { count: 100, order: 'sequential' } },
   { label: '全範囲ランダム100語', config: { count: 100, order: 'random' } }
 ];
 
@@ -62,7 +54,7 @@ export function DiagnosisSetupPage() {
     <div className="page">
       <h1 className="page-title">診断モード</h1>
       <p className="hint">
-        全単語を一度判定して弱点を抽出します。即答は習得済み、遅答・不正解は弱点になります。
+        選択中の単語帳を判定して弱点を抽出します。即答は習得済み、遅答・不正解は弱点になります。
       </p>
 
       <section className="card">

@@ -40,8 +40,10 @@ export function HomePage() {
   const [starting, setStarting] = useState(false);
 
   useEffect(() => {
+    let cancelled = false;
     void (async () => {
       const count = await wordCount();
+      if (cancelled) return;
       if (count === 0) {
         navigate('/onboarding', { replace: true });
         return;
@@ -53,6 +55,7 @@ export function HomePage() {
         firstAttemptedWordIds(today),
         getActiveSession()
       ]);
+      if (cancelled) return;
       const queue = buildDailyQueue(words, progressList, settings, today, {
         excludeWordIds: attempted
       });
@@ -72,6 +75,7 @@ export function HomePage() {
       });
       setActiveSession(active ?? null);
     })();
+    return () => { cancelled = true; };
   }, [navigate, settings]);
 
   const today = todayStr();
